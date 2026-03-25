@@ -768,7 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <!-- BIRTH CEREMONY MODAL -->
-<div id="birthCeremonyModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;">
+<div id="birthCeremonyModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
   <style>
     @keyframes ceremony-fall{0%{opacity:0;transform:translateY(-20px)}100%{opacity:0;transform:translateY(400px) rotateZ(720deg)}}
     @keyframes ceremony-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
@@ -833,7 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <!-- SHARE MODAL -->
-<div id="shareModal" style="display:none;position:fixed;inset:0;z-index:2001;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;">
+<div id="shareModal" style="display:none;position:fixed;inset:0;z-index:2001;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
   <div style="position:relative;max-width:600px;width:90%;background:linear-gradient(180deg,#1A3A5C 0%,#0F2847 100%);border:3px solid #FFD700;border-radius:16px;padding:24px;box-shadow:0 0 50px rgba(255,215,0,0.2)">
     <button onclick="closeShareModal()" style="position:absolute;top:12px;right:12px;background:none;border:none;color:#7A9BBF;font-size:20px;cursor:pointer">✕</button>
     <h3 style="color:#FFD700;font-family:'Press Start 2P',monospace;font-size:16px;margin-bottom:4px" id="shareTitle"></h3>
@@ -857,6 +857,8 @@ function showBirthCeremony(guildName, playerName) {
   document.getElementById('ceremonyLeader').textContent = `Led by Captain ${playerName}`;
 
   modal.style.display = 'flex';
+  modal.style.alignItems = 'center';
+  modal.style.justifyContent = 'center';
   setTimeout(() => {
     card.style.opacity = '1';
     card.style.transform = 'scale(1)';
@@ -908,7 +910,10 @@ function showShareModal() {
   const buttonsDiv = document.getElementById('shareButtons');
   buttonsDiv.innerHTML = buttons.map(b => `<button onclick="${b.onclick}" style="padding:12px;background:#1E4A7A;color:#FFD700;border:2px solid #FFD700;border-radius:6px;cursor:pointer;font-weight:bold;font-size:11px">${b.label}</button>`).join('');
 
-  document.getElementById('shareModal').style.display = 'flex';
+  const shareModalEl = document.getElementById('shareModal');
+  shareModalEl.style.display = 'flex';
+  shareModalEl.style.alignItems = 'center';
+  shareModalEl.style.justifyContent = 'center';
 }
 
 function closeShareModal() {
