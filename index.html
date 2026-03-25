@@ -867,14 +867,18 @@ function showBirthCeremony(guildName, playerName) {
   // Confetti
   for (let i = 0; i < 30; i++) {
     const confetti = document.createElement('div');
-    confetti.className = 'confetti';
     confetti.textContent = '✦';
+    confetti.style.position = 'fixed';
+    confetti.style.pointerEvents = 'none';
+    confetti.style.fontSize = '20px';
     confetti.style.left = Math.random() * 100 + '%';
-    confetti.style.top = '-20px';
+    confetti.style.top = '-30px';
     confetti.style.color = '#FFD700';
+    confetti.style.zIndex = '1999';
     confetti.style.animation = 'ceremony-fall 2.5s ease-in forwards';
     confetti.style.animationDelay = (i * 0.05) + 's';
-    modal.appendChild(confetti);
+    document.body.appendChild(confetti);
+    setTimeout(() => confetti.remove(), 2500 + (i * 50));
   }
 
   // Show buttons after animation
