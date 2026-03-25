@@ -575,7 +575,8 @@ function doCreateGuild() {
   guildDB.push({ name: n, color, desc: d || 'A new guild rises', members: 1 });
   document.getElementById('statGuilds').textContent = guildDB.length;
   const uname = document.getElementById('loginUsername').value.trim() || 'Angler';
-  finishLogin(uname, n);
+  closeGuildBrowser();
+  showBirthCeremony(n, uname);
 }
 
 function finishLogin(name, guild) {
@@ -765,5 +766,167 @@ document.addEventListener('DOMContentLoaded', () => {
   initFooter();
 });
 </script>
+
+<!-- BIRTH CEREMONY MODAL -->
+<div id="birthCeremonyModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;">
+  <style>
+    @keyframes ceremony-fall{0%{opacity:0;transform:translateY(-20px)}100%{opacity:0;transform:translateY(400px) rotateZ(720deg)}}
+    @keyframes ceremony-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+    @keyframes ceremony-pulse{0%,100%{opacity:0.8;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+    .ceremony-card{position:relative;width:400px;background:linear-gradient(180deg,#1A3A5C 0%,#0F2847 100%);border:4px solid #FFD700;border-radius:24px;padding:40px;text-align:center;box-shadow:0 0 50px rgba(255,215,0,0.3);overflow:hidden}
+    .ceremony-corners{position:absolute;width:100%;height:100%;inset:0;pointer-events:none}
+    .ceremony-corner{position:absolute;width:20px;height:20px;border:2px solid #FFD700;opacity:0.5}
+    .ceremony-corner.tl{top:0;left:0;border-right:none;border-bottom:none;border-radius:8px 0 0 0}
+    .ceremony-corner.tr{top:0;right:0;border-left:none;border-bottom:none;border-radius:0 8px 0 0}
+    .ceremony-corner.bl{bottom:0;left:0;border-right:none;border-top:none;border-radius:0 0 0 8px}
+    .ceremony-corner.br{bottom:0;right:0;border-left:none;border-top:none;border-radius:0 0 8px 0}
+    .ceremony-logo{animation:ceremony-spin 3s linear infinite;margin-bottom:16px;font-size:60px}
+    .ceremony-text{position:relative;z-index:1}
+    .ceremony-label{color:#7A9BBF;font-size:11px;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+    .ceremony-name{font-family:'Press Start 2P',monospace;font-size:32px;color:#FFD700;text-shadow:2px 2px 0 #000;margin-bottom:16px}
+    .ceremony-leader{color:#A0B4CC;font-size:14px;margin-bottom:16px}
+    .ceremony-stats{display:flex;gap:32px;justify-content:center;align-items:center;margin-bottom:24px;font-size:12px}
+    .ceremony-stat-item{text-align:center}
+    .ceremony-stat-num{font-family:'Press Start 2P',monospace;color:#FFD700;font-size:18px}
+    .ceremony-stat-label{color:#5A7A9A;font-size:10px;text-transform:uppercase;margin-top:4px}
+    .ceremony-stat-sep{width:1px;height:30px;background:#FFD700;opacity:0.3}
+    .ceremony-buttons{display:flex;gap:12px;margin-top:24px;z-index:1;position:relative}
+    .ceremony-btn{flex:1;padding:12px 16px;font-family:inherit;font-weight:bold;border-radius:8px;border:none;cursor:pointer;text-transform:uppercase;transition:all 0.2s}
+    .ceremony-btn-share{background:#FFD700;color:#0F2847;font-size:13px}
+    .ceremony-btn-share:hover{background:#FFE74C;box-shadow:0 0 20px rgba(255,215,0,0.3)}
+    .ceremony-btn-continue{background:#1E4A7A;color:#F0F4F8;border:2px solid #FFD700;font-size:13px}
+    .ceremony-btn-continue:hover{border-color:#FFD700}
+    .ceremony-message{color:#4FC3F7;font-size:11px;margin-top:12px;font-style:italic;animation:pulse 2s ease-in-out infinite}
+    .confetti{position:fixed;pointer-events:none;font-size:20px}
+  </style>
+
+  <div class="ceremony-card" id="ceremonyCard" style="opacity:0;transform:scale(0.9)">
+    <div class="ceremony-corners">
+      <div class="ceremony-corner tl"></div>
+      <div class="ceremony-corner tr"></div>
+      <div class="ceremony-corner bl"></div>
+      <div class="ceremony-corner br"></div>
+    </div>
+    <div class="ceremony-text">
+      <div class="ceremony-logo" id="ceremonyLogo">⚓</div>
+      <p class="ceremony-label">⚓ Guild Founded ⚓</p>
+      <h2 class="ceremony-name" id="ceremonyName"></h2>
+      <p class="ceremony-leader" id="ceremonyLeader"></p>
+      <div class="ceremony-stats">
+        <div class="ceremony-stat-item">
+          <div class="ceremony-stat-num">1</div>
+          <div class="ceremony-stat-label">Member</div>
+        </div>
+        <div class="ceremony-stat-sep"></div>
+        <div class="ceremony-stat-item">
+          <div class="ceremony-stat-num">7</div>
+          <div class="ceremony-stat-label">Max Size</div>
+        </div>
+      </div>
+      <div class="ceremony-buttons" id="ceremonyButtons" style="opacity:0;transition:opacity 0.3s">
+        <button class="ceremony-btn ceremony-btn-share" onclick="showShareModal()">Share ⚓</button>
+        <button class="ceremony-btn ceremony-btn-continue" onclick="finishCeremony()">Continue</button>
+      </div>
+      <p class="ceremony-message">Ahoy, and welcome to your fleet! 🎣</p>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE MODAL -->
+<div id="shareModal" style="display:none;position:fixed;inset:0;z-index:2001;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;">
+  <div style="position:relative;max-width:600px;width:90%;background:linear-gradient(180deg,#1A3A5C 0%,#0F2847 100%);border:3px solid #FFD700;border-radius:16px;padding:24px;box-shadow:0 0 50px rgba(255,215,0,0.2)">
+    <button onclick="closeShareModal()" style="position:absolute;top:12px;right:12px;background:none;border:none;color:#7A9BBF;font-size:20px;cursor:pointer">✕</button>
+    <h3 style="color:#FFD700;font-family:'Press Start 2P',monospace;font-size:16px;margin-bottom:4px" id="shareTitle"></h3>
+    <p style="color:#A0B4CC;font-size:12px;margin-bottom:16px">Share your achievement with your crew!</p>
+    <div id="shareCard" style="margin-bottom:16px;padding:12px;background:#091A30;border:1px solid #1E4A7A;border-radius:8px;color:#A0B4CC;font-size:11px;font-family:monospace">Generating card...</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px" id="shareButtons"></div>
+    <button onclick="downloadShareCard()" style="width:100%;padding:12px;background:linear-gradient(180deg,#FFD700 0%,#FFC700 100%);color:#0F2847;font-weight:bold;border:none;border-radius:8px;cursor:pointer;font-size:12px;text-transform:uppercase">⬇️ Download Card</button>
+  </div>
+</div>
+
+<script>
+// Birth Ceremony & Share
+let pendingCeremonyData = null;
+
+function showBirthCeremony(guildName, playerName) {
+  const modal = document.getElementById('birthCeremonyModal');
+  const card = document.getElementById('ceremonyCard');
+  pendingCeremonyData = { guildName, playerName };
+
+  document.getElementById('ceremonyName').textContent = guildName;
+  document.getElementById('ceremonyLeader').textContent = `Led by Captain ${playerName}`;
+
+  modal.style.display = 'flex';
+  setTimeout(() => {
+    card.style.opacity = '1';
+    card.style.transform = 'scale(1)';
+  }, 10);
+
+  // Confetti
+  for (let i = 0; i < 30; i++) {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti';
+    confetti.textContent = '✦';
+    confetti.style.left = Math.random() * 100 + '%';
+    confetti.style.top = '-20px';
+    confetti.style.color = '#FFD700';
+    confetti.style.animation = 'ceremony-fall 2.5s ease-in forwards';
+    confetti.style.animationDelay = (i * 0.05) + 's';
+    modal.appendChild(confetti);
+  }
+
+  // Show buttons after animation
+  setTimeout(() => {
+    document.getElementById('ceremonyButtons').style.opacity = '1';
+  }, 1500);
+}
+
+function finishCeremony() {
+  if (!pendingCeremonyData) return;
+  document.getElementById('birthCeremonyModal').style.display = 'none';
+  finishLogin(pendingCeremonyData.playerName, pendingCeremonyData.guildName);
+  pendingCeremonyData = null;
+}
+
+function showShareModal() {
+  if (!pendingCeremonyData) return;
+  const { guildName, playerName } = pendingCeremonyData;
+  document.getElementById('shareTitle').textContent = `Just founded ${guildName}!`;
+
+  const shareText = `⚓ Just founded ${guildName} in Fishing Frenzy Chapter 3! Join my guild and set sail together. 🎣`;
+  const pageUrl = window.location.href;
+
+  document.getElementById('shareCard').innerHTML = `📄 ${guildName} - Founded by Captain ${playerName}`;
+
+  const buttons = [
+    { label: '𝕏 Tweet', onclick: `window.open('https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText + ' ' + pageUrl)}','_blank','width=600,height=400')` },
+    { label: '⚔️ Discord', onclick: `copyToClipboard('${shareText}\\n\\n${pageUrl}')` },
+    { label: '💬 WhatsApp', onclick: `window.open('https://wa.me/?text=${encodeURIComponent(shareText)}','_blank')` },
+    { label: '🔗 Copy', onclick: `copyToClipboard('${shareText}\\n\\n${pageUrl}')` }
+  ];
+
+  const buttonsDiv = document.getElementById('shareButtons');
+  buttonsDiv.innerHTML = buttons.map(b => `<button onclick="${b.onclick}" style="padding:12px;background:#1E4A7A;color:#FFD700;border:2px solid #FFD700;border-radius:6px;cursor:pointer;font-weight:bold;font-size:11px">${b.label}</button>`).join('');
+
+  document.getElementById('shareModal').style.display = 'flex';
+}
+
+function closeShareModal() {
+  document.getElementById('shareModal').style.display = 'none';
+}
+
+function downloadShareCard() {
+  alert('Card download feature coming soon! For now, use the share buttons to spread the word.');
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Copied to clipboard!');
+  }).catch(() => {
+    alert('Could not copy. Try manually selecting and copying.');
+  });
+}
+</script>
+
 </body>
 </html>
