@@ -860,29 +860,39 @@ function showBirthCeremony(guildName, playerName) {
   modal.style.alignItems = 'center';
   modal.style.justifyContent = 'center';
 
-  // Confetti burst
-  for (let i = 0; i < 40; i++) {
+  // DRAMATIC confetti burst
+  for (let i = 0; i < 80; i++) {
     const conf = document.createElement('div');
-    conf.innerHTML = '✦';
+    conf.innerHTML = ['✦', '⚓', '🎣', '✦'][Math.floor(Math.random() * 4)];
     conf.style.position = 'fixed';
-    conf.style.fontSize = '24px';
-    conf.style.color = '#FFD700';
+    conf.style.fontSize = (40 + Math.random() * 60) + 'px';
+    conf.style.color = ['#FFD700', '#FFF700', '#FFE700'][Math.floor(Math.random() * 3)];
     conf.style.zIndex = '1998';
     conf.style.pointerEvents = 'none';
+    conf.style.fontWeight = 'bold';
+    conf.style.textShadow = '0 0 10px rgba(255,215,0,0.8)';
+
     const x = Math.random() * window.innerWidth;
-    const y = Math.random() * window.innerHeight * 0.3;
+    const y = window.innerHeight * -0.2;
     conf.style.left = x + 'px';
     conf.style.top = y + 'px';
     document.body.appendChild(conf);
 
-    const tx = (Math.random() - 0.5) * 200;
-    const ty = Math.random() * 400 + 200;
-    conf.animate([
-      { opacity: 1, transform: 'translate(0,0) scale(1)' },
-      { opacity: 0, transform: `translate(${tx}px, ${ty}px) scale(0)` }
-    ], { duration: 2000 + Math.random() * 1000, easing: 'ease-out' });
+    const tx = (Math.random() - 0.5) * 400;
+    const ty = window.innerHeight * 1.2;
+    const rotation = Math.random() * 720;
 
-    setTimeout(() => conf.remove(), 3000);
+    conf.animate([
+      { opacity: 1, transform: 'translateY(0) translateX(0) scale(1) rotate(0deg)', offset: 0 },
+      { opacity: 1, transform: `translateY(${ty * 0.5}px) translateX(${tx * 0.3}px) scale(1.2) rotate(${rotation * 0.5}deg)`, offset: 0.5 },
+      { opacity: 0, transform: `translateY(${ty}px) translateX(${tx}px) scale(0) rotate(${rotation}deg)`, offset: 1 }
+    ], {
+      duration: 3000 + Math.random() * 2000,
+      easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+      fill: 'forwards'
+    });
+
+    setTimeout(() => conf.remove(), 5000);
   }
 
   setTimeout(() => {
