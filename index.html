@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fishing Frenzy — Guild Wars</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --gold: #E8A830; --gold-bright: #F0D060; --gold-dark: #C07820; --gold-text: #5C3010;
+  --cream: #F0E0C0; --cream-dim: rgba(240,224,192,0.5);
+  --wood: #8B5E3C; --wood-light: #A87448; --dark-wood: #5C3A28;
+  --bg-deep: #180E06; --bg-mid: #241408; --bg-warm: #2E1A0C;
+  --bg-panel: #3A2214; --bg-panel-hi: #48301E;
+  --border-hi: #6B4C30; --border-lo: #140A04;
+  --guild-blue: #5BA0E8; --guild-red: #D84040; --guild-green: #4CAF50;
+  --fs-hero: clamp(1.4rem, 5vw, 2.8rem); --fs-label: 0.8rem; --fs-body: 0.85rem;
+  --px-border: 4px;
+}
+html { font-size: 16px; }
+body { font-family: 'Pixelify Sans', cursive; font-weight: 500; background: var(--bg-deep); color: var(--cream); min-height: 100vh; overflow-x: hidden; }
+body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background: repeating-conic-gradient(rgba(139,94,60,0.03) 0% 25%, transparent 0% 50%) 0 0/4px 4px,
+    repeating-linear-gradient(0deg, transparent, transparent 11px, rgba(107,76,48,0.07) 11px, rgba(107,76,48,0.07) 12px),
+    radial-gradient(ellipse 600px 400px at 50% 8%, rgba(232,168,48,0.12) 0%, transparent 100%),
+    radial-gradient(ellipse 400px 500px at 15% 90%, rgba(192,120,32,0.06) 0%, transparent 100%),
+    linear-gradient(180deg, #241408 0%, #180E06 50%, #120A04 100%);
+}
+body::after { content:''; position:fixed; inset:0; z-index:9999; pointer-events:none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+}
+
+/* === ANIMATIONS === */
+@keyframes reveal-up { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+@keyframes reveal-scale { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
+@keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
+@keyframes glow-pulse { 0%,100%{box-shadow:0 0 12px rgba(232,168,48,0.3),0 6px 20px rgba(0,0,0,0.4)} 50%{box-shadow:0 0 24px rgba(232,168,48,0.5),0 6px 20px rgba(0,0,0,0.4)} }
+@keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.35} }
+@keyframes msg-slide { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+@keyframes float-up { 0%{transform:translateY(100vh) translateX(0);opacity:0} 8%{opacity:0.06} 92%{opacity:0.06} 100%{transform:translateY(-20px) translateX(15px);opacity:0} }
+@keyframes ticker-scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+@keyframes countdown-pulse { 0%,100%{text-shadow:2px 2px 0 var(--dark-wood), 0 0 10px rgba(232,168,48,0.2)} 50%{text-shadow:2px 2px 0 var(--dark-wood), 0 0 20px rgba(232,168,48,0.4)} }
+
+.anim-reveal { opacity:0; animation: reveal-up 0.6s cubic-bezier(0.22,1,0.36,1) forwards; }
+.anim-d1{animation-delay:0s} .anim-d2{animation-delay:.15s} .anim-d3{animation-delay:.3s} .anim-d4{animation-delay:.5s}
+
+/* === NAV === */
+.nav { position:sticky; top:0; z-index:1500; display:flex; align-items:center; justify-content:space-between; padding:10px 32px;
+  background: linear-gradient(180deg, rgba(58,34,20,0.97) 0%, rgba(36,20,8,0.95) 100%);
+  border-bottom: 3px solid var(--border-lo); backdrop-filter: blur(8px); }
+.nav-brand { font-family:'Press Start 2P',monospace; font-size:0.55rem; color:var(--gold); text-shadow:1px 1px 0 #000; letter-spacing:1px; white-space:nowrap; }
+.nav-links { display:flex; align-items:center; gap:20px; }
+.nav-link { font-size:var(--fs-label); font-weight:700; color:var(--wood-light); text-decoration:none; cursor:pointer; transition:color .15s; text-transform:uppercase; letter-spacing:1px; background:none; border:none; font-family:inherit; }
+.nav-link:hover { color:var(--gold); }
+.nav-login-btn { font-family:'Press Start 2P',monospace; font-size:0.45rem; color:var(--gold-text); padding:8px 16px; cursor:pointer; text-transform:uppercase;
+  background: linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 40%, var(--gold-dark) 100%);
+  border:3px solid var(--gold-dark); border-top-color:var(--gold-bright); border-left-color:var(--gold-bright); border-bottom-width:4px; border-right-width:4px; transition:transform .05s; }
+.nav-login-btn:active { border-bottom-width:3px; border-right-width:3px; transform:translateY(1px); }
+.nav-login-btn.logged-in { background:linear-gradient(180deg,#6B9E45 0%,#4CAF50 40%,#2E7D32 100%); border-color:#2E7D32; border-top-color:#6B9E45; border-left-color:#6B9E45; color:var(--cream); cursor:default; }
+
+/* === LAYOUT === */
+.app { position:relative; z-index:1; display:flex; flex-direction:column; min-height:100vh; max-width:1440px; margin:0 auto; padding:32px 32px 0; gap:36px; }
+
+/* === PANEL === */
+.panel { background: repeating-linear-gradient(0deg, transparent, transparent 7px, rgba(107,76,48,0.06) 7px, rgba(107,76,48,0.06) 8px), linear-gradient(180deg, var(--bg-panel-hi) 0%, var(--bg-panel) 100%); border:var(--px-border) solid var(--border-lo); border-top-color:var(--border-hi); border-left-color:var(--border-hi); image-rendering:pixelated; }
+.panel-head { padding:14px 20px; background:linear-gradient(180deg,rgba(107,76,48,0.35) 0%,rgba(58,38,24,0.5) 100%); border-bottom:3px solid var(--border-lo); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.panel-title { font-family:'Press Start 2P',monospace; font-size:0.6rem; color:var(--gold); text-shadow:2px 2px 0 #000; letter-spacing:1px; }
+
+/* === HERO + COUNTDOWN === */
+.hero { text-align:center; padding:48px 20px 32px; }
+.hero-title { font-family:'Press Start 2P',monospace; font-size:var(--fs-hero); color:var(--gold);
+  text-shadow:4px 4px 0 var(--dark-wood), 6px 6px 0 rgba(0,0,0,0.3), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+  margin-bottom:32px; line-height:1.5; letter-spacing:3px; }
+.countdown { display:flex; justify-content:center; gap:clamp(12px,3vw,28px); margin-bottom:36px; }
+.cd-unit { text-align:center; }
+.cd-val { font-family:'Press Start 2P',monospace; font-size:clamp(1.4rem,4vw,2.6rem); color:var(--gold); animation:countdown-pulse 2s ease-in-out infinite;
+  display:block; min-width:clamp(50px,8vw,80px); padding:12px 8px;
+  background:var(--bg-panel); border:3px solid var(--border-lo); border-top-color:var(--border-hi); border-left-color:var(--border-hi); }
+.cd-label { font-size:0.7rem; color:var(--wood); margin-top:8px; text-transform:uppercase; letter-spacing:1px; display:block; }
+.hero-divider { display:block; width:160px; height:4px; margin:0 auto 36px;
+  background:repeating-linear-gradient(90deg, var(--gold) 0px, var(--gold) 8px, var(--dark-wood) 8px, var(--dark-wood) 12px, var(--gold-dark) 12px, var(--gold-dark) 16px, transparent 16px, transparent 24px); image-rendering:pixelated; }
+
+/* === CTA === */
+.cta-btn { font-family:'Press Start 2P',monospace; font-size:clamp(0.6rem,1.5vw,0.8rem); color:var(--gold-text);
+  background: linear-gradient(110deg, transparent 0%, transparent 30%, rgba(255,255,255,0.15) 45%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.15) 55%, transparent 70%, transparent 100%), linear-gradient(180deg, #f0c050 0%, var(--gold) 35%, var(--gold-dark) 100%);
+  background-size:200% 100%, 100% 100%; animation:shimmer 3s ease-in-out infinite, glow-pulse 3s ease-in-out infinite;
+  border:var(--px-border) solid var(--gold-dark); border-bottom-width:7px; border-right-width:7px; border-top-color:var(--gold-bright); border-left-color:var(--gold-bright);
+  padding:18px 48px; cursor:pointer; text-transform:uppercase; letter-spacing:2px; display:inline-block; text-decoration:none; position:relative; transition:transform .05s; }
+.cta-btn:hover { transform:translateY(-2px); }
+.cta-btn:active { border-bottom-width:var(--px-border); border-right-width:var(--px-border); border-top-color:var(--gold-dark); border-left-color:var(--gold-dark); transform:translateY(3px); animation:none; box-shadow:none; background:linear-gradient(180deg,var(--gold-dark) 0%,var(--gold) 100%); }
+.cta-btn.guild-active { animation:none; box-shadow:0 4px 16px rgba(0,0,0,0.4); background:linear-gradient(180deg,#6B9E45 0%,#4CAF50 40%,#2E7D32 100%); border-color:#2E7D32; border-top-color:#6B9E45; border-left-color:#6B9E45; color:var(--cream); cursor:default; }
+
+/* === HUD === */
+.hud { display:flex; align-items:center; justify-content:center; gap:32px; flex-wrap:wrap; padding:12px 24px; }
+.hud-item { display:flex; align-items:baseline; gap:8px; }
+.hud-label { font-size:var(--fs-body); color:var(--wood); text-transform:uppercase; letter-spacing:1px; }
+.hud-val { font-family:'Press Start 2P',monospace; font-size:0.6rem; color:var(--gold); text-shadow:1px 1px 0 #000; }
+.hud-dot { width:4px; height:4px; background:var(--wood-light); display:inline-block; flex-shrink:0; }
+
+/* === MAIN GRID === */
+.main { display:grid; grid-template-columns:1fr 360px; gap:24px; flex:1; align-items:stretch; }
+
+/* === MAP === */
+.map-wrap { position:relative; display:flex; flex-direction:column; }
+.map-frame { position:relative; overflow:hidden; flex:1; min-height:560px; display:flex; flex-direction:column; }
+.map-toggle { display:flex; }
+.map-toggle-btn { font-family:'Pixelify Sans',cursive; font-weight:700; font-size:var(--fs-label); padding:6px 18px; border:3px solid var(--border-lo); cursor:pointer; text-transform:uppercase; color:var(--cream-dim); background:var(--bg-deep); transition:all .1s; letter-spacing:1px; }
+.map-toggle-btn:first-child { border-right:none; }
+.map-toggle-btn.active { background:var(--gold); color:var(--gold-text); border-color:var(--gold-dark); }
+.map-stat { font-size:var(--fs-body); color:var(--wood); }
+.map-stat-val { color:var(--gold); }
+.map-body { position:relative; flex:1; min-height:0; }
+#map { position:absolute; inset:0; width:100%; height:100%; background:#162030; }
+.leaflet-container { background:#162030 !important; font-family:'Pixelify Sans',cursive !important; }
+.leaflet-tile-pane { filter:saturate(0.7) brightness(0.82) sepia(0.2); transition:filter .5s ease; }
+.leaflet-tile-pane.globe-tint { filter:saturate(0.8) brightness(0.88) sepia(0.1); }
+.map-scanlines { position:absolute; inset:0; z-index:800; pointer-events:none; background:repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.035) 1px, rgba(0,0,0,0.035) 2px); }
+.user-dot { width:12px; height:12px; border:3px solid rgba(0,0,0,0.5); box-shadow:0 0 10px currentColor; transition:all .3s ease; cursor:pointer; image-rendering:pixelated; animation:bob 3s ease-in-out infinite; }
+.user-dot:hover { transform:scale(1.5); }
+.user-card { width:140px; background:var(--bg-panel); border:3px solid var(--gold); border-top-color:var(--gold-bright); border-left-color:var(--gold-bright); padding:8px 10px; display:flex; align-items:center; gap:8px; box-shadow:0 4px 16px rgba(0,0,0,0.7); image-rendering:pixelated; animation:reveal-scale .25s ease-out; }
+.user-card .avatar { width:36px; height:36px; border:3px solid var(--dark-wood); image-rendering:pixelated; flex-shrink:0; }
+.user-card .uname { font-size:var(--fs-label); font-weight:700; color:var(--gold); line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.user-card .guild-tag { font-size:0.75rem; font-weight:600; }
+.map-prompt { position:absolute; bottom:24px; left:50%; transform:translateX(-50%); z-index:1000; background:var(--bg-panel); border:var(--px-border) solid var(--gold-dark); border-top-color:var(--gold); border-left-color:var(--gold); padding:12px 24px; display:flex; align-items:center; gap:14px; }
+.map-prompt-text { font-size:var(--fs-body); color:var(--cream); font-weight:600; }
+.map-prompt .sm-btn { font-family:'Press Start 2P',monospace; font-size:0.45rem; color:var(--gold-text); background:linear-gradient(180deg,var(--gold-bright) 0%,var(--gold) 50%,var(--gold-dark) 100%); border:3px solid var(--gold-dark); border-top-color:var(--gold-bright); border-left-color:var(--gold-bright); border-bottom-width:4px; border-right-width:4px; padding:8px 14px; cursor:pointer; text-transform:uppercase; }
+.map-prompt .sm-btn:active { border-bottom-width:3px; border-right-width:3px; transform:translateY(1px); }
+
+/* === CHAT === */
+.chat-wrap { display:flex; flex-direction:column; }
+.chat-frame { display:flex; flex-direction:column; flex:1; min-height:0; }
+.chat-live { display:flex; align-items:center; gap:6px; font-size:var(--fs-body); font-weight:700; color:#4CAF50; }
+.chat-live-dot { width:8px; height:8px; background:#4CAF50; border:2px solid #2E7D32; animation:pulse-dot 2s ease-in-out infinite; }
+.chat-feed { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:14px;
+  background: repeating-linear-gradient(0deg, transparent, transparent 5px, rgba(240,224,192,0.012) 5px, rgba(240,224,192,0.012) 6px), linear-gradient(180deg, rgba(20,10,4,0.25) 0%, transparent 30%, transparent 70%, rgba(20,10,4,0.15) 100%);
+  scrollbar-width:thin; scrollbar-color:var(--dark-wood) var(--bg-deep); }
+.chat-feed::-webkit-scrollbar { width:10px; }
+.chat-feed::-webkit-scrollbar-track { background:var(--bg-deep); border-left:3px solid var(--border-lo); }
+.chat-feed::-webkit-scrollbar-thumb { background:repeating-linear-gradient(0deg, var(--wood) 0px, var(--wood) 3px, var(--dark-wood) 3px, var(--dark-wood) 6px); border:2px solid var(--bg-deep); }
+.msg { display:flex; gap:10px; align-items:flex-start; opacity:0; animation:msg-slide .35s cubic-bezier(0.22,1,0.36,1) forwards; }
+.msg-avatar { width:34px; height:34px; border:3px solid var(--dark-wood); flex-shrink:0; image-rendering:pixelated; }
+.msg-body { flex:1; min-width:0; }
+.msg-head { display:flex; align-items:baseline; gap:8px; margin-bottom:2px; }
+.msg-name { font-size:var(--fs-label); font-weight:700; color:var(--gold); }
+.msg-guild { font-size:0.75rem; font-weight:700; }
+.msg-time { font-size:0.75rem; color:var(--wood); margin-left:auto; }
+.msg-text { font-size:var(--fs-body); color:var(--cream); line-height:1.55; word-break:break-word; }
+.chat-bar { padding:14px; border-top:3px solid var(--border-lo); display:flex; gap:10px; flex-shrink:0; background:rgba(20,10,4,0.4); }
+
+/* === INPUTS / BUTTONS === */
+.px-input { font-family:'Pixelify Sans',cursive; font-size:var(--fs-body); font-weight:500; color:var(--cream); background:var(--bg-deep); border:var(--px-border) solid var(--border-lo); border-bottom-color:var(--border-hi); border-right-color:var(--border-hi); padding:10px 14px; outline:none; image-rendering:pixelated; transition:border-color .15s; }
+.px-input::placeholder { color:rgba(240,224,192,0.25); }
+.px-input:focus { border-color:var(--gold); border-top-color:var(--gold-dark); border-left-color:var(--gold-dark); }
+.send-btn { font-family:'Pixelify Sans',cursive; font-size:var(--fs-label); font-weight:700; color:var(--gold-text); background:linear-gradient(180deg,var(--gold-bright) 0%,var(--gold) 40%,var(--gold-dark) 100%); border:3px solid var(--gold-dark); border-top-color:var(--gold-bright); border-left-color:var(--gold-bright); border-bottom-width:5px; border-right-width:5px; padding:10px 20px; cursor:pointer; text-transform:uppercase; letter-spacing:1px; transition:transform .05s; white-space:nowrap; }
+.send-btn:hover { filter:brightness(1.08); }
+.send-btn:active { border-bottom-width:3px; border-right-width:3px; transform:translateY(2px); }
+
+/* === GUILD BROWSER MODAL === */
+.modal-bg { position:fixed; inset:0; background:rgba(8,4,2,0.88); z-index:2000; display:none; align-items:center; justify-content:center; overflow-y:auto; padding:20px; }
+.modal-bg.show { display:flex; }
+.modal { background: repeating-linear-gradient(0deg, transparent, transparent 7px, rgba(107,76,48,0.08) 7px, rgba(107,76,48,0.08) 8px), linear-gradient(180deg, var(--bg-panel-hi) 0%, var(--bg-panel) 100%); border:var(--px-border) solid var(--gold-dark); border-top-color:var(--gold); border-left-color:var(--gold); padding:32px; width:90%; max-width:560px; position:relative; animation:reveal-scale .3s cubic-bezier(0.22,1,0.36,1); }
+.modal::before,.modal::after { content:''; position:absolute; width:14px; height:14px; border:3px solid var(--gold); pointer-events:none; }
+.modal::before { top:10px; left:10px; border-right:none; border-bottom:none; }
+.modal::after { bottom:10px; right:10px; border-left:none; border-top:none; }
+.modal-title { font-family:'Press Start 2P',monospace; font-size:0.65rem; color:var(--gold); margin-bottom:20px; text-shadow:2px 2px 0 #000; text-align:center; }
+.modal .px-input { width:100%; margin-bottom:16px; }
+.modal-dismiss { font-family:'Pixelify Sans',cursive; font-size:var(--fs-body); font-weight:600; color:var(--wood); background:none; border:none; cursor:pointer; padding:8px; transition:color .15s; display:block; margin:0 auto; }
+.modal-dismiss:hover { color:var(--cream); }
+
+/* Guild browser tabs */
+.guild-tabs { display:flex; gap:0; margin-bottom:20px; }
+.guild-tab { flex:1; font-family:'Pixelify Sans',cursive; font-weight:700; font-size:var(--fs-label); padding:10px; border:3px solid var(--border-lo); background:var(--bg-deep); color:var(--cream-dim); cursor:pointer; text-align:center; text-transform:uppercase; transition:all .1s; }
+.guild-tab:first-child { border-right:none; }
+.guild-tab.active { background:var(--gold); color:var(--gold-text); border-color:var(--gold-dark); }
+
+/* Guild search */
+.guild-search { display:flex; gap:8px; margin-bottom:16px; }
+.guild-search .px-input { flex:1; }
+
+/* Guild list */
+.guild-list { max-height:340px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:20px; scrollbar-width:thin; scrollbar-color:var(--dark-wood) var(--bg-deep); }
+.guild-list::-webkit-scrollbar { width:8px; }
+.guild-list::-webkit-scrollbar-thumb { background:var(--wood); }
+
+.guild-row { display:flex; align-items:center; gap:12px; padding:12px; background:var(--bg-deep); border:3px solid var(--border-lo); border-top-color:var(--border-hi); border-left-color:var(--border-hi); cursor:pointer; transition:all .15s; }
+.guild-row:hover { border-color:var(--gold-dark); border-top-color:var(--gold); border-left-color:var(--gold); background:var(--bg-panel); }
+.guild-row.picked { border-color:var(--gold-dark); border-top-color:var(--gold); border-left-color:var(--gold); background:rgba(232,168,48,0.1); }
+.guild-row.full { opacity:0.4; filter:blur(0.5px) grayscale(0.3); pointer-events:none; position:relative; }
+.guild-row.full::after { content:'FULL'; position:absolute; right:12px; font-family:'Press Start 2P',monospace; font-size:0.4rem; color:var(--guild-red); letter-spacing:1px; filter:none; }
+
+.guild-row-icon { width:40px; height:40px; border:3px solid var(--dark-wood); image-rendering:pixelated; flex-shrink:0; }
+.guild-row-info { flex:1; min-width:0; }
+.guild-row-name { font-size:var(--fs-label); font-weight:700; color:var(--gold); margin-bottom:2px; }
+.guild-row-desc { font-size:0.75rem; color:var(--wood-light); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.guild-row-count { font-family:'Press Start 2P',monospace; font-size:0.4rem; color:var(--cream-dim); white-space:nowrap; }
+
+/* Guild create form */
+.guild-create-form { display:flex; flex-direction:column; gap:12px; }
+.guild-create-form .px-input { width:100%; }
+.guild-create-form textarea.px-input { resize:none; height:60px; font-family:'Pixelify Sans',cursive; }
+.guild-preview { display:flex; align-items:center; gap:12px; padding:12px; background:var(--bg-deep); border:3px solid var(--border-hi); margin-top:4px; }
+.guild-preview-icon { width:48px; height:48px; border:3px solid var(--dark-wood); image-rendering:pixelated; }
+.guild-preview-name { font-size:var(--fs-label); font-weight:700; color:var(--gold); }
+.guild-preview-tag { font-size:0.75rem; color:var(--wood-light); }
+
+/* Join button inside modal */
+.modal-action-btn { font-family:'Press Start 2P',monospace; font-size:0.5rem; color:var(--gold-text); width:100%; padding:14px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;
+  background:linear-gradient(110deg, transparent 0%, transparent 30%, rgba(255,255,255,0.12) 45%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.12) 55%, transparent 70%, transparent 100%), linear-gradient(180deg, #f0c050 0%, var(--gold) 35%, var(--gold-dark) 100%);
+  background-size:200% 100%, 100% 100%; animation:shimmer 3s ease-in-out infinite;
+  border:var(--px-border) solid var(--gold-dark); border-bottom-width:6px; border-right-width:6px; border-top-color:var(--gold-bright); border-left-color:var(--gold-bright); }
+.modal-action-btn:active { border-bottom-width:var(--px-border); border-right-width:var(--px-border); transform:translateY(2px); animation:none; }
+.modal-action-btn:disabled { opacity:0.4; cursor:not-allowed; animation:none; }
+
+/* === FOOTER === */
+.site-footer { position:relative; margin-top:40px; overflow:hidden; border-top:3px solid var(--border-hi); background:linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-deep) 100%); }
+.footer-ticker-wrap { overflow:hidden; padding:14px 0; border-bottom:2px solid var(--border-lo); position:relative; }
+.footer-ticker-wrap::before, .footer-ticker-wrap::after { content:''; position:absolute; top:0; bottom:0; width:60px; z-index:2; pointer-events:none; }
+.footer-ticker-wrap::before { left:0; background:linear-gradient(90deg, var(--bg-panel), transparent); }
+.footer-ticker-wrap::after { right:0; background:linear-gradient(270deg, var(--bg-panel), transparent); }
+.footer-ticker { display:flex; gap:40px; animation:ticker-scroll 30s linear infinite; white-space:nowrap; }
+.footer-ticker-item { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.footer-ticker-icon { width:24px; height:24px; border:2px solid var(--dark-wood); image-rendering:pixelated; }
+.footer-ticker-name { font-size:var(--fs-label); font-weight:700; color:var(--gold); }
+.footer-ticker-label { font-size:0.75rem; color:var(--wood); }
+
+.footer-body { display:flex; align-items:center; justify-content:space-between; padding:20px 32px; flex-wrap:wrap; gap:16px; }
+.footer-brand { font-family:'Press Start 2P',monospace; font-size:0.5rem; color:var(--gold-dark); text-shadow:1px 1px 0 #000; }
+.footer-links { display:flex; gap:20px; }
+.footer-link { font-size:0.75rem; color:var(--wood); text-decoration:none; transition:color .15s; cursor:pointer; }
+.footer-link:hover { color:var(--gold); }
+.footer-wave { height:4px; background:repeating-linear-gradient(90deg, var(--gold-dark) 0px, var(--gold-dark) 12px, var(--border-lo) 12px, var(--border-lo) 24px); margin-bottom:0; }
+
+/* Floating guild bubbles in footer */
+.footer-bubbles { position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; overflow:hidden; }
+.footer-bubble { position:absolute; bottom:-40px; width:32px; height:32px; border:2px solid var(--gold-dark); opacity:0.08; image-rendering:pixelated; animation:bubble-rise linear infinite; }
+@keyframes bubble-rise { 0%{transform:translateY(0) scale(0.8); opacity:0} 10%{opacity:0.08} 90%{opacity:0.06} 100%{transform:translateY(-120px) scale(1.1); opacity:0} }
+
+/* === PARTICLES === */
+.particle { position:fixed; background:var(--gold); opacity:0; pointer-events:none; z-index:0; animation:float-up linear infinite; image-rendering:pixelated; }
+
+/* === RESPONSIVE === */
+@media(max-width:940px) {
+  .main { grid-template-columns:1fr; }
+  .map-frame { min-height:400px; }
+  .nav { padding:10px 16px; }
+  .nav-links { gap:12px; }
+  .hero { padding:32px 16px 24px; }
+  .app { padding:24px 16px 0; gap:24px; }
+  .panel-head { flex-wrap:wrap; gap:8px; }
+  .map-stat { display:none; }
+  .footer-body { padding:16px; }
+}
+@media(max-width:520px) {
+  .app { padding:12px 12px 0; gap:16px; }
+  .hero-title { font-size:1.1rem; letter-spacing:1px; }
+  .map-frame { min-height:300px; }
+  .cta-btn { padding:12px 24px; font-size:0.55rem; }
+  .hud { gap:16px; }
+  .hud-label { display:none; }
+  .countdown { gap:8px; }
+  .cd-val { font-size:1.1rem; min-width:44px; padding:8px 4px; }
+  .nav-link { display:none; }
+  .map-prompt { flex-direction:column; text-align:center; left:12px; right:12px; transform:none; bottom:12px; }
+  .footer-body { flex-direction:column; text-align:center; }
+}
+
+/* === LEAFLET OVERRIDES === */
+.leaflet-popup-content-wrapper { background:var(--bg-panel)!important; color:var(--cream)!important; border:3px solid var(--gold)!important; border-radius:0!important; box-shadow:0 4px 20px rgba(0,0,0,0.7)!important; }
+.leaflet-popup-tip { background:var(--bg-panel)!important; }
+.leaflet-popup-content { font-family:'Pixelify Sans',cursive!important; margin:8px 12px!important; }
+.leaflet-control-zoom a { background:var(--bg-panel)!important; color:var(--gold)!important; border:3px solid var(--border-lo)!important; border-radius:0!important; font-weight:700!important; width:36px!important; height:36px!important; line-height:30px!important; font-size:18px!important; }
+.leaflet-control-zoom a:hover { background:var(--bg-panel-hi)!important; }
+.leaflet-control-attribution { display:none!important; }
+</style>
+</head>
+<body>
+
+<div id="particles"></div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand">Fishing Frenzy</div>
+  <div class="nav-links">
+    <button class="nav-link" onclick="document.querySelector('.main').scrollIntoView({behavior:'smooth'})">Map</button>
+    <button class="nav-link" onclick="document.getElementById('chatFeed').scrollIntoView({behavior:'smooth'})">Chat</button>
+    <button class="nav-login-btn" id="navLoginBtn" onclick="openGuildBrowser()">Log In</button>
+  </div>
+</nav>
+
+<!-- GUILD BROWSER MODAL -->
+<div class="modal-bg" id="guildModal">
+  <div class="modal">
+    <div class="modal-title" id="guildModalTitle">Rep My Guild</div>
+
+    <!-- Username (always shown at top) -->
+    <input class="px-input" id="loginUsername" type="text" placeholder="Your angler name..." maxlength="16">
+
+    <!-- Tabs -->
+    <div class="guild-tabs">
+      <button class="guild-tab active" onclick="switchGuildTab('browse',this)">Browse Guilds</button>
+      <button class="guild-tab" onclick="switchGuildTab('create',this)">Create Guild</button>
+    </div>
+
+    <!-- BROWSE TAB -->
+    <div id="tabBrowse">
+      <div class="guild-search">
+        <input class="px-input" id="guildSearch" type="text" placeholder="Search guilds..." oninput="filterGuilds()">
+      </div>
+      <div class="guild-list" id="guildList"></div>
+      <button class="modal-action-btn" id="joinGuildBtn" onclick="doJoinGuild()" disabled>Select a Guild</button>
+    </div>
+
+    <!-- CREATE TAB -->
+    <div id="tabCreate" style="display:none;">
+      <div class="guild-create-form">
+        <input class="px-input" id="newGuildName" type="text" placeholder="Guild name..." maxlength="20" oninput="updateGuildPreview()">
+        <textarea class="px-input" id="newGuildDesc" placeholder="Short tagline..." maxlength="60" oninput="updateGuildPreview()"></textarea>
+        <div class="guild-preview" id="guildPreview" style="display:none;">
+          <img class="guild-preview-icon" id="guildPreviewIcon" src="" alt="">
+          <div>
+            <div class="guild-preview-name" id="guildPreviewName"></div>
+            <div class="guild-preview-tag" id="guildPreviewTag"></div>
+          </div>
+        </div>
+        <button class="modal-action-btn" id="createGuildBtn" onclick="doCreateGuild()" disabled>Create & Join</button>
+      </div>
+    </div>
+
+    <button class="modal-dismiss" onclick="closeGuildBrowser()">Maybe Later</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app">
+
+  <!-- HERO + COUNTDOWN -->
+  <section class="hero anim-reveal anim-d1">
+    <h1 class="hero-title">It's Time for<br>Guild Wars</h1>
+    <div class="countdown" id="countdown">
+      <div class="cd-unit"><span class="cd-val" id="cdDays">--</span><span class="cd-label">Days</span></div>
+      <div class="cd-unit"><span class="cd-val" id="cdHours">--</span><span class="cd-label">Hours</span></div>
+      <div class="cd-unit"><span class="cd-val" id="cdMins">--</span><span class="cd-label">Mins</span></div>
+      <div class="cd-unit"><span class="cd-val" id="cdSecs">--</span><span class="cd-label">Secs</span></div>
+    </div>
+    <div class="hero-divider"></div>
+    <button class="cta-btn" id="heroBtn" onclick="openGuildBrowser()">Rep My Guild</button>
+  </section>
+
+  <!-- HUD -->
+  <div class="hud panel anim-reveal anim-d2">
+    <div class="hud-item"><span class="hud-label">Anglers</span><span class="hud-val" id="statAnglers">1,247</span></div>
+    <span class="hud-dot"></span>
+    <div class="hud-item"><span class="hud-label">Guilds</span><span class="hud-val" id="statGuilds">12</span></div>
+    <span class="hud-dot"></span>
+    <div class="hud-item"><span class="hud-label">Catches</span><span class="hud-val" id="statCatches">38,412</span></div>
+    <span class="hud-dot"></span>
+    <div class="hud-item"><span class="hud-label">Leading</span><span class="hud-val">Ember Reef</span></div>
+  </div>
+
+  <!-- MAIN -->
+  <section class="main anim-reveal anim-d3">
+    <div class="map-wrap">
+      <div class="map-frame panel">
+        <div class="panel-head">
+          <div class="panel-title">World Map</div>
+          <div class="map-stat">Anglers: <span class="map-stat-val">1,247</span></div>
+          <div class="map-toggle">
+            <button class="map-toggle-btn active" onclick="setMapView('map',this)">Map</button>
+            <button class="map-toggle-btn" onclick="setMapView('globe',this)">Globe</button>
+          </div>
+        </div>
+        <div class="map-body">
+          <div id="map"></div>
+          <div class="map-scanlines"></div>
+        </div>
+        <div class="map-prompt" id="mapPrompt">
+          <span class="map-prompt-text">Drop your pin on the map</span>
+          <button class="sm-btn" onclick="openGuildBrowser()">Log In</button>
+        </div>
+      </div>
+    </div>
+    <div class="chat-wrap anim-reveal anim-d4">
+      <div class="chat-frame panel">
+        <div class="panel-head">
+          <div class="panel-title">Global Chat</div>
+          <div class="chat-live"><span class="chat-live-dot"></span><span id="chatOnlineCount">342</span> Live</div>
+        </div>
+        <div class="chat-feed" id="chatFeed"></div>
+        <div class="chat-bar">
+          <input class="px-input" id="chatInput" type="text" placeholder="Say something, angler..." maxlength="200" style="flex:1">
+          <button class="send-btn" onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-bubbles" id="footerBubbles"></div>
+  <div class="footer-wave"></div>
+  <div class="footer-ticker-wrap">
+    <div class="footer-ticker" id="footerTicker"></div>
+  </div>
+  <div class="footer-body">
+    <div class="footer-brand">Fishing Frenzy Ch.3</div>
+    <div class="footer-links">
+      <span class="footer-link">Guild Wars</span>
+      <span class="footer-link">Leaderboard</span>
+      <span class="footer-link">About</span>
+    </div>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const EVENT_DATE = new Date('2026-04-15T00:00:00Z'); // ← Change this date
+const MAX_GUILD_SIZE = 7;
+
+// ============================================================
+// GUILD DATA (simulated)
+// ============================================================
+const guildDB = [
+  { name:'Kraken Cove', color:'#5BA0E8', desc:'Rulers of the deep', members:7 },
+  { name:'Ember Reef', color:'#D84040', desc:'Burn the seas, claim the catch', members:6 },
+  { name:'Tide Walkers', color:'#4CAF50', desc:'We walk where tides won\'t go', members:5 },
+  { name:'Golden Hook', color:'#E8A830', desc:'Every cast is gold', members:4 },
+  { name:'Moonlit Anglers', color:'#9B8EC4', desc:'Night fishing elite', members:7 },
+  { name:'Coral Breakers', color:'#E06848', desc:'Smashing records daily', members:3 },
+  { name:'Phantom Nets', color:'#7088A8', desc:'Silent. Deadly. Efficient.', members:6 },
+  { name:'Drift Kings', color:'#C8A848', desc:'Go with the flow, catch them all', members:2 },
+  { name:'Abyssal Order', color:'#4868A8', desc:'From the darkest depths', members:5 },
+  { name:'Sun Chasers', color:'#E8C040', desc:'First light, first catch', members:7 },
+  { name:'Riptide Clan', color:'#38A8A8', desc:'Ride the current to victory', members:1 },
+  { name:'Iron Anchors', color:'#888888', desc:'Unbreakable. Unmovable.', members:4 },
+];
+
+// Recent guild creations for footer ticker
+const recentGuilds = [
+  { name:'Storm Sailors', color:'#6888C0' },
+  { name:'Lava Lurkers', color:'#D86040' },
+  { name:'Frost Fins', color:'#80C0E0' },
+  { name:'Bamboo Brigade', color:'#80A848' },
+  { name:'Pearl Divers', color:'#D0A8D0' },
+  { name:'Shadow Trawlers', color:'#606080' },
+  { name:'Neon Catch', color:'#80E0A0' },
+  { name:'The Undertow', color:'#486080' },
+];
+
+function guildIcon(name, color) {
+  const s = name.split('').reduce((a,c) => a + c.charCodeAt(0), 0);
+  const c2 = color + '99';
+  // Generate unique pixel pattern from guild name hash
+  const px = [];
+  for (let y = 0; y < 6; y++) for (let x = 0; x < 3; x++) {
+    if ((s * (y+1) * (x+2) + y * 7 + x * 13) % 3 !== 0) {
+      px.push(`<rect x="${x+1}" y="${y+1}" width="1" height="1" fill="${color}"/><rect x="${5-x}" y="${y+1}" width="1" height="1" fill="${color}"/>`);
+    }
+  }
+  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 8 8"><rect width="8" height="8" fill="${color}22"/><rect x="1" y="1" width="6" height="6" fill="${color}11"/>${px.join('')}</svg>`)}`;
+}
+
+// ============================================================
+// COUNTDOWN
+// ============================================================
+function updateCountdown() {
+  const now = Date.now();
+  const diff = Math.max(0, EVENT_DATE.getTime() - now);
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  document.getElementById('cdDays').textContent = String(d).padStart(2,'0');
+  document.getElementById('cdHours').textContent = String(h).padStart(2,'0');
+  document.getElementById('cdMins').textContent = String(m).padStart(2,'0');
+  document.getElementById('cdSecs').textContent = String(s).padStart(2,'0');
+}
+
+// ============================================================
+// GUILD BROWSER
+// ============================================================
+let selGuild = null;
+let curUser = null;
+
+function openGuildBrowser() {
+  if (curUser) return;
+  document.getElementById('guildModal').classList.add('show');
+  document.getElementById('loginUsername').focus();
+  renderGuildList();
+}
+function closeGuildBrowser() { document.getElementById('guildModal').classList.remove('show'); }
+
+function switchGuildTab(tab, btn) {
+  document.querySelectorAll('.guild-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tabBrowse').style.display = tab === 'browse' ? '' : 'none';
+  document.getElementById('tabCreate').style.display = tab === 'create' ? '' : 'none';
+}
+
+function renderGuildList(filter) {
+  const list = document.getElementById('guildList');
+  list.innerHTML = '';
+  const q = (filter || '').toLowerCase();
+  const sorted = [...guildDB].sort((a,b) => {
+    const af = a.members >= MAX_GUILD_SIZE ? 1 : 0;
+    const bf = b.members >= MAX_GUILD_SIZE ? 1 : 0;
+    if (af !== bf) return af - bf;
+    return b.members - a.members;
+  });
+  let found = false;
+  sorted.forEach(g => {
+    if (q && !g.name.toLowerCase().includes(q)) return;
+    found = true;
+    const full = g.members >= MAX_GUILD_SIZE;
+    const row = document.createElement('div');
+    row.className = 'guild-row' + (full ? ' full' : '') + (selGuild === g.name ? ' picked' : '');
+    row.innerHTML = `<img class="guild-row-icon" src="${guildIcon(g.name, g.color)}" alt="">
+      <div class="guild-row-info"><div class="guild-row-name">${esc(g.name)}</div><div class="guild-row-desc">${esc(g.desc)}</div></div>
+      <div class="guild-row-count">${g.members}/${MAX_GUILD_SIZE}</div>`;
+    if (!full) row.onclick = () => pickGuild(g.name);
+    list.appendChild(row);
+  });
+  if (!found) { list.innerHTML = '<div style="text-align:center;color:var(--wood);padding:20px;">No guilds found</div>'; }
+}
+
+function filterGuilds() { renderGuildList(document.getElementById('guildSearch').value); }
+
+function pickGuild(name) {
+  selGuild = name;
+  renderGuildList(document.getElementById('guildSearch').value);
+  const btn = document.getElementById('joinGuildBtn');
+  btn.textContent = 'Join ' + name;
+  btn.disabled = false;
+}
+
+function doJoinGuild() {
+  if (!selGuild) return;
+  const name = document.getElementById('loginUsername').value.trim() || 'Angler';
+  const g = guildDB.find(x => x.name === selGuild);
+  if (!g || g.members >= MAX_GUILD_SIZE) return;
+  g.members++;
+  finishLogin(name, selGuild);
+}
+
+// Create guild
+function updateGuildPreview() {
+  const n = document.getElementById('newGuildName').value.trim();
+  const d = document.getElementById('newGuildDesc').value.trim();
+  const prev = document.getElementById('guildPreview');
+  const btn = document.getElementById('createGuildBtn');
+  if (n.length >= 3) {
+    const color = '#' + ((n.split('').reduce((a,c)=>a+c.charCodeAt(0),0) * 2654435761 >>> 0) % 0xFFFFFF).toString(16).padStart(6,'0');
+    prev.style.display = 'flex';
+    document.getElementById('guildPreviewIcon').src = guildIcon(n, color);
+    document.getElementById('guildPreviewName').textContent = n;
+    document.getElementById('guildPreviewTag').textContent = d || 'No tagline';
+    btn.disabled = false;
+  } else {
+    prev.style.display = 'none';
+    btn.disabled = true;
+  }
+}
+
+function doCreateGuild() {
+  const n = document.getElementById('newGuildName').value.trim();
+  const d = document.getElementById('newGuildDesc').value.trim();
+  if (n.length < 3) return;
+  if (guildDB.some(g => g.name.toLowerCase() === n.toLowerCase())) { alert('Guild name already taken!'); return; }
+  const color = '#' + ((n.split('').reduce((a,c)=>a+c.charCodeAt(0),0) * 2654435761 >>> 0) % 0xFFFFFF).toString(16).padStart(6,'0');
+  guildDB.push({ name: n, color, desc: d || 'A new guild rises', members: 1 });
+  document.getElementById('statGuilds').textContent = guildDB.length;
+  const uname = document.getElementById('loginUsername').value.trim() || 'Angler';
+  finishLogin(uname, n);
+}
+
+function finishLogin(name, guild) {
+  curUser = { name, guild };
+  closeGuildBrowser();
+  document.getElementById('mapPrompt').style.display = 'none';
+
+  const heroBtn = document.getElementById('heroBtn');
+  heroBtn.textContent = guild.toUpperCase();
+  heroBtn.classList.add('guild-active');
+  heroBtn.onclick = null;
+
+  const navBtn = document.getElementById('navLoginBtn');
+  navBtn.textContent = name;
+  navBtn.classList.add('logged-in');
+  navBtn.onclick = null;
+
+  // Add marker
+  const c = map.getCenter();
+  const m = L.marker([c.lat, c.lng], {
+    icon: markerIcon({ name, guild, av: name.charCodeAt(0) }, map.getZoom() >= 5),
+    draggable: true
+  }).addTo(map);
+  m._ud = { name, guild, av: name.charCodeAt(0) };
+  markers.push(m);
+
+  addMsg({ name:'System', guild, text:`${name} joined ${guild}! Welcome, angler.`, time:'now', seed:0 });
+  chatFeed.scrollTop = chatFeed.scrollHeight;
+}
+
+// ============================================================
+// AVATAR / ICONS
+// ============================================================
+function avatar(seed, guild) {
+  const gc = guildDB.find(g=>g.name===guild)?.color || '#E8A830';
+  const hairs = ['#E8A830','#5BA0E8','#4CAF50','#D84040','#8B5E3C','#F0E0C0','#C07820'];
+  const h = hairs[(seed*3)%hairs.length];
+  const s = ['#F0C090','#D4A070','#E8B880','#C08860'][seed%4];
+  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 8 8"><rect width="8" height="8" fill="${gc}"/><rect x="2" y="0" width="4" height="2" fill="${h}"/><rect x="1" y="1" width="1" height="2" fill="${h}"/><rect x="6" y="1" width="1" height="2" fill="${h}"/><rect x="2" y="2" width="4" height="3" fill="${s}"/><rect x="3" y="3" width="1" height="1" fill="#140A04"/><rect x="5" y="3" width="1" height="1" fill="#140A04"/><rect x="3" y="5" width="2" height="1" fill="#D84040"/><rect x="2" y="5" width="4" height="3" fill="${gc}"/></svg>`)}`;
+}
+
+// ============================================================
+// MAP
+// ============================================================
+const USERS = [
+  {name:'PixelAngler',guild:'Kraken Cove',lat:51.5,lng:-0.12,av:1},{name:'ReelMaster',guild:'Ember Reef',lat:40.71,lng:-74.0,av:2},
+  {name:'CozyFisher',guild:'Tide Walkers',lat:35.68,lng:139.69,av:3},{name:'DeepCatch22',guild:'Golden Hook',lat:-33.87,lng:151.21,av:4},
+  {name:'BaitQueen',guild:'Ember Reef',lat:48.86,lng:2.35,av:5},{name:'HookLineGG',guild:'Kraken Cove',lat:55.75,lng:37.62,av:6},
+  {name:'TideCaller',guild:'Tide Walkers',lat:-22.91,lng:-43.17,av:7},{name:'GoldfinSam',guild:'Golden Hook',lat:37.57,lng:127.0,av:8},
+  {name:'CastAway99',guild:'Ember Reef',lat:1.35,lng:103.82,av:9},{name:'MossyRock',guild:'Tide Walkers',lat:52.52,lng:13.41,av:10},
+  {name:'SunsetRod',guild:'Golden Hook',lat:34.05,lng:-118.24,av:11},{name:'FrenzyFinn',guild:'Kraken Cove',lat:59.33,lng:18.07,av:12},
+  {name:'CoralDiver',guild:'Ember Reef',lat:-6.21,lng:106.85,av:13},{name:'PondHopper',guild:'Tide Walkers',lat:19.43,lng:-99.13,av:14}
+];
+
+const map = L.map('map',{center:[30,0],zoom:3,minZoom:2,maxZoom:14,zoomControl:true,attributionControl:false});
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(map);
+const markers = [];
+
+function markerIcon(user, expanded) {
+  const gc = guildDB.find(g=>g.name===user.guild)?.color || '#E8A830';
+  if (expanded) {
+    return L.divIcon({
+      html:`<div class="user-card"><img class="avatar" src="${avatar(user.av,user.guild)}" alt=""><div><div class="uname">${user.name}</div><div class="guild-tag" style="color:${gc}">${user.guild}</div></div></div>`,
+      className:'', iconSize:[140,52], iconAnchor:[70,26]
+    });
+  }
+  return L.divIcon({
+    html:`<div class="user-dot" style="background:${gc};color:${gc};border-color:${gc}33;animation-delay:${(user.av*0.4)%3}s"></div>`,
+    className:'', iconSize:[12,12], iconAnchor:[6,6]
+  });
+}
+
+USERS.forEach(u => { const m = L.marker([u.lat,u.lng],{icon:markerIcon(u,false)}).addTo(map); m._ud=u; markers.push(m); });
+map.on('zoomend', () => { const exp = map.getZoom()>=5; markers.forEach(m=>m.setIcon(markerIcon(m._ud,exp))); });
+
+let curView='map';
+function setMapView(type,btn) {
+  if(type===curView) return; curView=type;
+  document.querySelectorAll('.map-toggle-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
+  const tp=document.querySelector('.leaflet-tile-pane');
+  if(type==='globe'){tp.classList.add('globe-tint');map.setView([20,0],2,{animate:true,duration:0.8});}
+  else{tp.classList.remove('globe-tint');map.setView([30,0],3,{animate:true,duration:0.8});}
+  setTimeout(()=>map.invalidateSize(),150);
+}
+
+// ============================================================
+// CHAT
+// ============================================================
+const chatFeed = document.getElementById('chatFeed');
+const chatInput = document.getElementById('chatInput');
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+
+function addMsg(m) {
+  const el = document.createElement('div'); el.className='msg';
+  const seed = m.seed ?? (m.name.charCodeAt(0)+m.name.length);
+  const gc = guildDB.find(g=>g.name===m.guild)?.color || '#E8A830';
+  el.innerHTML=`<img class="msg-avatar" src="${avatar(seed,m.guild)}" alt=""><div class="msg-body"><div class="msg-head"><span class="msg-name">${esc(m.name)}</span><span class="msg-guild" style="color:${gc}">[${esc(m.guild)}]</span><span class="msg-time">${esc(m.time)}</span></div><div class="msg-text">${esc(m.text)}</div></div>`;
+  chatFeed.appendChild(el);
+}
+
+function sendMessage() {
+  const t=chatInput.value.trim(); if(!t) return;
+  const u = curUser || {name:'Guest',guild:'Kraken Cove'};
+  addMsg({name:u.name,guild:u.guild,text:t,time:'now',seed:u.name.charCodeAt(0)+u.name.length});
+  chatInput.value=''; chatFeed.scrollTop=chatFeed.scrollHeight;
+}
+chatInput.addEventListener('keydown',e=>{if(e.key==='Enter')sendMessage();});
+
+const MSGS = [
+  {name:'ReelMaster',guild:'Ember Reef',text:'Ember Reef on top! Pulling ahead in catches today',time:'2m ago'},
+  {name:'PixelAngler',guild:'Kraken Cove',text:'Kraken Cove anglers, meet at the eastern docks at reset!',time:'3m ago'},
+  {name:'CozyFisher',guild:'Tide Walkers',text:'Just caught a legendary sunfish... the Walkers are eating good tonight',time:'4m ago'},
+  {name:'GoldfinSam',guild:'Golden Hook',text:'Anyone else farming the coral reef spots? The drops are wild',time:'5m ago'},
+  {name:'BaitQueen',guild:'Ember Reef',text:'Chapter 3 map is gorgeous. The pixel water reflections are next level',time:'6m ago'},
+  {name:'HookLineGG',guild:'Kraken Cove',text:'Need 2 more Kraken members for the guild raid tonight',time:'8m ago'},
+  {name:'TideCaller',guild:'Tide Walkers',text:'Walkers holding strong at number 2... coming for that top spot',time:'9m ago'},
+  {name:'SunsetRod',guild:'Golden Hook',text:'Golden Hook might be small but we fish harder than anyone',time:'11m ago'},
+];
+const BOTS = [
+  {name:'FrenzyFinn',guild:'Kraken Cove',text:'Just hit rank 50 with Kraken Cove! LFG'},
+  {name:'CoralDiver',guild:'Ember Reef',text:'The new fishing spots in sector 9 are absolutely stacked'},
+  {name:'PondHopper',guild:'Tide Walkers',text:'Tide Walkers rally at sunset, don\'t miss it'},
+  {name:'DeepCatch22',guild:'Golden Hook',text:'Caught a double legendary off the northern coast... Golden Hook stays winning'},
+  {name:'BaitQueen',guild:'Ember Reef',text:'Who wants to team up for the guild boss event?'},
+];
+
+// ============================================================
+// FOOTER
+// ============================================================
+function initFooter() {
+  const ticker = document.getElementById('footerTicker');
+  const items = [...recentGuilds, ...recentGuilds]; // duplicate for seamless loop
+  ticker.innerHTML = items.map(g => `<div class="footer-ticker-item"><img class="footer-ticker-icon" src="${guildIcon(g.name,g.color)}" alt=""><span class="footer-ticker-name">${g.name}</span><span class="footer-ticker-label">just created</span></div>`).join('');
+
+  // Floating guild icon bubbles
+  const bubbles = document.getElementById('footerBubbles');
+  for (let i = 0; i < 6; i++) {
+    const b = document.createElement('div');
+    b.className = 'footer-bubble';
+    const g = recentGuilds[i % recentGuilds.length];
+    b.style.backgroundImage = `url(${guildIcon(g.name, g.color)})`;
+    b.style.backgroundSize = 'cover';
+    b.style.left = (10 + Math.random() * 80) + '%';
+    b.style.animationDuration = (6 + Math.random() * 8) + 's';
+    b.style.animationDelay = (Math.random() * 10) + 's';
+    bubbles.appendChild(b);
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  // Chat
+  MSGS.slice().reverse().forEach(m=>{m.seed=m.name.charCodeAt(0)+m.name.length;addMsg(m);});
+  chatFeed.scrollTop=chatFeed.scrollHeight;
+
+  // Countdown
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+
+  // Stats ticker
+  const ae=document.getElementById('statAnglers'), ce=document.getElementById('statCatches');
+  let a=1247,c=38412;
+  setInterval(()=>{a+=Math.floor(Math.random()*5)-2;a=Math.max(1100,a);c+=Math.floor(Math.random()*8);ae.textContent=a.toLocaleString();ce.textContent=c.toLocaleString();},3000);
+
+  // Guild count
+  document.getElementById('statGuilds').textContent = guildDB.length;
+
+  // Particles
+  const pc=document.getElementById('particles');
+  for(let i=0;i<10;i++){const p=document.createElement('div');p.className='particle';p.style.left=Math.random()*100+'%';p.style.animationDuration=(12+Math.random()*16)+'s';p.style.animationDelay=(Math.random()*14)+'s';const sz=(2+Math.random()*2)+'px';p.style.width=sz;p.style.height=sz;pc.appendChild(p);}
+
+  // Bot chat
+  let bi=0;
+  setInterval(()=>{const b=BOTS[bi%BOTS.length];addMsg({...b,time:'now',seed:b.name.charCodeAt(0)+b.name.length});chatFeed.scrollTop=chatFeed.scrollHeight;bi++;},8000+Math.random()*7000);
+
+  // Map
+  [100,300,600,1200].forEach(ms=>setTimeout(()=>map.invalidateSize(),ms));
+  window.addEventListener('resize',()=>map.invalidateSize());
+  setTimeout(()=>map.setView([25,10],3,{animate:false}),700);
+
+  // Footer
+  initFooter();
+});
+</script>
+</body>
+</html>

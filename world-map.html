@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fishing Frenzy — World Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Press Start 2P', monospace;
+    overflow: hidden;
+  }
+
+  .map-container {
+    position: relative;
+    width: 1200px;
+    height: 900px;
+    background: #2A5BA0;
+    border: 6px solid #C07820;
+    box-shadow:
+      0 0 0 3px #E8A830,
+      0 0 0 9px #5C3A28,
+      0 0 60px rgba(59, 125, 216, 0.3);
+    overflow: hidden;
+    image-rendering: pixelated;
+  }
+
+  /* Ocean background with depth zones */
+  .ocean {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 50%, #3B7DD8 0%, #2A5BA0 50%, #1E4480 100%);
+  }
+
+  /* Animated water pattern overlay */
+  .water-pattern {
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 18px,
+        rgba(91, 160, 232, 0.12) 18px,
+        rgba(91, 160, 232, 0.12) 20px
+      );
+    animation: waterDrift 4s ease-in-out infinite;
+  }
+
+  @keyframes waterDrift {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(8px); }
+  }
+
+  /* Sparkle/light reflection on water */
+  .water-sparkle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(240, 224, 192, 0.6);
+    animation: sparkle 3s ease-in-out infinite;
+  }
+
+  @keyframes sparkle {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+  }
+
+  /* ============ ISLANDS / LAND MASSES ============ */
+  .island {
+    position: absolute;
+    border-radius: 4px;
+    image-rendering: pixelated;
+  }
+
+  /* Shared island ground style */
+  .island-base {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow:
+      0 4px 0 rgba(0,0,0,0.2),
+      inset 0 -8px 0 rgba(0,0,0,0.1);
+  }
+
+  /* ---- CENTRAL HUB: Whispering Ponds ---- */
+  .island-hub {
+    width: 220px;
+    height: 200px;
+    left: 490px;
+    top: 340px;
+    background: #5BAF55;
+    border: 3px solid #3D7A3A;
+    border-radius: 40% 50% 45% 55%;
+    z-index: 10;
+  }
+
+  .island-hub .shore {
+    position: absolute;
+    inset: -8px;
+    border-radius: inherit;
+    background: #D4C490;
+    z-index: -1;
+    opacity: 0.7;
+  }
+
+  /* Cabin on hub island */
+  .cabin {
+    position: absolute;
+    width: 60px;
+    height: 50px;
+    top: 30px;
+    left: 80px;
+  }
+
+  .cabin-body {
+    position: absolute;
+    bottom: 0;
+    width: 54px;
+    height: 30px;
+    left: 3px;
+    background: #8B5E3C;
+    border: 2px solid #5C3A28;
+  }
+
+  .cabin-roof {
+    position: absolute;
+    top: 0;
+    width: 0;
+    height: 0;
+    border-left: 30px solid transparent;
+    border-right: 30px solid transparent;
+    border-bottom: 22px solid #A0522D;
+    filter: drop-shadow(0 -1px 0 #5C3A28);
+  }
+
+  .cabin-door {
+    position: absolute;
+    bottom: 0;
+    left: 19px;
+    width: 16px;
+    height: 20px;
+    background: #5C3A28;
+    border: 2px solid #3D2515;
+  }
+
+  .cabin-window {
+    position: absolute;
+    top: 6px;
+    width: 10px;
+    height: 8px;
+    background: #F0E0C0;
+    border: 2px solid #5C3A28;
+  }
+
+  .cabin-window.left { left: 5px; }
+  .cabin-window.right { right: 5px; }
+
+  /* Waterfall on hub */
+  .waterfall-hub {
+    position: absolute;
+    right: 20px;
+    top: 50px;
+    width: 16px;
+    height: 40px;
+    background: linear-gradient(180deg, #5BA0E8, #9BD4FF, #5BA0E8);
+    border-radius: 2px;
+    animation: waterfallFlow 0.6s linear infinite;
+    box-shadow: 0 0 8px rgba(91, 160, 232, 0.5);
+  }
+
+  @keyframes waterfallFlow {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 16px; }
+  }
+
+  .waterfall-splash {
+    position: absolute;
+    right: 14px;
+    top: 88px;
+    width: 28px;
+    height: 10px;
+    background: radial-gradient(ellipse, rgba(155, 212, 255, 0.7) 0%, transparent 70%);
+    animation: splashPulse 1s ease-in-out infinite;
+  }
+
+  @keyframes splashPulse {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.2); opacity: 1; }
+  }
+
+  /* ---- TOP-LEFT: Misty Marshes (swamp) ---- */
+  .island-swamp {
+    width: 260px;
+    height: 180px;
+    left: 40px;
+    top: 50px;
+    background: #4A7A3A;
+    border: 3px solid #2E5524;
+    border-radius: 55% 40% 50% 45%;
+    z-index: 10;
+  }
+
+  .island-swamp .shore {
+    position: absolute;
+    inset: -6px;
+    border-radius: inherit;
+    background: #6B7A50;
+    z-index: -1;
+    opacity: 0.6;
+  }
+
+  /* Swamp trees */
+  .swamp-tree {
+    position: absolute;
+    width: 8px;
+    background: #5C3A28;
+    border-radius: 2px;
+  }
+
+  .swamp-tree::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 24px;
+    background: #2E7D32;
+    border-radius: 50% 50% 40% 40%;
+    box-shadow: inset -4px -4px 0 #1B5E20;
+  }
+
+  /* Swamp vines/moss */
+  .moss {
+    position: absolute;
+    width: 20px;
+    height: 6px;
+    background: #6B8E23;
+    border-radius: 50%;
+    opacity: 0.7;
+  }
+
+  /* Swamp pond */
+  .swamp-pond {
+    position: absolute;
+    width: 60px;
+    height: 35px;
+    background: #2A6B40;
+    border-radius: 50%;
+    border: 2px solid #1B5E20;
+    top: 90px;
+    left: 50px;
+  }
+
+  /* ---- TOP-RIGHT: Frostpeak Falls (mountain/snow) ---- */
+  .island-mountain {
+    width: 240px;
+    height: 200px;
+    right: 50px;
+    top: 30px;
+    background: #7A8B6A;
+    border: 3px solid #5A6B4A;
+    border-radius: 45% 50% 40% 55%;
+    z-index: 10;
+  }
+
+  .island-mountain .shore {
+    position: absolute;
+    inset: -7px;
+    border-radius: inherit;
+    background: #9AA080;
+    z-index: -1;
+    opacity: 0.5;
+  }
+
+  /* Mountains */
+  .mountain {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+
+  .mountain.big {
+    border-left: 50px solid transparent;
+    border-right: 50px solid transparent;
+    border-bottom: 80px solid #8B8B80;
+    top: 10px;
+    left: 70px;
+  }
+
+  .mountain.big::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -18px;
+    width: 0;
+    height: 0;
+    border-left: 18px solid transparent;
+    border-right: 18px solid transparent;
+    border-bottom: 28px solid #E8E8E0;
+  }
+
+  .mountain.med {
+    border-left: 35px solid transparent;
+    border-right: 35px solid transparent;
+    border-bottom: 60px solid #9A9A8A;
+    top: 30px;
+    left: 140px;
+  }
+
+  .mountain.med::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -12px;
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-bottom: 20px solid #E8E8E0;
+  }
+
+  .mountain.small {
+    border-left: 25px solid transparent;
+    border-right: 25px solid transparent;
+    border-bottom: 42px solid #A0A090;
+    top: 48px;
+    left: 20px;
+  }
+
+  .mountain.small::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -9px;
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-bottom: 14px solid #E8E8E0;
+  }
+
+  /* Mountain river */
+  .mountain-river {
+    position: absolute;
+    width: 8px;
+    height: 70px;
+    background: linear-gradient(180deg, #5BA0E8 0%, #3B7DD8 100%);
+    top: 90px;
+    left: 118px;
+    border-radius: 4px;
+    transform: rotate(5deg);
+  }
+
+  /* Mountain pines */
+  .pine {
+    position: absolute;
+  }
+
+  .pine::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 10px;
+    background: #5C3A28;
+  }
+
+  .pine::after {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 20px solid #2E5524;
+  }
+
+  /* ---- BOTTOM-LEFT: Coral Cove (tropical) ---- */
+  .island-tropical {
+    width: 230px;
+    height: 170px;
+    left: 60px;
+    bottom: 100px;
+    background: #6BBF59;
+    border: 3px solid #4A9A3A;
+    border-radius: 50% 45% 55% 40%;
+    z-index: 10;
+  }
+
+  .island-tropical .shore {
+    position: absolute;
+    inset: -8px;
+    border-radius: inherit;
+    background: #E8D8A0;
+    z-index: -1;
+    opacity: 0.8;
+  }
+
+  /* Palm trees */
+  .palm {
+    position: absolute;
+  }
+
+  .palm-trunk {
+    width: 6px;
+    height: 40px;
+    background: #A07040;
+    border-radius: 2px;
+    transform: rotate(-8deg);
+    transform-origin: bottom center;
+  }
+
+  .palm-frond {
+    position: absolute;
+    width: 30px;
+    height: 14px;
+    background: #4CAF50;
+    border-radius: 50% 50% 20% 20%;
+    top: -8px;
+  }
+
+  .palm-frond.l { left: -22px; transform: rotate(-25deg); }
+  .palm-frond.r { left: 2px; transform: rotate(25deg); }
+  .palm-frond.c { left: -10px; top: -14px; transform: rotate(5deg); }
+
+  /* Beach hut */
+  .beach-hut {
+    position: absolute;
+    top: 60px;
+    left: 100px;
+  }
+
+  .beach-hut-body {
+    width: 36px;
+    height: 24px;
+    background: #D4A460;
+    border: 2px solid #A07840;
+  }
+
+  .beach-hut-roof {
+    width: 0;
+    height: 0;
+    border-left: 22px solid transparent;
+    border-right: 22px solid transparent;
+    border-bottom: 16px solid #C07820;
+    position: relative;
+    left: -4px;
+  }
+
+  /* Coral reef patches near tropical */
+  .coral {
+    position: absolute;
+    border-radius: 50%;
+    z-index: 5;
+  }
+
+  .coral.pink { background: #E87080; }
+  .coral.orange { background: #E8A040; }
+  .coral.purple { background: #A070C0; }
+
+  /* ---- BOTTOM-RIGHT: Sunken Ruins (mysterious) ---- */
+  .island-ruins {
+    width: 200px;
+    height: 160px;
+    right: 80px;
+    bottom: 80px;
+    background: #5A8A5A;
+    border: 3px solid #3A6A3A;
+    border-radius: 48% 52% 42% 58%;
+    z-index: 10;
+  }
+
+  .island-ruins .shore {
+    position: absolute;
+    inset: -7px;
+    border-radius: inherit;
+    background: #B0A880;
+    z-index: -1;
+    opacity: 0.6;
+  }
+
+  /* Stone ruins */
+  .ruin-pillar {
+    position: absolute;
+    background: #A0A090;
+    border: 2px solid #808070;
+  }
+
+  .ruin-pillar::after {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: -3px;
+    width: calc(100% + 6px);
+    height: 6px;
+    background: #B0B0A0;
+    border: 2px solid #808070;
+  }
+
+  /* Glowing rune */
+  .rune {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #70D0A0;
+    border-radius: 50%;
+    animation: runeGlow 2s ease-in-out infinite;
+  }
+
+  @keyframes runeGlow {
+    0%, 100% { box-shadow: 0 0 4px #70D0A0; opacity: 0.6; }
+    50% { box-shadow: 0 0 12px #70D0A0, 0 0 24px rgba(112, 208, 160, 0.3); opacity: 1; }
+  }
+
+  /* Sunken temple entrance */
+  .temple-entrance {
+    position: absolute;
+    width: 40px;
+    height: 30px;
+    top: 50px;
+    left: 80px;
+    background: #707060;
+    border: 2px solid #505040;
+    clip-path: polygon(0% 100%, 10% 0%, 90% 0%, 100% 100%);
+  }
+
+  .temple-entrance::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 18px;
+    background: #2A2A20;
+    border-radius: 7px 7px 0 0;
+  }
+
+  /* ---- FAR ISLAND: Volcanic Depths (small, distant) ---- */
+  .island-volcano {
+    width: 120px;
+    height: 100px;
+    right: 20px;
+    top: 260px;
+    background: #6A5A4A;
+    border: 3px solid #4A3A2A;
+    border-radius: 50% 45% 55% 50%;
+    z-index: 10;
+  }
+
+  .island-volcano .shore {
+    position: absolute;
+    inset: -5px;
+    border-radius: inherit;
+    background: #8A7A60;
+    z-index: -1;
+    opacity: 0.5;
+  }
+
+  /* Volcano */
+  .volcano {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 35px solid transparent;
+    border-right: 35px solid transparent;
+    border-bottom: 55px solid #5A4A3A;
+    top: 8px;
+    left: 25px;
+  }
+
+  .volcano::after {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: -10px;
+    width: 20px;
+    height: 10px;
+    background: #D84040;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #D84040, 0 0 16px rgba(216, 64, 64, 0.5);
+    animation: lavaGlow 1.5s ease-in-out infinite;
+  }
+
+  @keyframes lavaGlow {
+    0%, 100% { box-shadow: 0 0 8px #D84040; }
+    50% { box-shadow: 0 0 16px #E86040, 0 0 24px rgba(232, 96, 64, 0.4); }
+  }
+
+  /* Lava streams */
+  .lava-stream {
+    position: absolute;
+    width: 4px;
+    background: #E87040;
+    border-radius: 2px;
+    box-shadow: 0 0 4px rgba(232, 112, 64, 0.6);
+  }
+
+  /* ---- Small islet: Lily Lagoon ---- */
+  .island-lagoon {
+    width: 100px;
+    height: 80px;
+    left: 20px;
+    top: 290px;
+    background: #5BAF55;
+    border: 3px solid #3D7A3A;
+    border-radius: 55% 45% 50% 50%;
+    z-index: 10;
+  }
+
+  .island-lagoon .shore {
+    position: absolute;
+    inset: -5px;
+    border-radius: inherit;
+    background: #D4C490;
+    z-index: -1;
+    opacity: 0.6;
+  }
+
+  /* ---- BOTTOM CENTER: Shipwreck Shallows (small) ---- */
+  .island-shipwreck {
+    width: 110px;
+    height: 70px;
+    left: 400px;
+    bottom: 50px;
+    background: #D4C490;
+    border: 3px solid #B0A060;
+    border-radius: 50% 50% 45% 55%;
+    z-index: 10;
+  }
+
+  /* Shipwreck mast */
+  .mast {
+    position: absolute;
+    width: 4px;
+    height: 40px;
+    background: #5C3A28;
+    top: -20px;
+    left: 30px;
+    transform: rotate(12deg);
+  }
+
+  .mast::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 2px;
+    width: 25px;
+    height: 18px;
+    background: #C0A070;
+    border: 2px solid #A08050;
+    clip-path: polygon(0 0, 100% 20%, 100% 80%, 0 100%);
+    opacity: 0.7;
+  }
+
+  .ship-hull {
+    position: absolute;
+    width: 50px;
+    height: 16px;
+    background: #5C3A28;
+    border-radius: 0 0 50% 50%;
+    top: 15px;
+    left: 15px;
+    transform: rotate(8deg);
+    border: 2px solid #3D2515;
+  }
+
+  /* ============ WATERWAYS / CURRENTS ============ */
+  .waterway {
+    position: absolute;
+    z-index: 8;
+    opacity: 0.5;
+  }
+
+  .current-line {
+    position: absolute;
+    height: 3px;
+    background: #5BA0E8;
+    border-radius: 2px;
+    opacity: 0.4;
+  }
+
+  /* ============ LILY PADS scattered on water ============ */
+  .lilypad {
+    position: absolute;
+    border-radius: 50%;
+    background: #4CAF50;
+    z-index: 6;
+    box-shadow: 1px 1px 0 #2E7D32;
+  }
+
+  .lilypad::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 45%;
+    width: 2px;
+    height: 50%;
+    background: #3B7DD8;
+  }
+
+  /* Lily pad flower */
+  .lily-flower {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #F0C0D0;
+    border-radius: 50%;
+    z-index: 7;
+    box-shadow: inset -2px -2px 0 #E0A0B0;
+  }
+
+  /* ============ DECORATIVE TREES on islands ============ */
+  .tree {
+    position: absolute;
+  }
+
+  .tree-trunk {
+    width: 6px;
+    height: 16px;
+    background: #5C3A28;
+    margin: 0 auto;
+    border-radius: 1px;
+  }
+
+  .tree-canopy {
+    width: 22px;
+    height: 20px;
+    background: #4CAF50;
+    border-radius: 50% 50% 40% 40%;
+    margin: 0 auto;
+    position: relative;
+    top: -4px;
+    box-shadow: inset -4px -4px 0 #2E7D32;
+  }
+
+  .tree-canopy.dark {
+    background: #2E7D32;
+    box-shadow: inset -4px -4px 0 #1B5E20;
+  }
+
+  /* ============ BOATS ============ */
+  .boat {
+    position: absolute;
+    z-index: 15;
+  }
+
+  .boat-hull {
+    width: 24px;
+    height: 10px;
+    background: #A07840;
+    border-radius: 0 0 8px 8px;
+    border: 2px solid #704010;
+  }
+
+  .boat-char {
+    position: absolute;
+    width: 8px;
+    height: 10px;
+    background: #E8C090;
+    border-radius: 4px 4px 0 0;
+    bottom: 8px;
+    left: 8px;
+    border: 1px solid #C0A070;
+  }
+
+  .boat-char::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 1px;
+    width: 6px;
+    height: 4px;
+    background: #E8A830;
+    border-radius: 2px 2px 0 0;
+  }
+
+  .fishing-line {
+    position: absolute;
+    width: 1px;
+    height: 20px;
+    background: #F0E0C0;
+    top: -8px;
+    right: -8px;
+    transform: rotate(30deg);
+    transform-origin: bottom left;
+  }
+
+  .fishing-line::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -1px;
+    width: 3px;
+    height: 3px;
+    background: #E8A830;
+    border-radius: 50%;
+  }
+
+  /* ============ MAP LABELS ============ */
+  .label {
+    position: absolute;
+    font-family: 'Press Start 2P', monospace;
+    color: #F0E0C0;
+    text-shadow:
+      2px 0 0 #3D2515,
+      -2px 0 0 #3D2515,
+      0 2px 0 #3D2515,
+      0 -2px 0 #3D2515,
+      1px 1px 0 #3D2515,
+      -1px -1px 0 #3D2515,
+      1px -1px 0 #3D2515,
+      -1px 1px 0 #3D2515;
+    z-index: 20;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .label.region {
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+
+  .label.title {
+    font-size: 18px;
+    color: #E8A830;
+    text-shadow:
+      3px 0 0 #5C3A28,
+      -3px 0 0 #5C3A28,
+      0 3px 0 #5C3A28,
+      0 -3px 0 #5C3A28,
+      2px 2px 0 #5C3A28,
+      -2px -2px 0 #5C3A28,
+      2px -2px 0 #5C3A28,
+      -2px 2px 0 #5C3A28;
+    letter-spacing: 3px;
+  }
+
+  .label.subtitle {
+    font-size: 7px;
+    color: #D4C490;
+    letter-spacing: 4px;
+  }
+
+  /* Location dot marker */
+  .marker {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #E8A830;
+    border: 2px solid #C07820;
+    border-radius: 50%;
+    z-index: 19;
+    box-shadow: 0 0 6px rgba(232, 168, 48, 0.5);
+  }
+
+  .marker.hub {
+    width: 14px;
+    height: 14px;
+    background: #E8A830;
+    border: 3px solid #C07820;
+    animation: hubPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes hubPulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(232, 168, 48, 0.5); }
+    50% { box-shadow: 0 0 16px rgba(232, 168, 48, 0.8), 0 0 30px rgba(232, 168, 48, 0.3); }
+  }
+
+  /* ============ COMPASS ROSE ============ */
+  .compass {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    z-index: 25;
+  }
+
+  .compass-ring {
+    width: 60px;
+    height: 60px;
+    border: 3px solid #C07820;
+    border-radius: 50%;
+    background: rgba(92, 58, 40, 0.7);
+    position: relative;
+  }
+
+  .compass-n, .compass-s, .compass-e, .compass-w {
+    position: absolute;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: #E8A830;
+  }
+
+  .compass-n { top: 4px; left: 50%; transform: translateX(-50%); }
+  .compass-s { bottom: 4px; left: 50%; transform: translateX(-50%); }
+  .compass-e { right: 5px; top: 50%; transform: translateY(-50%); }
+  .compass-w { left: 5px; top: 50%; transform: translateY(-50%); }
+
+  .compass-needle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2px;
+    height: 20px;
+    transform: translate(-50%, -50%);
+  }
+
+  .compass-needle::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -3px;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 12px solid #D84040;
+  }
+
+  .compass-needle::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: -3px;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 12px solid #F0E0C0;
+  }
+
+  /* ============ DOTTED PATH LINES ============ */
+  .path-dots {
+    position: absolute;
+    z-index: 7;
+  }
+
+  .dot {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(240, 224, 192, 0.35);
+    border-radius: 50%;
+  }
+
+  /* ============ FISH SHADOWS ============ */
+  .fish-shadow {
+    position: absolute;
+    width: 16px;
+    height: 8px;
+    background: rgba(30, 68, 128, 0.4);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    z-index: 4;
+  }
+
+  .fish-shadow::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: 1px;
+    width: 0;
+    height: 0;
+    border-top: 3px solid transparent;
+    border-bottom: 3px solid transparent;
+    border-left: 7px solid rgba(30, 68, 128, 0.4);
+  }
+
+  .fish-shadow.swim {
+    animation: fishSwim 8s ease-in-out infinite;
+  }
+
+  .fish-shadow.swim2 {
+    animation: fishSwim2 10s ease-in-out infinite;
+  }
+
+  .fish-shadow.swim3 {
+    animation: fishSwim3 6s ease-in-out infinite;
+  }
+
+  @keyframes fishSwim {
+    0%, 100% { transform: translateX(0) translateY(0); }
+    25% { transform: translateX(30px) translateY(-10px); }
+    50% { transform: translateX(50px) translateY(5px); }
+    75% { transform: translateX(20px) translateY(15px); }
+  }
+
+  @keyframes fishSwim2 {
+    0%, 100% { transform: translateX(0) scaleX(1); }
+    49% { transform: translateX(60px) scaleX(1); }
+    50% { transform: translateX(60px) scaleX(-1); }
+    99% { transform: translateX(0) scaleX(-1); }
+  }
+
+  @keyframes fishSwim3 {
+    0%, 100% { transform: translateX(0) translateY(0) rotate(0deg); }
+    33% { transform: translateX(-20px) translateY(10px) rotate(-5deg); }
+    66% { transform: translateX(-40px) translateY(-5px) rotate(5deg); }
+  }
+
+  /* ============ SEA MONSTER silhouette ============ */
+  .sea-monster {
+    position: absolute;
+    z-index: 5;
+    opacity: 0.15;
+    left: 340px;
+    top: 620px;
+  }
+
+  .monster-body {
+    width: 40px;
+    height: 18px;
+    background: #1E4480;
+    border-radius: 50%;
+  }
+
+  .monster-hump {
+    position: absolute;
+    width: 20px;
+    height: 12px;
+    background: #1E4480;
+    border-radius: 50% 50% 0 0;
+  }
+
+  .monster-hump.h1 { left: -25px; top: -4px; }
+  .monster-hump.h2 { left: 40px; top: -2px; width: 16px; height: 10px; }
+
+  /* ============ CLOUD SHADOWS ============ */
+  .cloud-shadow {
+    position: absolute;
+    background: rgba(30, 68, 128, 0.08);
+    border-radius: 50%;
+    z-index: 3;
+    animation: cloudDrift 20s ease-in-out infinite;
+  }
+
+  @keyframes cloudDrift {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(40px); }
+  }
+
+  /* ============ BORDER DECORATION ============ */
+  .border-corner {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #E8A830;
+    z-index: 30;
+  }
+
+  .border-corner.tl { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+  .border-corner.tr { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+  .border-corner.bl { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+  .border-corner.br { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+
+  /* Version badge */
+  .version {
+    position: absolute;
+    bottom: 12px;
+    left: 14px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: #C07820;
+    z-index: 30;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="map-container">
+  <!-- Ocean base -->
+  <div class="ocean"></div>
+  <div class="water-pattern"></div>
+
+  <!-- Cloud shadows -->
+  <div class="cloud-shadow" style="width:180px; height:80px; top:150px; left:350px;"></div>
+  <div class="cloud-shadow" style="width:140px; height:60px; top:500px; left:600px; animation-delay:-8s;"></div>
+  <div class="cloud-shadow" style="width:200px; height:70px; top:700px; left:200px; animation-delay:-14s;"></div>
+
+  <!-- Water sparkles -->
+  <div class="water-sparkle" style="top:300px; left:400px;"></div>
+  <div class="water-sparkle" style="top:520px; left:200px; animation-delay:1s;"></div>
+  <div class="water-sparkle" style="top:180px; left:700px; animation-delay:0.5s;"></div>
+  <div class="water-sparkle" style="top:680px; left:550px; animation-delay:2s;"></div>
+  <div class="water-sparkle" style="top:440px; left:850px; animation-delay:1.5s;"></div>
+  <div class="water-sparkle" style="top:600px; left:100px; animation-delay:0.8s;"></div>
+  <div class="water-sparkle" style="top:350px; left:1050px; animation-delay:2.5s;"></div>
+  <div class="water-sparkle" style="top:760px; left:380px; animation-delay:1.2s;"></div>
+
+  <!-- Fish shadows swimming in open water -->
+  <div class="fish-shadow swim" style="top:280px; left:380px;"></div>
+  <div class="fish-shadow swim2" style="top:500px; left:450px; width:12px; height:6px;"></div>
+  <div class="fish-shadow swim3" style="top:650px; left:700px;"></div>
+  <div class="fish-shadow swim" style="top:400px; left:150px; width:20px; height:10px; animation-delay:-3s;"></div>
+  <div class="fish-shadow swim2" style="top:750px; left:900px; animation-delay:-5s;"></div>
+
+  <!-- Sea monster silhouette -->
+  <div class="sea-monster">
+    <div class="monster-body"></div>
+    <div class="monster-hump h1"></div>
+    <div class="monster-hump h2"></div>
+  </div>
+
+  <!-- Lily pads scattered on water -->
+  <div class="lilypad" style="width:12px; height:12px; top:310px; left:350px;"></div>
+  <div class="lilypad" style="width:10px; height:10px; top:325px; left:370px;"></div>
+  <div class="lilypad" style="width:14px; height:14px; top:540px; left:420px;"></div>
+  <div class="lilypad" style="width:10px; height:10px; top:555px; left:440px;"></div>
+  <div class="lily-flower" style="top:536px; left:432px;"></div>
+  <div class="lilypad" style="width:12px; height:12px; top:260px; left:600px;"></div>
+  <div class="lilypad" style="width:16px; height:16px; top:700px; left:500px;"></div>
+  <div class="lilypad" style="width:10px; height:10px; top:710px; left:520px;"></div>
+  <div class="lily-flower" style="top:696px; left:510px;"></div>
+  <div class="lilypad" style="width:12px; height:12px; top:460px; left:780px;"></div>
+  <div class="lilypad" style="width:10px; height:10px; top:380px; left:260px;"></div>
+  <div class="lilypad" style="width:14px; height:14px; top:600px; left:680px;"></div>
+  <div class="lilypad" style="width:10px; height:10px; top:820px; left:350px;"></div>
+  <div class="lilypad" style="width:12px; height:12px; top:830px; left:370px;"></div>
+
+  <!-- ======= ISLAND: MISTY MARSHES (top-left) ======= -->
+  <div class="island island-swamp">
+    <div class="shore"></div>
+
+    <!-- Swamp trees -->
+    <div class="swamp-tree" style="height:26px; top:20px; left:30px;"></div>
+    <div class="swamp-tree" style="height:22px; top:15px; left:80px;"></div>
+    <div class="swamp-tree" style="height:30px; top:25px; left:180px;"></div>
+    <div class="swamp-tree" style="height:20px; top:40px; left:210px;"></div>
+
+    <!-- Moss patches -->
+    <div class="moss" style="top:70px; left:20px;"></div>
+    <div class="moss" style="top:110px; left:140px; width:16px;"></div>
+    <div class="moss" style="top:130px; left:90px; width:14px;"></div>
+    <div class="moss" style="top:50px; left:160px; width:18px;"></div>
+
+    <!-- Swamp pond -->
+    <div class="swamp-pond"></div>
+
+    <!-- Small dock -->
+    <div style="position:absolute; bottom:15px; right:20px; width:30px; height:6px; background:#8B5E3C; border:1px solid #5C3A28;"></div>
+    <div style="position:absolute; bottom:10px; right:22px; width:6px; height:14px; background:#8B5E3C; border:1px solid #5C3A28;"></div>
+    <div style="position:absolute; bottom:10px; right:44px; width:6px; height:14px; background:#8B5E3C; border:1px solid #5C3A28;"></div>
+  </div>
+
+  <div class="marker" style="left:155px; top:148px;"></div>
+  <div class="label region" style="left:82px; top:244px;">MISTY MARSHES</div>
+
+  <!-- ======= ISLAND: FROSTPEAK FALLS (top-right) ======= -->
+  <div class="island island-mountain">
+    <div class="shore"></div>
+    <div class="mountain big"></div>
+    <div class="mountain med"></div>
+    <div class="mountain small"></div>
+    <div class="mountain-river"></div>
+
+    <!-- Pine trees at base -->
+    <div class="pine" style="bottom:20px; left:20px;"></div>
+    <div class="pine" style="bottom:25px; left:50px;"></div>
+    <div class="pine" style="bottom:15px; left:180px;"></div>
+    <div class="pine" style="bottom:30px; right:15px;"></div>
+
+    <!-- Snow patches -->
+    <div style="position:absolute; top:100px; left:30px; width:20px; height:8px; background:rgba(232,232,224,0.4); border-radius:50%;"></div>
+    <div style="position:absolute; top:110px; right:30px; width:16px; height:6px; background:rgba(232,232,224,0.3); border-radius:50%;"></div>
+  </div>
+
+  <div class="marker" style="right:155px; top:138px;"></div>
+  <div class="label region" style="right:68px; top:240px;">FROSTPEAK FALLS</div>
+
+  <!-- ======= ISLAND: WHISPERING PONDS - HUB (center) ======= -->
+  <div class="island island-hub">
+    <div class="shore"></div>
+
+    <!-- The iconic cabin -->
+    <div class="cabin">
+      <div class="cabin-roof"></div>
+      <div class="cabin-body">
+        <div class="cabin-door"></div>
+        <div class="cabin-window left"></div>
+        <div class="cabin-window right"></div>
+      </div>
+    </div>
+
+    <!-- Waterfall -->
+    <div class="waterfall-hub"></div>
+    <div class="waterfall-splash"></div>
+
+    <!-- Trees around cabin -->
+    <div class="tree" style="top:10px; left:10px;">
+      <div class="tree-canopy dark"></div>
+      <div class="tree-trunk"></div>
+    </div>
+    <div class="tree" style="top:5px; left:40px;">
+      <div class="tree-canopy"></div>
+      <div class="tree-trunk"></div>
+    </div>
+    <div class="tree" style="top:15px; right:5px;">
+      <div class="tree-canopy dark"></div>
+      <div class="tree-trunk"></div>
+    </div>
+    <div class="tree" style="bottom:20px; left:20px;">
+      <div class="tree-canopy"></div>
+      <div class="tree-trunk"></div>
+    </div>
+    <div class="tree" style="bottom:10px; right:30px;">
+      <div class="tree-canopy dark"></div>
+      <div class="tree-trunk"></div>
+    </div>
+    <div class="tree" style="top:60px; left:3px;">
+      <div class="tree-canopy"></div>
+      <div class="tree-trunk"></div>
+    </div>
+
+    <!-- Dock -->
+    <div style="position:absolute; bottom:-4px; left:60px; width:40px; height:8px; background:#8B5E3C; border:2px solid #5C3A28; border-radius:2px;"></div>
+
+    <!-- Lily pads near hub -->
+    <div class="lilypad" style="width:10px; height:10px; bottom:-18px; left:40px;"></div>
+    <div class="lilypad" style="width:8px; height:8px; bottom:-22px; left:110px;"></div>
+  </div>
+
+  <div class="marker hub" style="left:593px; top:433px;"></div>
+  <div class="label region" style="left:488px; top:550px;">WHISPERING PONDS</div>
+
+  <!-- Boat near hub -->
+  <div class="boat" style="left:540px; top:490px; transform:rotate(-10deg);">
+    <div class="boat-char"></div>
+    <div class="boat-hull"></div>
+    <div class="fishing-line"></div>
+  </div>
+
+  <!-- ======= ISLAND: CORAL COVE (bottom-left) ======= -->
+  <div class="island island-tropical">
+    <div class="shore"></div>
+
+    <!-- Palm trees -->
+    <div class="palm" style="top:15px; left:25px;">
+      <div class="palm-trunk"></div>
+      <div class="palm-frond l"></div>
+      <div class="palm-frond r"></div>
+      <div class="palm-frond c"></div>
+    </div>
+    <div class="palm" style="top:10px; left:160px;">
+      <div class="palm-trunk" style="transform:rotate(8deg);"></div>
+      <div class="palm-frond l"></div>
+      <div class="palm-frond r"></div>
+      <div class="palm-frond c"></div>
+    </div>
+    <div class="palm" style="top:30px; right:20px;">
+      <div class="palm-trunk" style="height:30px;"></div>
+      <div class="palm-frond l" style="width:24px;"></div>
+      <div class="palm-frond r" style="width:24px;"></div>
+      <div class="palm-frond c" style="width:24px;"></div>
+    </div>
+
+    <!-- Beach hut -->
+    <div class="beach-hut">
+      <div class="beach-hut-roof"></div>
+      <div class="beach-hut-body"></div>
+    </div>
+
+    <!-- Sandy patches -->
+    <div style="position:absolute; bottom:15px; left:30px; width:50px; height:12px; background:rgba(232,216,160,0.5); border-radius:50%;"></div>
+    <div style="position:absolute; bottom:25px; right:40px; width:40px; height:10px; background:rgba(232,216,160,0.4); border-radius:50%;"></div>
+  </div>
+
+  <!-- Coral reefs near tropical -->
+  <div class="coral pink" style="width:14px; height:10px; left:40px; bottom:82px;"></div>
+  <div class="coral orange" style="width:10px; height:8px; left:58px; bottom:76px;"></div>
+  <div class="coral purple" style="width:12px; height:10px; left:300px; bottom:120px;"></div>
+  <div class="coral pink" style="width:8px; height:6px; left:310px; bottom:108px;"></div>
+  <div class="coral orange" style="width:10px; height:8px; left:80px; bottom:68px;"></div>
+
+  <div class="marker" style="left:172px; bottom:188px;"></div>
+  <div class="label region" style="left:100px; bottom:80px;">CORAL COVE</div>
+
+  <!-- ======= ISLAND: SUNKEN RUINS (bottom-right) ======= -->
+  <div class="island island-ruins">
+    <div class="shore"></div>
+
+    <!-- Ruin pillars -->
+    <div class="ruin-pillar" style="width:12px; height:30px; top:25px; left:30px;"></div>
+    <div class="ruin-pillar" style="width:10px; height:22px; top:33px; left:55px;"></div>
+    <div class="ruin-pillar" style="width:12px; height:18px; top:38px; left:140px;"></div>
+
+    <!-- Temple entrance -->
+    <div class="temple-entrance"></div>
+
+    <!-- Glowing runes -->
+    <div class="rune" style="top:95px; left:40px;"></div>
+    <div class="rune" style="top:85px; left:130px; animation-delay:1s;"></div>
+    <div class="rune" style="top:110px; left:90px; animation-delay:0.5s;"></div>
+
+    <!-- Overgrown vines -->
+    <div class="moss" style="top:30px; left:70px; background:#5A8A5A;"></div>
+    <div class="moss" style="top:60px; left:120px; background:#4A7A4A; width:16px;"></div>
+
+    <!-- Trees growing through ruins -->
+    <div class="tree" style="top:5px; right:20px;">
+      <div class="tree-canopy dark"></div>
+      <div class="tree-trunk"></div>
+    </div>
+    <div class="tree" style="bottom:20px; left:15px;">
+      <div class="tree-canopy"></div>
+      <div class="tree-trunk"></div>
+    </div>
+  </div>
+
+  <div class="marker" style="right:168px; bottom:158px;"></div>
+  <div class="label region" style="right:88px; bottom:66px;">SUNKEN RUINS</div>
+
+  <!-- ======= ISLAND: VOLCANIC DEPTHS (mid-right) ======= -->
+  <div class="island island-volcano">
+    <div class="shore"></div>
+    <div class="volcano"></div>
+
+    <!-- Lava streams -->
+    <div class="lava-stream" style="height:20px; top:50px; left:45px; transform:rotate(-10deg);"></div>
+    <div class="lava-stream" style="height:16px; top:52px; left:68px; transform:rotate(15deg);"></div>
+
+    <!-- Dark rocks -->
+    <div style="position:absolute; bottom:10px; left:15px; width:18px; height:10px; background:#4A3A2A; border-radius:40%;"></div>
+    <div style="position:absolute; bottom:8px; right:15px; width:14px; height:8px; background:#5A4A3A; border-radius:40%;"></div>
+  </div>
+
+  <div class="marker" style="right:75px; top:308px;"></div>
+  <div class="label region" style="right:10px; top:370px; font-size:7px;">VOLCANIC<br>DEPTHS</div>
+
+  <!-- ======= ISLAND: LILY LAGOON (mid-left) ======= -->
+  <div class="island island-lagoon">
+    <div class="shore"></div>
+
+    <!-- Dense lily pads on this island's pond -->
+    <div style="position:absolute; top:20px; left:20px; width:40px; height:30px; background:#2A6B40; border-radius:50%; border:2px solid #1B5E20;"></div>
+    <div class="lilypad" style="width:10px; height:10px; top:18px; left:30px;"></div>
+    <div class="lilypad" style="width:8px; height:8px; top:28px; left:42px;"></div>
+    <div class="lilypad" style="width:10px; height:10px; top:38px; left:25px;"></div>
+    <div class="lily-flower" style="top:24px; left:36px;"></div>
+
+    <!-- Small trees -->
+    <div class="tree" style="top:5px; right:8px; transform:scale(0.8);">
+      <div class="tree-canopy"></div>
+      <div class="tree-trunk"></div>
+    </div>
+    <div class="tree" style="bottom:8px; left:60px; transform:scale(0.7);">
+      <div class="tree-canopy dark"></div>
+      <div class="tree-trunk"></div>
+    </div>
+  </div>
+
+  <div class="marker" style="left:62px; top:328px;"></div>
+  <div class="label region" style="left:4px; top:382px; font-size:7px;">LILY LAGOON</div>
+
+  <!-- ======= ISLAND: SHIPWRECK SHALLOWS (bottom-center) ======= -->
+  <div class="island island-shipwreck">
+    <div class="mast">
+      <div></div>
+    </div>
+    <div class="ship-hull"></div>
+
+    <!-- Scattered planks -->
+    <div style="position:absolute; top:35px; right:15px; width:16px; height:4px; background:#8B5E3C; transform:rotate(-20deg); border:1px solid #5C3A28;"></div>
+    <div style="position:absolute; top:45px; right:30px; width:12px; height:3px; background:#A07840; transform:rotate(10deg); border:1px solid #704010;"></div>
+  </div>
+
+  <div class="marker" style="left:450px; bottom:82px;"></div>
+  <div class="label region" style="left:370px; bottom:36px; font-size:7px;">SHIPWRECK SHALLOWS</div>
+
+  <!-- ======= DOTTED TRAVEL PATHS ======= -->
+  <!-- Hub to Swamp -->
+  <div class="path-dots">
+    <div class="dot" style="left:470px; top:360px;"></div>
+    <div class="dot" style="left:440px; top:340px;"></div>
+    <div class="dot" style="left:410px; top:310px;"></div>
+    <div class="dot" style="left:380px; top:280px;"></div>
+    <div class="dot" style="left:350px; top:255px;"></div>
+    <div class="dot" style="left:320px; top:230px;"></div>
+    <div class="dot" style="left:295px; top:210px;"></div>
+  </div>
+
+  <!-- Hub to Mountain -->
+  <div class="path-dots">
+    <div class="dot" style="left:720px; top:380px;"></div>
+    <div class="dot" style="left:750px; top:355px;"></div>
+    <div class="dot" style="left:780px; top:330px;"></div>
+    <div class="dot" style="left:810px; top:300px;"></div>
+    <div class="dot" style="left:840px; top:275px;"></div>
+    <div class="dot" style="left:870px; top:250px;"></div>
+  </div>
+
+  <!-- Hub to Tropical -->
+  <div class="path-dots">
+    <div class="dot" style="left:480px; top:530px;"></div>
+    <div class="dot" style="left:440px; top:560px;"></div>
+    <div class="dot" style="left:400px; top:590px;"></div>
+    <div class="dot" style="left:360px; top:620px;"></div>
+    <div class="dot" style="left:320px; top:650px;"></div>
+    <div class="dot" style="left:285px; top:680px;"></div>
+  </div>
+
+  <!-- Hub to Ruins -->
+  <div class="path-dots">
+    <div class="dot" style="left:710px; top:520px;"></div>
+    <div class="dot" style="left:740px; top:555px;"></div>
+    <div class="dot" style="left:770px; top:590px;"></div>
+    <div class="dot" style="left:800px; top:625px;"></div>
+    <div class="dot" style="left:830px; top:660px;"></div>
+    <div class="dot" style="left:860px; top:690px;"></div>
+  </div>
+
+  <!-- Hub to Lagoon -->
+  <div class="path-dots">
+    <div class="dot" style="left:470px; top:420px;"></div>
+    <div class="dot" style="left:420px; top:410px;"></div>
+    <div class="dot" style="left:370px; top:395px;"></div>
+    <div class="dot" style="left:320px; top:380px;"></div>
+    <div class="dot" style="left:270px; top:370px;"></div>
+    <div class="dot" style="left:220px; top:360px;"></div>
+    <div class="dot" style="left:170px; top:345px;"></div>
+  </div>
+
+  <!-- Hub to Volcano -->
+  <div class="path-dots">
+    <div class="dot" style="left:720px; top:420px;"></div>
+    <div class="dot" style="left:770px; top:410px;"></div>
+    <div class="dot" style="left:820px; top:395px;"></div>
+    <div class="dot" style="left:870px; top:380px;"></div>
+    <div class="dot" style="left:920px; top:365px;"></div>
+    <div class="dot" style="left:960px; top:345px;"></div>
+  </div>
+
+  <!-- Hub to Shipwreck -->
+  <div class="path-dots">
+    <div class="dot" style="left:570px; top:550px;"></div>
+    <div class="dot" style="left:555px; top:590px;"></div>
+    <div class="dot" style="left:535px; top:630px;"></div>
+    <div class="dot" style="left:510px; top:670px;"></div>
+    <div class="dot" style="left:490px; top:710px;"></div>
+    <div class="dot" style="left:470px; top:750px;"></div>
+    <div class="dot" style="left:455px; top:790px;"></div>
+  </div>
+
+  <!-- Second boat near tropical -->
+  <div class="boat" style="left:310px; top:720px; transform:rotate(15deg) scale(0.9);">
+    <div class="boat-hull"></div>
+  </div>
+
+  <!-- ======= TITLE ======= -->
+  <div class="label title" style="top:24px; left:50%; transform:translateX(-50%);">FISHING FRENZY</div>
+  <div class="label subtitle" style="top:52px; left:50%; transform:translateX(-50%);">WORLD MAP</div>
+
+  <!-- ======= COMPASS ROSE ======= -->
+  <div class="compass">
+    <div class="compass-ring">
+      <div class="compass-n">N</div>
+      <div class="compass-s">S</div>
+      <div class="compass-e">E</div>
+      <div class="compass-w">W</div>
+      <div class="compass-needle"></div>
+    </div>
+  </div>
+
+  <!-- Border corners -->
+  <div class="border-corner tl"></div>
+  <div class="border-corner tr"></div>
+  <div class="border-corner bl"></div>
+  <div class="border-corner br"></div>
+
+  <!-- Version -->
+  <div class="version">v3.11.0</div>
+</div>
+
+</body>
+</html>
