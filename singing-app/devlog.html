@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocalStar Dev Log</title>
+  <meta name="theme-color" content="#06060f">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #06060f;
+      color: #e0e0e0;
+      line-height: 1.7;
+      padding: 0 20px 80px;
+    }
+    a { color: #00d4ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    header {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 0 32px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      margin-bottom: 40px;
+    }
+    header h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00d4ff, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+    header p {
+      color: #888;
+      font-size: 14px;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #666;
+    }
+    .back-link:hover { color: #00d4ff; }
+    .timeline {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .entry {
+      position: relative;
+      padding: 0 0 40px 28px;
+      border-left: 2px solid rgba(255,255,255,0.06);
+    }
+    .entry:last-child { border-left-color: transparent; padding-bottom: 0; }
+    .entry::before {
+      content: '';
+      position: absolute;
+      left: -5px;
+      top: 6px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #00d4ff;
+    }
+    .entry:first-child::before {
+      background: #a855f7;
+      box-shadow: 0 0 12px rgba(168,85,247,0.4);
+    }
+    .entry-date {
+      font-size: 13px;
+      font-weight: 600;
+      color: #00d4ff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .entry-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .entry ul {
+      padding-left: 18px;
+      color: #aaa;
+      font-size: 14px;
+    }
+    .entry li { margin-bottom: 4px; }
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-right: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .tag-feature { background: rgba(0,212,255,0.15); color: #00d4ff; }
+    .tag-fix { background: rgba(0,255,136,0.15); color: #00ff88; }
+    .tag-song { background: rgba(168,85,247,0.15); color: #a855f7; }
+    .tag-infra { background: rgba(255,180,75,0.15); color: #ffb44b; }
+    @media (max-width: 600px) {
+      header { padding: 32px 0 24px; }
+      header h1 { font-size: 22px; }
+      .entry-title { font-size: 16px; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <a href="/" class="back-link">&larr; Back to VocalStar</a>
+    <h1>Dev Log</h1>
+    <p>What's new in VocalStar</p>
+  </header>
+  <div class="timeline">
+
+    <div class="entry">
+      <div class="entry-date">Apr 23, 2026</div>
+      <ul>
+        <li><span class="tag tag-fix">Fix</span> Blank screen for first 5 seconds of every song: browser autoGainControl ramps mic gain unpredictably for ~5 s after open, causing YIN confidence to stay low and trail/scoring gates to block all input. Disabled AGC; lowered noise floor threshold to compensate so quiet singers still register</li>
+        <li><span class="tag tag-fix">Fix</span> Pitch trail and scoring confidence gates lowered (0.35→0.15 and 0.30→0.15): the first frames of each phrase warm up slower than steady-state singing — the old thresholds were eating the opening of every line</li>
+        <li><span class="tag tag-fix">Fix</span> Systematic scoring collapse (users seeing 7% pitch accuracy): the volume gate was accumulating samples even when it forced accuracy to zero — poisoning the average across the whole song. Replaced volume gate with a YIN confidence gate that returns early, so only real-voice frames count toward accuracy</li>
+        <li><span class="tag tag-fix">Fix</span> 胆小鬼 (Gigi Leung): two lyric windows were spanning instrumental bridges (one 29 s, one 9 s) — singers were scored absent for almost the entire bridge even when humming. Trimmed to actual sung duration</li>
+        <li><span class="tag tag-fix">Fix</span> Pitch trail appearing during silence and on instrumental bleed: added midi≤0 guard to both trail renderers, and confidence gate on trail history push to reject mixed-harmonic noise from the backing track</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-date">Apr 20, 2026</div>
+      <ul>
+        <li><span class="tag tag-feature">Feature</span> Personalised greeting on home screen for signed-in users: "Welcome back, [name]" on return visits</li>
+        <li><span class="tag tag-feature">Feature</span> Returning users see a "What's new" devlog link instead of the Loom walkthrough video</li>
+        <li><span class="tag tag-feature">Feature</span> Pinyin / romanisation search: typing hanyu pinyin (e.g. "gu dan bei ban qiu") in the search bar now matches Chinese song titles</li>
+        <li><span class="tag tag-fix">Fix</span> Second song had no sound: AudioContext was suspended after the first song ended; now resumed at the start of each new song</li>
+        <li><span class="tag tag-fix">Fix</span> Singing on mobile with karaoke off caused the music to duck: browser acoustic echo cancellation was treating the backing track as feedback and suppressing it. All audio processing constraints (echoCancellation, noiseSuppression, autoGainControl) are now disabled on the mic input</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-date">Apr 19, 2026</div>
+      <ul>
+        <li><span class="tag tag-infra">Infra</span> songs.js split into per-song data files: initial JS payload drops from 763 KB to 17 KB. Song notes and melody now load on demand when you tap a song.</li>
+        <li><span class="tag tag-feature">Feature</span> Search bar on song select: real-time filter by title or artist, composes with difficulty tabs</li>
+        <li><span class="tag tag-fix">Fix</span> Pitch trail renderer: batch-evict stale history entries in one call instead of per-frame loop at 60 fps</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-date">Apr 18, 2026</div>
+      <ul>
+        <li><span class="tag tag-song">Song</span> Added 胆小鬼 (梁咏琪 Gigi Leung): G Major, 522-note melody, 74 user-synced lyric lines</li>
+        <li><span class="tag tag-song">Song</span> Added P.S. 我愛你 (A-Lin 黃麗玲): Ab Major, 598-note melody, 39 user-synced lyric lines</li>
+        <li><span class="tag tag-song">Song</span> Added 忘記擁抱 (A-Lin 黃麗玲): E Major, 642-note melody, 33 user-synced lyric lines</li>
+        <li><span class="tag tag-song">Song</span> Added 刻在我心底的名字 (盧廣仲 Crowd Lu): F Major, 734-note melody, 42 user-synced lyric lines</li>
+        <li><span class="tag tag-song">Song</span> Added 幾分之幾 (盧廣仲 Crowd Lu): Db Major, 529-note melody, 24 user-synced lyric lines</li>
+        <li><span class="tag tag-feature">Feature</span> Profile page: song bests, stats overview, Sing-Off history. Access via profile menu → View Profile</li>
+        <li><span class="tag tag-fix">Fix</span> Song grid crash when a song had empty notes array; getDuration now guards against it</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-date">Apr 17, 2026 (night)</div>
+      <ul>
+        <li><span class="tag tag-song">Song</span> Added 愛，請問怎麼走 (A-Lin 黃麗玲): F Major, 775-note melody, 33 user-synced lyric lines</li>
+        <li><span class="tag tag-song">Song</span> Added 有一種悲傷 (孫燕姿 Stefanie Sun): E Minor, 441-note melody, 22 user-synced lyric lines</li>
+        <li><span class="tag tag-song">Song</span> Added 雨蝶 (李翊君): Bb Minor, 534-note melody, 72 user-synced lyric lines</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-date">Apr 17, 2026 (evening)</div>
+      <ul>
+        <li><span class="tag tag-song">Song</span> Added 一念 (張紫寧 &amp; 李鑫一): 逐玉 OST, 405-note melody, 37 user-synced lyric lines</li>
+        <li><span class="tag tag-song">Song</span> Added 我对缘分小心翼翼 (林俊傑 JJ Lin): 逐玉 OST, 673-note melody, 36 user-synced lyric lines</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-date">Apr 17, 2026</div>
+      <ul>
+        <li><span class="tag tag-feature">Feature</span> Sing-Off: async PvP challenges. Finish a song, tap "Challenge a Friend", share the link. When a friend accepts and plays the same song, both sides see a VS arena with scores, grades, and a winner crown. Public read, auth-only write, short unguessable IDs.</li>
+        <li><span class="tag tag-fix">Fix</span> Results screen no longer hangs on slow networks. All Supabase calls in the end-of-game path (settle, leaderboard, challenge create) now have a 10-second timeout so a hung request can never freeze the game screen.</li>
+        <li><span class="tag tag-feature">Feature</span> Leaderboard paints instantly on repeat visits via a 5-minute localStorage cache. Transient timeouts no longer blank the list if cached data exists.</li>
+        <li><span class="tag tag-feature">Feature</span> Song load is faster on karaoke tracks: vocal and instrumental MP3s now fetch in parallel instead of serially.</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-date">Apr 16, 2026 (evening)</div>
+      <ul>
+        <li><span class="tag tag-fix">Fix</span> 普通朋友 chorus pitch bars now render at the correct octave (was octave-low on "I only wanna be your friend" because pYIN tracked the harmony stack)</li>
+        <li><span class="tag tag-feature">Feature</span> In-line octave smoother: any song's syllable bar that's an octave off vs the line median gets snapped back automatically, so harmony-heavy tracks no longer mislead singers</li>
+        <li><span class="tag tag-fix">Fix</span> Leaderboard no longer hangs forever on flaky network. 10-second timeout with a "Tap to retry" button when the request stalls.</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-date">Apr 16, 2026</div>
+      <ul>
+        <li><span class="tag tag-fix">Fix</span> Scoring overhaul: per-syllable quantized target pitch. Held notes no longer penalized by pYIN contour wiggle. Perfect singer now scores 100% (was 42–79% depending on song).</li>
+        <li><span class="tag tag-feature">Feature</span> Live 0–100 score in the HUD: mirrors the final results formula, so mid-song grade matches end-screen grade</li>
+        <li><span class="tag tag-feature">Feature</span> Color-coded active lyric: current line turns green / yellow / red over a rolling 1s accuracy window, giving instant on/off-track feedback</li>
+        <li><span class="tag tag-song">Song</span> Added Love Story (Taylor Swift): 496-note melody extracted via Demucs + pYIN</li>
+        <li><span class="tag tag-song">Song</span> Added 普通朋友 (陶喆 David Tao): 720-note melody, Chinese R&amp;B classic</li>
+        <li><span class="tag tag-infra">Infra</span> Vercel Web Analytics enabled</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-date">Apr 14, 2026 (evening)</div>
+      <ul>
+        <li><span class="tag tag-song">Song</span> Added 绿光 (孙燕姿): bilingual Chinese/English lyrics with manual timing sync</li>
+        <li><span class="tag tag-song">Song</span> Added I Don't Wanna Wait (David Guetta & OneRepublic): full lyrics with timing sync</li>
+        <li><span class="tag tag-song">Song</span> Added 起风了 (买辣椒也用券): Chinese lyrics with pinyin, manual timing sync</li>
+        <li><span class="tag tag-feature">Feature</span> Loom walkthrough video embedded on homepage for new users</li>
+        <li><span class="tag tag-fix">Fix</span> Share card now correctly passes score data to renderer</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-date">Apr 14, 2026</div>
+      <ul>
+        <li><span class="tag tag-feature">Feature</span> Share your score after each song with a copyable visual card</li>
+        <li><span class="tag tag-feature">Feature</span> On-demand audio loading: songs load when you tap, not all at once</li>
+        <li><span class="tag tag-fix">Fix</span> Mobile page crash on Safari/incognito caused by 140MB bulk audio preload</li>
+        <li><span class="tag tag-fix">Fix</span> Song cards collapsed on mobile: missing artist, tags, karaoke badges</li>
+        <li><span class="tag tag-fix">Fix</span> Ghost scoring: instrumental bleed through mic no longer gives false points</li>
+        <li><span class="tag tag-fix">Fix</span> Canvas scaling compounded on phone rotation, breaking game visuals</li>
+        <li><span class="tag tag-fix">Fix</span> Songs that hadn't finished loading would start with no audio</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-date">Apr 13, 2026</div>
+      <ul>
+        <li><span class="tag tag-feature">Feature</span> Karaoke mode (instrumental tracks) now available for all songs</li>
+        <li><span class="tag tag-fix">Fix</span> Mobile responsiveness overhaul: single-column grid, proper text wrapping, touch-friendly targets</li>
+        <li><span class="tag tag-infra">Infra</span> Custom domain live: vocalstar.lol</li>
+        <li><span class="tag tag-infra">Infra</span> Supabase backend: auth, leaderboard, session tracking</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-date">Apr 12, 2026</div>
+      <ul>
+        <li><span class="tag tag-feature">Feature</span> User auth with email/password sign-up and sign-in</li>
+        <li><span class="tag tag-feature">Feature</span> Profile customization: display name, avatar upload, color themes</li>
+        <li><span class="tag tag-feature">Feature</span> Leaderboard with per-song and global rankings</li>
+        <li><span class="tag tag-feature">Feature</span> Daily session limit (20 sessions) to manage server costs</li>
+        <li><span class="tag tag-feature">Feature</span> Scoring methodology section explaining how pitch grading works</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-date">Apr 10–11, 2026</div>
+      <ul>
+        <li><span class="tag tag-feature">Feature</span> Real-time pitch detection via Web Audio API + autocorrelation</li>
+        <li><span class="tag tag-feature">Feature</span> pYIN melody extraction pipeline for vocal pitch reference</li>
+        <li><span class="tag tag-feature">Feature</span> Lyrics mode: synced Chinese lyrics with karaoke highlighting</li>
+        <li><span class="tag tag-feature">Feature</span> Countdown screen with 3-2-1 animation before each song</li>
+        <li><span class="tag tag-feature">Feature</span> Results screen with score circle, pitch accuracy breakdown</li>
+      </ul>
+    </div>
+
+  </div>
+</body>
+</html>
