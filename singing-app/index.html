@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>VocalStar - Sing. Score. Improve.</title>
+  <link rel="stylesheet" href="css/styles.css?v=28">
+  <meta http-equiv="Cache-Control" content="no-cache">
+  <meta name="theme-color" content="#06060f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="VocalStar — real-time pitch-graded karaoke with honest scoring. Sing along, see your accuracy, improve.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="VocalStar — Sing. Score. Improve.">
+  <meta property="og:description" content="Real-time pitch-graded karaoke. Sing your favourite songs, get honest accuracy scores, and compete on the leaderboard.">
+  <meta property="og:url" content="https://vocalstar.lol">
+  <meta property="og:image" content="https://vocalstar.lol/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="VocalStar — Sing. Score. Improve.">
+  <meta name="twitter:description" content="Real-time pitch-graded karaoke with honest scoring.">
+  <meta name="twitter:image" content="https://vocalstar.lol/og-image.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- ============ AUTH SCREEN ============ -->
+  <div id="screen-auth" class="screen">
+    <div class="home-bg">
+      <div class="bg-orb orb-1"></div>
+      <div class="bg-orb orb-2"></div>
+      <div class="bg-orb orb-3"></div>
+    </div>
+    <div class="auth-content">
+      <div class="auth-logo">
+        <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="authLogoGrad" x1="0" y1="0" x2="96" y2="96" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#00d4ff"/>
+              <stop offset="0.55" stop-color="#7b2fff"/>
+              <stop offset="1" stop-color="#ff2fa8"/>
+            </linearGradient>
+            <linearGradient id="authLogoBarGrad" x1="48" y1="32" x2="48" y2="60" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#00d4ff"/>
+              <stop offset="1" stop-color="#7b2fff"/>
+            </linearGradient>
+          </defs>
+          <path
+            d="M48 8 L58.4 34.1 L86.2 36.4 L65.0 55.0 L71.5 82.1 L48 67.4 L24.5 82.1 L31.0 55.0 L9.8 36.4 L37.6 34.1 Z"
+            fill="rgba(0, 212, 255, 0.08)"
+            stroke="url(#authLogoGrad)"
+            stroke-width="3"
+            stroke-linejoin="round"/>
+          <g stroke="url(#authLogoBarGrad)" stroke-width="3.5" stroke-linecap="round">
+            <line x1="32" y1="52" x2="32" y2="44"/>
+            <line x1="40" y1="56" x2="40" y2="38"/>
+            <line x1="48" y1="60" x2="48" y2="32"/>
+            <line x1="56" y1="56" x2="56" y2="38"/>
+            <line x1="64" y1="52" x2="64" y2="44"/>
+          </g>
+        </svg>
+      </div>
+      <h2 class="auth-title" id="auth-title">Sign in to VocalStar</h2>
+
+      <!-- Tab switcher: Sign In / Create Account -->
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" id="auth-tab-signin" onclick="App.switchAuthTab('signin')">Sign In</button>
+        <button type="button" class="auth-tab" id="auth-tab-signup" onclick="App.switchAuthTab('signup')">Create Account</button>
+      </div>
+
+      <!-- Sign In form -->
+      <div class="auth-form" id="auth-form-signin">
+        <label class="auth-field">
+          <span class="auth-field-label">Email</span>
+          <input type="email" id="auth-signin-email" placeholder="you@example.com" autocomplete="email">
+        </label>
+        <label class="auth-field">
+          <span class="auth-field-label">Password</span>
+          <input type="password" id="auth-signin-password" placeholder="Your password" autocomplete="current-password">
+        </label>
+        <div class="auth-form-error" id="auth-signin-error" hidden></div>
+        <div class="auth-form-actions">
+          <button class="btn btn-primary btn-glow" id="auth-signin-submit" type="button">Sign In</button>
+        </div>
+      </div>
+
+      <!-- Sign Up form -->
+      <div class="auth-form" id="auth-form-signup" hidden>
+        <label class="auth-field">
+          <span class="auth-field-label">Display name</span>
+          <input type="text" id="auth-signup-name" maxlength="20" placeholder="e.g. Alex" autocomplete="off">
+        </label>
+        <label class="auth-field">
+          <span class="auth-field-label">Email</span>
+          <input type="email" id="auth-signup-email" placeholder="you@example.com" autocomplete="email">
+        </label>
+        <label class="auth-field">
+          <span class="auth-field-label">Password</span>
+          <input type="password" id="auth-signup-password" placeholder="At least 6 characters" autocomplete="new-password" minlength="6">
+        </label>
+        <div class="auth-form-error" id="auth-signup-error" hidden></div>
+        <div class="auth-form-actions">
+          <button class="btn btn-primary btn-glow" id="auth-signup-submit" type="button">Create Account</button>
+        </div>
+      </div>
+
+      <!-- Confirmation message (shown after signup if email confirm is on) -->
+      <div class="auth-confirm" id="auth-confirm" hidden>
+        <div class="auth-confirm-icon">&#9993;</div>
+        <h3>Check your email</h3>
+        <p>We sent a confirmation link. Click it to activate your account, then come back here and sign in.</p>
+        <button class="btn btn-ghost" type="button" onclick="App.switchAuthTab('signin')">Back to Sign In</button>
+      </div>
+
+      <p class="auth-footnote">Your scores and progress are saved to your account and synced across devices.</p>
+    </div>
+  </div>
+
+  <!-- ============ HOME SCREEN ============ -->
+  <div id="screen-home" class="screen active">
+    <div class="home-bg">
+      <div class="bg-orb orb-1"></div>
+      <div class="bg-orb orb-2"></div>
+      <div class="bg-orb orb-3"></div>
+    </div>
+
+    <!-- Profile chip: top-right on home. Shows current profile, opens menu. -->
+    <button class="profile-chip" id="profile-chip" type="button" onclick="App.toggleProfileMenu(event)" hidden>
+      <span class="profile-chip-avatar" id="profile-chip-avatar"></span>
+      <span class="profile-chip-name" id="profile-chip-name"></span>
+      <span class="profile-chip-chevron">&#9662;</span>
+    </button>
+    <div class="profile-menu" id="profile-menu" hidden>
+      <div class="profile-menu-avatar-section" id="profile-menu-avatar-section">
+        <div class="profile-menu-avatar-lg" id="profile-menu-avatar-lg"></div>
+      </div>
+      <div class="profile-menu-header" id="profile-menu-header"></div>
+      <div class="profile-menu-email" id="profile-menu-email"></div>
+      <button class="profile-menu-item" type="button" onclick="window.location.href='/profile.html'">
+        <span>View Profile</span>
+      </button>
+      <button class="profile-menu-item" type="button" onclick="App.triggerAvatarUpload()">
+        <span>Change photo</span>
+      </button>
+      <button class="profile-menu-item profile-menu-danger" type="button" onclick="App.signOutProfile()">
+        <span>Sign out</span>
+      </button>
+    </div>
+    <input type="file" id="avatar-file-input" accept="image/*" hidden onchange="App.handleAvatarUpload(this)">
+
+    <div class="home-content">
+      <div class="logo-section">
+        <div class="logo-icon">
+          <!-- VocalStar mark: a five-pointed star whose upstrokes become
+               animated waveform bars. Stars + sound waves = voice star. -->
+          <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="logoGrad" x1="0" y1="0" x2="96" y2="96" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#00d4ff"/>
+                <stop offset="0.55" stop-color="#7b2fff"/>
+                <stop offset="1" stop-color="#ff2fa8"/>
+              </linearGradient>
+              <linearGradient id="logoBarGrad" x1="48" y1="32" x2="48" y2="60" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#00d4ff"/>
+                <stop offset="1" stop-color="#7b2fff"/>
+              </linearGradient>
+              <radialGradient id="logoGlow" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0%" stop-color="#7b2fff" stop-opacity="0.5"/>
+                <stop offset="100%" stop-color="#7b2fff" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+
+            <!-- Soft glow halo behind the mark -->
+            <circle cx="48" cy="48" r="44" fill="url(#logoGlow)"/>
+
+            <!-- Rounded 5-point star outline, cyan→purple→pink gradient stroke -->
+            <path
+              d="M48 8
+                 L58.4 34.1
+                 L86.2 36.4
+                 L65.0 55.0
+                 L71.5 82.1
+                 L48 67.4
+                 L24.5 82.1
+                 L31.0 55.0
+                 L9.8 36.4
+                 L37.6 34.1 Z"
+              fill="rgba(0, 212, 255, 0.08)"
+              stroke="url(#logoGrad)"
+              stroke-width="3"
+              stroke-linejoin="round"/>
+
+            <!-- Waveform bars emerging from the star's center: the "voice"
+                 inside the star. Five bars of varying heights, gradient fill,
+                 all stroke-linecap rounded for a friendlier silhouette. -->
+            <g stroke="url(#logoBarGrad)" stroke-width="3.5" stroke-linecap="round">
+              <line x1="32" y1="52" x2="32" y2="44"/>
+              <line x1="40" y1="56" x2="40" y2="38"/>
+              <line x1="48" y1="60" x2="48" y2="32"/>
+              <line x1="56" y1="56" x2="56" y2="38"/>
+              <line x1="64" y1="52" x2="64" y2="44"/>
+            </g>
+          </svg>
+        </div>
+        <h1 class="logo-text">Vocal<span class="accent">Star</span></h1>
+        <p class="tagline">Sing. Score. Improve.</p>
+      </div>
+
+      <!-- Personalised greeting — shown when signed in -->
+      <div id="home-greeting" class="home-greeting" hidden></div>
+
+      <!-- Sing-off challenge banner: shown when the user opens a ?vs=<id>
+           link from a friend. Populated by App._showSingOffBanner(). -->
+      <div id="singoff-banner" class="singoff-banner" hidden></div>
+
+      <div class="home-actions">
+        <button class="btn btn-primary btn-glow" onclick="App.showScreen('songs')">
+          <span class="btn-icon">&#9835;</span>
+          Start Singing
+        </button>
+        <button class="btn btn-secondary" onclick="App.showScreen('leaderboard')">
+          <span class="btn-icon">&#9733;</span>
+          Leaderboard
+        </button>
+      </div>
+
+      <!-- New users: show the walkthrough video -->
+      <div class="home-guide" id="home-guide-video">
+        <p class="guide-title">How to use VocalStar</p>
+        <div class="guide-video">
+          <iframe src="https://www.loom.com/embed/805d9f432f7a45b28e94bc26eabb78a8" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
+        </div>
+      </div>
+      <!-- Returning users: show what's new instead -->
+      <div class="home-devlog-link" id="home-devlog-link" hidden>
+        <a href="/devlog.html" class="devlog-link-card">
+          <span class="devlog-link-label">What's new</span>
+          <span class="devlog-link-arrow">→</span>
+        </a>
+      </div>
+
+      <div class="home-stats">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-sessions">0</div>
+          <div class="stat-label">Sessions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-best">--</div>
+          <div class="stat-label">Best Score</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-streak">0</div>
+          <div class="stat-label">Day Streak</div>
+        </div>
+      </div>
+
+      <div class="home-methodology">
+        <p class="methodology-title">How scoring works</p>
+        <p>Your microphone captures your voice in real-time. We use autocorrelation-based pitch detection to estimate the fundamental frequency of each sung note, then compare it against a pre-extracted vocal melody contour (generated via pYIN analysis of the original track). Pitch accuracy is graded per-syllable using cent deviation from the target MIDI note. Timing is measured by vocal presence within each lyric window. No audio is recorded, stored, or transmitted - all processing happens locally in your browser.</p>
+      </div>
+      <div class="home-footer">
+        <a href="devlog.html">Dev Log</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ LEADERBOARD SCREEN ============ -->
+  <div id="screen-leaderboard" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" onclick="App.showScreen('home')">&larr;</button>
+      <h2>Leaderboard</h2>
+      <div class="header-spacer"></div>
+    </div>
+
+    <div class="lb-tabs">
+      <button class="lb-tab active" data-lb-tab="global" onclick="App.switchLeaderboardTab('global')">Global</button>
+      <button class="lb-tab" data-lb-tab="song" onclick="App.switchLeaderboardTab('song')">By Song</button>
+    </div>
+
+    <div class="lb-song-picker" id="lb-song-picker" hidden>
+      <select id="lb-song-select" onchange="App.loadSongLeaderboard(this.value)">
+      </select>
+    </div>
+
+    <div class="lb-status" id="lb-status" hidden>
+      <div class="lb-status-text"></div>
+    </div>
+
+    <div class="lb-list-container">
+      <div class="lb-list" id="lb-list"></div>
+    </div>
+  </div>
+
+  <!-- ============ SONG SELECT SCREEN ============ -->
+  <div id="screen-songs" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" onclick="App.showScreen('home')">&larr;</button>
+      <h2>Choose a Song</h2>
+      <div class="header-spacer"></div>
+    </div>
+    <div class="beta-banner">
+      <span class="beta-banner-icon">&#9733;</span>
+      <span>Beta testing — 2 free songs per day. Thanks for trying VocalStar!</span>
+    </div>
+    <div class="song-search-wrap">
+      <svg class="song-search-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+        <circle cx="8.5" cy="8.5" r="5.5"/>
+        <line x1="13" y1="13" x2="18" y2="18"/>
+      </svg>
+      <input
+        id="song-search"
+        class="song-search-input"
+        type="search"
+        placeholder="Search songs or artists…"
+        autocomplete="off"
+        spellcheck="false"
+        oninput="App.onSearchInput(this.value)"
+      >
+      <button class="song-search-clear" id="song-search-clear" type="button" aria-label="Clear search" hidden onclick="App.clearSearch()">&#x2715;</button>
+    </div>
+    <div class="song-filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="easy">Easy</button>
+      <button class="filter-btn" data-filter="medium">Medium</button>
+      <button class="filter-btn" data-filter="hard">Hard</button>
+    </div>
+    <div class="song-grid" id="song-grid">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- ============ COUNTDOWN SCREEN ============ -->
+  <div id="screen-countdown" class="screen">
+    <div class="countdown-container">
+      <div class="countdown-song-title" id="countdown-title"></div>
+      <div class="countdown-number" id="countdown-num">3</div>
+      <div class="countdown-subtitle">Get Ready!</div>
+      <div class="mic-status" id="mic-status">
+        <div class="mic-dot"></div>
+        Microphone Active
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ GAME / PERFORMANCE SCREEN ============ -->
+  <div id="screen-game" class="screen">
+    <div class="game-hud">
+      <div class="hud-left">
+        <button class="btn-back btn-back-game" onclick="App.quitGame()">&times;</button>
+        <div class="hud-song-info">
+          <div class="hud-title" id="game-title"></div>
+          <div class="hud-artist" id="game-artist"></div>
+        </div>
+      </div>
+      <div class="hud-center">
+        <div class="hud-time" id="game-time">0:00</div>
+        <button class="btn-skip" type="button" onclick="App.skipForward()" title="Skip forward 5 seconds">
+          <span class="btn-skip-num">+5s</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="5 4 15 12 5 20 5 4"/>
+            <line x1="19" y1="5" x2="19" y2="19"/>
+          </svg>
+        </button>
+      </div>
+      <div class="hud-right">
+        <div class="hud-score-label">SCORE</div>
+        <div class="hud-score" id="game-score">0</div>
+        <div class="streak-indicator" id="streak-indicator">
+          <span class="streak-fire">&#9733;</span>
+          <span class="streak-count" id="streak-count">0</span>
+          <span class="streak-mult" id="streak-mult"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="grade-bomb" class="grade-bomb" aria-live="assertive"></div>
+    <canvas id="game-canvas"></canvas>
+
+    <div class="lyrics-bar">
+      <div class="lyrics-text" id="game-lyrics"></div>
+    </div>
+  </div>
+
+  <!-- ============ RESULTS SCREEN ============ -->
+  <div id="screen-results" class="screen">
+    <div class="results-bg">
+      <div class="bg-orb orb-1"></div>
+      <div class="bg-orb orb-2"></div>
+    </div>
+    <div class="results-content">
+      <h2 class="results-title">Performance Complete!</h2>
+      <div class="results-song" id="results-song-name"></div>
+
+      <div class="score-circle-container">
+        <svg class="score-circle" viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="90" stroke="#1a1a3e" stroke-width="8" fill="none"/>
+          <circle id="score-ring" cx="100" cy="100" r="90" stroke="url(#scoreGrad)" stroke-width="8" fill="none"
+                  stroke-linecap="round" stroke-dasharray="565.48" stroke-dashoffset="565.48"
+                  transform="rotate(-90 100 100)"/>
+          <defs>
+            <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#00d4ff"/>
+              <stop offset="100%" stop-color="#7b2fff"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="score-center">
+          <div class="score-big" id="results-score">0</div>
+          <div class="score-label">points</div>
+        </div>
+      </div>
+
+      <div class="score-rank" id="results-rank"></div>
+
+      <div class="score-breakdown">
+        <div class="breakdown-item">
+          <div class="breakdown-label">Pitch Accuracy</div>
+          <div class="breakdown-bar-bg">
+            <div class="breakdown-bar" id="bar-pitch" style="width: 0%"></div>
+          </div>
+          <div class="breakdown-value" id="val-pitch">0%</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">Timing</div>
+          <div class="breakdown-bar-bg">
+            <div class="breakdown-bar bar-timing" id="bar-timing" style="width: 0%"></div>
+          </div>
+          <div class="breakdown-value" id="val-timing">0%</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">Note Streak</div>
+          <div class="breakdown-bar-bg">
+            <div class="breakdown-bar bar-streak" id="bar-streak" style="width: 0%"></div>
+          </div>
+          <div class="breakdown-value" id="val-streak">0</div>
+        </div>
+      </div>
+
+      <div class="feedback-box" id="results-feedback">
+        <div class="feedback-icon">&#128161;</div>
+        <div class="feedback-text" id="feedback-text"></div>
+      </div>
+
+      <div class="breakdown-details" id="breakdown-details">
+        <button class="breakdown-toggle" id="breakdown-toggle" type="button" aria-expanded="false">
+          <span class="breakdown-toggle-label">See which lines you sang off key</span>
+          <span class="breakdown-toggle-chevron">&#9662;</span>
+        </button>
+        <div class="breakdown-list" id="breakdown-list" hidden></div>
+      </div>
+
+      <div class="results-actions">
+        <button class="btn btn-primary btn-glow" onclick="App.replaySong()">
+          <span class="btn-icon">&#8635;</span> Try Again
+        </button>
+        <button id="btn-singoff-create" class="btn btn-secondary" onclick="App.createSingOffFromLastResult()">
+          <span class="btn-icon">&#9876;</span> Challenge a Friend
+        </button>
+        <button class="btn btn-secondary" onclick="App.shareScore()">
+          <span class="btn-icon">&#128279;</span> Share
+        </button>
+        <button class="btn btn-ghost" onclick="App.showScreen('songs')">
+          <span class="btn-icon">&#9835;</span> New Song
+        </button>
+        <button class="btn btn-ghost" onclick="App.showLeaderboardForSong()">&#9733; Leaderboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SING-OFF RESULT SCREEN ============ -->
+  <!-- Shown after opponent completes their half of the challenge, OR when a
+       user visits ?vs=<id> for a sing-off that is already complete. Rendered
+       by App._showSingOffResults(singOff). -->
+  <div id="screen-singoff-result" class="screen">
+    <div class="results-bg">
+      <div class="bg-orb orb-1"></div>
+      <div class="bg-orb orb-2"></div>
+    </div>
+    <div class="results-content">
+      <div id="singoff-result-content"></div>
+    </div>
+  </div>
+
+  <!-- ============ MIC PERMISSION MODAL ============ -->
+  <div id="mic-modal" class="modal" data-state="ask">
+    <div class="modal-content" data-when="ask">
+      <div class="modal-icon modal-icon-svg" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="3" width="6" height="12" rx="3"/>
+          <path d="M5 11a7 7 0 0 0 14 0"/>
+          <path d="M12 18v3"/>
+          <path d="M8 21h8"/>
+        </svg>
+      </div>
+      <h3>Microphone Access</h3>
+      <p>VocalStar needs your microphone to analyze your singing. No audio is recorded or sent anywhere.</p>
+      <button class="btn btn-primary" onclick="App.requestMic()">Allow Microphone</button>
+      <button class="btn btn-ghost" onclick="App.closeMicModal()">Cancel</button>
+    </div>
+    <div class="modal-content" data-when="denied">
+      <div class="modal-icon modal-icon-svg modal-icon-warn" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="3" width="6" height="12" rx="3"/>
+          <path d="M5 11a7 7 0 0 0 14 0"/>
+          <path d="M12 18v3"/>
+          <line x1="4" y1="4" x2="20" y2="20"/>
+        </svg>
+      </div>
+      <h3>Microphone Blocked</h3>
+      <p>Your browser has blocked mic access for this site. To fix it:</p>
+      <p class="mic-steps">1. Click the lock icon in the address bar<br>2. Set "Microphone" to <b>Allow</b><br>3. Refresh the page</p>
+      <button class="btn btn-primary" onclick="location.reload()">Refresh Page</button>
+      <button class="btn btn-ghost" onclick="App.closeMicModal()">Not Now</button>
+    </div>
+  </div>
+
+  <!-- ============ TOAST ============ -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/auth.js?v=3"></script>
+  <script src="js/songs.js?v=46"></script>
+  <script src="js/pitch-detector.js?v=13"></script>
+  <script src="js/synth.js?v=13"></script>
+  <script src="js/midi-parser.js?v=10"></script>
+  <script src="js/audio-analyzer.js?v=10"></script>
+  <script src="js/game.js?v=29"></script>
+  <script src="js/app.js?v=31"></script>
+  <script defer src="/_vercel/insights/script.js"></script>
+  <script defer src="/_vercel/speed-insights/script.js"></script>
+</body>
+</html>
