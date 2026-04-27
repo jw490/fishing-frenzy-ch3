@@ -120,6 +120,15 @@
   <div class="timeline">
 
     <div class="entry">
+      <div class="entry-date">Apr 27, 2026</div>
+      <ul>
+        <li><span class="tag tag-fix">Fix</span> Silent backing track on second song: AudioContext auto-suspends after ~30 s of silence between songs. The unlock handler was one-shot and wouldn't revive it. Now re-fires on every user gesture; also resumes the context synchronously at the top of song selection, before the countdown breaks the gesture chain</li>
+        <li><span class="tag tag-fix">Fix</span> Score of 100 possible with karaoke off: presence-only formula (coverage × 85%) could max at 100, making "sang the whole song" look like a perfect score. Original audio mode now has its own capped formula (max 75) so the result honestly reflects that pitch wasn't graded</li>
+        <li><span class="tag tag-feature">Feature</span> Original audio warning modal: switching a song from Karaoke Mode to original audio now shows a blocking confirmation — "Rankings won't count" — before the change applies. Primary action is "Keep Karaoke Mode" so the default path stays accurate</li>
+      </ul>
+    </div>
+
+    <div class="entry">
       <div class="entry-date">Apr 23, 2026</div>
       <ul>
         <li><span class="tag tag-fix">Fix</span> Blank screen for first 5 seconds of every song: browser autoGainControl ramps mic gain unpredictably for ~5 s after open, causing YIN confidence to stay low and trail/scoring gates to block all input. Disabled AGC; lowered noise floor threshold to compensate so quiet singers still register</li>
