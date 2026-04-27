@@ -318,9 +318,14 @@ const Game = {
     if (hasRealMelody) {
       // Real pitch grading: weight pitch accuracy heavily
       combined = Math.round(rawAccuracy * 0.6 + coverage * 0.3 + Math.min(this.bestStreak / 10, 1) * 10);
+    } else if (isKaraokeOff) {
+      // Original audio — can't grade pitch (singer's voice bleeds into mic).
+      // Presence-only: give credit for coverage and streak, but cap at 75 so
+      // "sang the whole song with karaoke off" never looks like a perfect score.
+      // The toast already tells the user to enable Karaoke Mode for pitch grading.
+      combined = Math.min(75, Math.round(coverage * 0.65 + Math.min(this.bestStreak / 10, 1) * 10));
     } else {
-      // No melody: score is purely about coverage + streak. Do NOT weight
-      // `rawAccuracy` as pitch — it's just presence and would be a scam.
+      // No melody data: score is purely about coverage + streak.
       combined = Math.round(coverage * 0.85 + Math.min(this.bestStreak / 10, 1) * 15);
     }
 
@@ -1458,9 +1463,12 @@ const Game = {
     const coverage = (notesAttempted / notesSoFar) * 100;
     const streakBonus = Math.min(this.bestStreak / 10, 1) * 10;
 
+    const isKaraokeOff = !!this._isKaraokeOff;
     let combined;
     if (hasRealMelody) {
       combined = rawAccuracy * 0.6 + coverage * 0.3 + streakBonus;
+    } else if (isKaraokeOff) {
+      combined = Math.min(75, coverage * 0.65 + streakBonus);
     } else {
       combined = coverage * 0.85 + Math.min(this.bestStreak / 10, 1) * 15;
     }
