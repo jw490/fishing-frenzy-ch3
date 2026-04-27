@@ -492,6 +492,23 @@
     </div>
   </div>
 
+  <!-- ============ ORIGINAL AUDIO WARNING MODAL ============ -->
+  <div id="original-audio-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-icon modal-icon-warn" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="32" height="32">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <h3>Rankings won't count</h3>
+      <p>In original audio mode, the singer's voice plays through your speakers and bleeds into the mic. We can't separate your voice from theirs, so pitch grading is disabled and your score won't appear on the leaderboard.</p>
+      <p style="color:#00d4ff;font-size:13px;margin-top:-8px;">Use headphones + Karaoke Mode for accurate scoring.</p>
+      <button class="btn btn-ghost" onclick="App.confirmOriginalAudio()">Switch Anyway</button>
+      <button class="btn btn-primary" onclick="App.cancelOriginalAudio()">Keep Karaoke Mode</button>
+    </div>
+  </div>
+
   <!-- ============ MIC PERMISSION MODAL ============ -->
   <div id="mic-modal" class="modal" data-state="ask">
     <div class="modal-content" data-when="ask">
@@ -536,7 +553,7 @@
   <script src="js/midi-parser.js?v=10"></script>
   <script src="js/audio-analyzer.js?v=10"></script>
   <script src="js/game.js?v=30"></script>
-  <script src="js/app.js?v=32"></script>
+  <script src="js/app.js?v=33"></script>
   <script defer src="/_vercel/insights/script.js"></script>
   <script defer src="/_vercel/speed-insights/script.js"></script>
 </body>

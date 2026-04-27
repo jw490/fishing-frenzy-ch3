@@ -69,29 +69,39 @@ const App = {
     if (ev) { ev.stopPropagation(); ev.preventDefault(); }
     const song = Songs.get(songId);
     if (!song || !song.stripVocals) return;
-    if (!this.stats.karaoke) this.stats.karaoke = {};
     const current = this.isKaraokeOn(song);
-    const next = !current;
-    this.stats.karaoke[songId] = next;
-    this._saveStats();
 
-    // If the user just turned karaoke OFF, they're about to play the original
-    // mix through their speakers while we listen on the mic. The mic can't
-    // tell the original singer's voice apart from theirs — so unless they're
-    // wearing headphones, any score they get is partly the original artist's
-    // pitch leaking back in. Warn them explicitly. We will NOT silently grade
-    // speaker bleed as if it were the user's singing.
-    if (!next) {
-      this.showToast(
-        'Original Audio — use headphones for accurate scoring',
-        'warn',
-        3500
-      );
+    // Turning karaoke ON → no warning needed, just apply.
+    if (!current) {
+      if (!this.stats.karaoke) this.stats.karaoke = {};
+      this.stats.karaoke[songId] = true;
+      this._saveStats();
+      this._renderSongGrid(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
+      return;
     }
 
-    this._renderSongGrid(
-      document.querySelector('.filter-btn.active')?.dataset.filter || 'all'
-    );
+    // Turning karaoke OFF → show warning modal before committing.
+    // Original audio bleed makes pitch grading unreliable and scores won't
+    // count toward rankings. User must confirm they understand this.
+    this._pendingKaraokeOffSongId = songId;
+    const modal = document.getElementById('original-audio-modal');
+    if (modal) modal.classList.add('active');
+  },
+
+  confirmOriginalAudio() {
+    const songId = this._pendingKaraokeOffSongId;
+    this._pendingKaraokeOffSongId = null;
+    document.getElementById('original-audio-modal')?.classList.remove('active');
+    if (!songId) return;
+    if (!this.stats.karaoke) this.stats.karaoke = {};
+    this.stats.karaoke[songId] = false;
+    this._saveStats();
+    this._renderSongGrid(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
+  },
+
+  cancelOriginalAudio() {
+    this._pendingKaraokeOffSongId = null;
+    document.getElementById('original-audio-modal')?.classList.remove('active');
   },
 
   async init() {
