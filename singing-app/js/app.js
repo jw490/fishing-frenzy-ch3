@@ -58,11 +58,14 @@ const App = {
   },
 
   // Whether karaoke (vocal-strip) mode is enabled for a song.
-  // Defaults to true for songs that declare `stripVocals: true`.
+  // Defaults to true for songs that declare `stripVocals: true`,
+  // EXCEPT MV songs — those default to karaoke OFF so the video
+  // plays with its own audio out of the box.
   isKaraokeOn(song) {
     if (!song || !song.stripVocals) return false;
     const stored = this.stats.karaoke && this.stats.karaoke[song.id];
-    return stored === undefined ? true : !!stored;
+    const defaultOn = !song.mvSrc; // MV songs default to original audio
+    return stored === undefined ? defaultOn : !!stored;
   },
 
   toggleKaraoke(songId, ev) {
