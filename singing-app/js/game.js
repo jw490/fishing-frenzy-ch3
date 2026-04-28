@@ -1389,6 +1389,21 @@ const Game = {
     this.liveScore = this._computeLiveScore();
     if (scoreEl) scoreEl.textContent = Math.round(this.liveScore);
 
+    // Live rank — computed by App against cached leaderboard scores.
+    if (typeof App !== 'undefined' && App._getGameRank) {
+      const rankEl = document.getElementById('game-rank');
+      const rankNum = document.getElementById('game-rank-num');
+      const rank = App._getGameRank(this.liveScore);
+      if (rankEl && rankNum) {
+        if (rank) {
+          rankNum.textContent = rank;
+          rankEl.hidden = false;
+        } else {
+          rankEl.hidden = true;
+        }
+      }
+    }
+
     if (streakEl) streakEl.textContent = this.currentStreak;
     if (streakIndicator) {
       if (this.currentStreak >= 3) {

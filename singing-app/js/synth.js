@@ -10,9 +10,15 @@ const Synth = {
   masterGain: null,
   isPlaying: false,
   scheduledNodes: [],
-  audioBuffer: null,     // loaded MP3 backing track
-  audioSource: null,     // currently playing audio source
+  audioBuffer: null,              // legacy single-buffer slot (used by sync tool)
+  audioBuffers: {},               // songId -> full-mix AudioBuffer
+  instrumentalBuffers: {},        // songId -> Demucs no_vocals AudioBuffer
+  audioSource: null,              // currently playing audio source
+  audioStartedAt: null,           // ctx.currentTime when current source was kicked off
   audioTrackLoaded: false,
+  // Runtime override: set to true/false before playSong to force karaoke mode
+  // on/off regardless of the song's stripVocals flag. null = use song default.
+  stripVocalsOverride: null,
 
   // Chord progressions for each song
   chordData: {
@@ -153,19 +159,52 @@ const Synth = {
     this.masterGain.connect(this.ctx.destination);
   },
 
-  // Load an audio file (MP3/WAV) as the backing track for a song
-  async loadAudioTrack(file) {
+  // Load an audio file (MP3/WAV) as the backing track for a song.
+  // kind: 'full' (default) = the original mix with vocals
+  //       'instrumental'   = a real vocal-free stem (e.g. Demucs no_vocals)
+  // If songId is provided, the decoded buffer is stored in the map so multiple
+  // songs and multiple variants can coexist.
+  async loadAudioTrack(file, songId, kind = 'full') {
     this.init();
     try {
       const arrayBuffer = await file.arrayBuffer();
-      this.audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
-      this.audioTrackLoaded = true;
+      const buffer = await this.ctx.decodeAudioData(arrayBuffer);
+      if (songId) {
+        if (kind === 'instrumental') {
+          this.instrumentalBuffers[songId] = buffer;
+        } else {
+          this.audioBuffers[songId] = buffer;
+        }
+      } else {
+        // Legacy single-buffer path (kept for the sync tool / one-off uploads)
+        this.audioBuffer = buffer;
+        this.audioTrackLoaded = true;
+      }
       return true;
     } catch (e) {
       console.error('Failed to decode audio file:', e);
-      this.audioTrackLoaded = false;
+      if (!songId) this.audioTrackLoaded = false;
       return false;
     }
+  },
+
+  hasTrackFor(songId) {
+    return !!(songId && this.audioBuffers[songId]);
+  },
+
+  hasInstrumentalFor(songId) {
+    return !!(songId && this.instrumentalBuffers[songId]);
+  },
+
+  // Game clock source of truth. Returns the audio buffer's current playback
+  // position in seconds, or null if no real audio buffer is playing (in which
+  // case the caller should fall back to its own wall clock). Using this keeps
+  // the visual game loop locked to what the user is actually hearing, so bars
+  // never drift from the music across tab-switches, GC hitches, or audio
+  // pipeline latency.
+  getPlaybackTime() {
+    if (!this.isPlaying || this.audioStartedAt == null || !this.ctx) return null;
+    return this.ctx.currentTime - this.audioStartedAt;
   },
 
   clearAudioTrack() {
@@ -173,28 +212,210 @@ const Synth = {
     this.audioTrackLoaded = false;
   },
 
+  // Jump the currently-playing backing track forward (or backward) by
+  // `deltaSec` seconds, preserving karaoke mode. Returns the new playback
+  // position in seconds, or null if nothing is playing. This only supports
+  // real audio-buffer playback (not the synthesized chord fallback), which
+  // is fine — synthesized songs are short and don't have long intros to skip.
+  seekBy(deltaSec) {
+    if (!this.isPlaying || !this.audioSource || !this.audioSource.buffer || this.audioStartedAt == null) {
+      return null;
+    }
+    const buffer = this.audioSource.buffer;
+    const currentPos = this.ctx.currentTime - this.audioStartedAt;
+    let newPos = currentPos + deltaSec;
+    if (newPos < 0) newPos = 0;
+    // Leave a small tail so we don't seek past the end and instantly fire
+    // the end-of-song handler in the middle of a skip press.
+    if (newPos > buffer.duration - 0.5) newPos = Math.max(0, buffer.duration - 0.5);
+
+    // We want the new source to share the same graph as the old one. The
+    // simplest honest approach: stop the old source, rebuild a fresh source
+    // wired through the same filter chain by replaying with an offset.
+    // To do that without re-running the whole playSong() setup (which would
+    // also re-schedule a full fresh metronome), we snapshot the karaoke
+    // state, stop only the audio source, and start a fresh source with the
+    // new offset hooked into masterGain-level chain.
+
+    // Simpler still: tear down and rebuild via _restartAudioAt, which knows
+    // how to recreate the karaoke filter chain.
+    this._restartAudioAt(newPos, buffer);
+    return newPos;
+  },
+
+  // Internal: restart the backing audio at `offsetSec` using the same buffer
+  // and the same karaoke filter decision as the current playback. Used by
+  // seekBy() so the user can skip through long intros without mid-song
+  // artifacts.
+  _restartAudioAt(offsetSec, buffer) {
+    // Tear down only the audio source + its filters. We leave scheduled
+    // metronome clicks alone — they're short one-shots that will either
+    // have already fired or will fire silently past the end. Doing this
+    // avoids double-clicks when the user mashes skip multiple times.
+    try { this.audioSource.stop(); } catch (e) {}
+    try { this.audioSource.disconnect(); } catch (e) {}
+
+    const now = this.ctx.currentTime;
+
+    // Figure out whether the current source was the instrumental stem. We
+    // detect by object identity against our buffer map — if we can find a
+    // songId whose instrumental buffer matches, we were in karaoke stem
+    // mode and the new source should skip the fake-cancel chain.
+    let bufferIsInstrumental = false;
+    for (const songId of Object.keys(this.instrumentalBuffers)) {
+      if (this.instrumentalBuffers[songId] === buffer) {
+        bufferIsInstrumental = true;
+        break;
+      }
+    }
+
+    // Was the previous pipeline a fake L-R cancel? That's true only when
+    // the buffer is a stereo full-mix AND we weren't using the instrumental
+    // stem. We can't introspect the old graph reliably, so rebuild from
+    // state: if stripVocalsOverride was set this run it's already been
+    // consumed, so we fall back to "match what the song wants" — but the
+    // user's toggle is the source of truth for the next run, not this seek.
+    // Reasonable compromise: continue whatever mode we're in via buffer
+    // identity.
+    const wantFakeCancel = !bufferIsInstrumental && buffer.numberOfChannels >= 2 && this._lastUsedFakeCancel === true;
+
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    const trackGain = this.ctx.createGain();
+    trackGain.gain.value = 0.85;
+
+    if (wantFakeCancel) {
+      const splitter = this.ctx.createChannelSplitter(2);
+      const merger = this.ctx.createChannelMerger(2);
+      const gL = this.ctx.createGain(); gL.gain.value = 1;
+      const gR = this.ctx.createGain(); gR.gain.value = -1;
+      const bassL = this.ctx.createGain(); bassL.gain.value = 0.5;
+      const bassR = this.ctx.createGain(); bassR.gain.value = 0.5;
+      const bassLP = this.ctx.createBiquadFilter();
+      bassLP.type = 'lowpass';
+      bassLP.frequency.value = 180;
+      bassLP.Q.value = 0.7;
+      src.connect(splitter);
+      splitter.connect(gL, 0);
+      splitter.connect(gR, 1);
+      splitter.connect(bassL, 0);
+      splitter.connect(bassR, 1);
+      gL.connect(merger, 0, 0); gL.connect(merger, 0, 1);
+      gR.connect(merger, 0, 0); gR.connect(merger, 0, 1);
+      bassL.connect(bassLP); bassR.connect(bassLP);
+      bassLP.connect(merger, 0, 0); bassLP.connect(merger, 0, 1);
+      merger.connect(trackGain);
+    } else {
+      src.connect(trackGain);
+    }
+    trackGain.connect(this.ctx.destination);
+
+    src.start(now, offsetSec);
+    this.audioSource = src;
+    // ctx.currentTime - audioStartedAt must equal offsetSec right now, so
+    // that Synth.getPlaybackTime() keeps being the game clock source of truth.
+    this.audioStartedAt = now - offsetSec;
+    this.scheduledNodes.push(src);
+  },
+
   playSong(songId, bpm) {
     this.init();
+    // Resume the AudioContext if it was suspended (e.g. iOS suspends after
+    // a period of silence, or after the first song ended and the page was
+    // briefly backgrounded). Without this, start() enqueues the source in
+    // a suspended context — audio is "playing" internally but outputs nothing.
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(e => console.warn('[Synth] ctx.resume failed:', e));
+    }
     this.stop();
     this.isPlaying = true;
 
     const song = Songs.get(songId);
     const now = this.ctx.currentTime;
 
-    // If we have an uploaded audio track, play it
-    if (this.audioTrackLoaded && this.audioBuffer) {
+    // Decide whether the user wants karaoke mode for this song.
+    const wantKaraoke = this.stripVocalsOverride !== null
+      ? !!this.stripVocalsOverride
+      : !!(song && song.stripVocals);
+    // One-shot override — reset so the next play uses defaults unless set again
+    this.stripVocalsOverride = null;
+
+    // Prefer a real Demucs-extracted instrumental stem when the user is in
+    // karaoke mode and we have one bundled. This is the honest karaoke —
+    // the vocal is physically gone, so nothing the mic picks up belongs
+    // to the original singer. If we don't have a real stem, fall back to
+    // the full-mix buffer (and, if requested, the old L-R center-cancel
+    // trick — that's a compromise, not a clean cancel).
+    let buffer;
+    let bufferIsInstrumental = false;
+    if (wantKaraoke && this.instrumentalBuffers[songId]) {
+      buffer = this.instrumentalBuffers[songId];
+      bufferIsInstrumental = true;
+    } else {
+      buffer = this.audioBuffers[songId] || this.audioBuffer;
+    }
+
+    if (buffer) {
       this.audioSource = this.ctx.createBufferSource();
       const trackGain = this.ctx.createGain();
-      trackGain.gain.value = 0.7;
-      this.audioSource.buffer = this.audioBuffer;
-      this.audioSource.connect(trackGain);
+      trackGain.gain.value = 0.85;
+      this.audioSource.buffer = buffer;
+
+      // Only apply the fake L-R center-cancel trick as a fallback when:
+      //   (a) the user wants karaoke
+      //   (b) we're playing the full mix (no real stem available)
+      //   (c) the mix is stereo
+      const useFakeCancel = wantKaraoke && !bufferIsInstrumental && buffer.numberOfChannels >= 2;
+      this._lastUsedFakeCancel = useFakeCancel;
+      if (useFakeCancel) {
+        const splitter = this.ctx.createChannelSplitter(2);
+        const merger = this.ctx.createChannelMerger(2);
+
+        // Side signal: L - R (center content cancels out)
+        const gL = this.ctx.createGain(); gL.gain.value = 1;
+        const gR = this.ctx.createGain(); gR.gain.value = -1;
+
+        // Bass keeper: lowpass-filtered mono sum of L + R, added back in
+        const bassL = this.ctx.createGain(); bassL.gain.value = 0.5;
+        const bassR = this.ctx.createGain(); bassR.gain.value = 0.5;
+        const bassLP = this.ctx.createBiquadFilter();
+        bassLP.type = 'lowpass';
+        bassLP.frequency.value = 180;
+        bassLP.Q.value = 0.7;
+
+        this.audioSource.connect(splitter);
+        splitter.connect(gL, 0);
+        splitter.connect(gR, 1);
+        splitter.connect(bassL, 0);
+        splitter.connect(bassR, 1);
+
+        // Side signal fans out to both output channels (mono)
+        gL.connect(merger, 0, 0);
+        gL.connect(merger, 0, 1);
+        gR.connect(merger, 0, 0);
+        gR.connect(merger, 0, 1);
+
+        // Bass sum -> lowpass -> both output channels
+        bassL.connect(bassLP);
+        bassR.connect(bassLP);
+        bassLP.connect(merger, 0, 0);
+        bassLP.connect(merger, 0, 1);
+
+        merger.connect(trackGain);
+      } else {
+        this.audioSource.connect(trackGain);
+      }
+
       trackGain.connect(this.ctx.destination);
       this.audioSource.start(now);
+      // Capture the exact audio-clock timestamp when playback began so the
+      // game loop can sync its bars to real playback position.
+      this.audioStartedAt = now;
       this.scheduledNodes.push(this.audioSource);
 
       // Still schedule a light metronome click
       const secPerBeat = 60 / bpm;
-      const totalBeats = Math.ceil((this.audioBuffer.duration / secPerBeat)) + 4;
+      const totalBeats = Math.ceil((buffer.duration / secPerBeat)) + 4;
       for (let beat = 0; beat < totalBeats; beat++) {
         this._scheduleClick(now + beat * secPerBeat, beat % 4 === 0);
       }
@@ -331,10 +552,32 @@ const Synth = {
 
   stop() {
     this.isPlaying = false;
+    this.audioStartedAt = null;
     for (const node of this.scheduledNodes) {
       try { node.stop(); } catch (e) {}
     }
     this.scheduledNodes = [];
+  },
+
+  // Swap the backing track mid-song (karaoke on/off toggle during play).
+  // Seeks to the current playback position on the new buffer so the song
+  // doesn't restart or skip. No-op if the requested track isn't loaded.
+  switchKaraoke(wantKaraoke, songId) {
+    if (!this.isPlaying || !this.ctx) return false;
+    const currentPos = this.getPlaybackTime();
+    if (currentPos === null) return false;
+
+    let buffer;
+    if (wantKaraoke && this.instrumentalBuffers[songId]) {
+      buffer = this.instrumentalBuffers[songId];
+      this._lastUsedFakeCancel = false;
+    } else if (!wantKaraoke && this.audioBuffers[songId]) {
+      buffer = this.audioBuffers[songId];
+    }
+    if (!buffer) return false;
+
+    this._restartAudioAt(currentPos, buffer);
+    return true;
   },
 
   setVolume(vol) {

@@ -435,20 +435,118 @@ const App = {
     // Tell Synth whether to strip vocals this run, based on the per-song toggle
     Synth.stripVocalsOverride = this.isKaraokeOn(song);
 
+    // Reset rank state and kick off a background leaderboard fetch so the
+    // live rank display has data as soon as possible.
+    this._gameRankScores = [];
+    this._fetchGameRanks(songId);
+
     this.showScreen('game');
     this._trackEvent('song_start', { song_id: songId, karaoke: this.isKaraokeOn(song) });
     Game.loadSong(songId);
+
+    // Show/hide karaoke toggle based on whether this song has both tracks
+    const karaokeBtn = document.getElementById('game-karaoke-btn');
+    if (karaokeBtn) karaokeBtn.hidden = !song.stripVocals;
 
     // Small delay to let screen render
     setTimeout(() => {
       Game._resize();
       Game.start();
+      // Sync karaoke button to current state after Game.loadSong() has set _isKaraokeOff
+      this._updateKaraokeBtn();
+      // Hide rank until we have data
+      const rankEl = document.getElementById('game-rank');
+      if (rankEl) rankEl.hidden = true;
     }, 100);
   },
 
   quitGame() {
     Game.stop();
     this.showScreen('songs');
+  },
+
+  // End the song early and go straight to results (same as natural end).
+  endSong() {
+    Game.stop();
+    this.onGameEnd();
+  },
+
+  // Toggle karaoke on/off mid-song. Swaps the audio track at the current
+  // position without restarting. Shows a toast (not a blocking modal) when
+  // switching to original audio since the session is already in progress.
+  toggleKaraokeMidSong() {
+    const song = Songs.get(this.currentSong);
+    if (!song || !song.stripVocals) return;
+
+    const currentlyOff = Game._isKaraokeOff;
+    const wantKaraoke = currentlyOff; // flip
+
+    const switched = Synth.switchKaraoke(wantKaraoke, song.id);
+    if (!switched) {
+      this.showToast('Track not available', 'warn');
+      return;
+    }
+
+    Game._isKaraokeOff = !wantKaraoke;
+    this._updateKaraokeBtn();
+
+    if (!wantKaraoke) {
+      this.showToast('Original audio — rankings disabled for this session', 'warn', 4000);
+    } else {
+      this.showToast('Karaoke mode on — pitch scoring active', 'info', 2500);
+    }
+  },
+
+  _updateKaraokeBtn() {
+    const btn = document.getElementById('game-karaoke-btn');
+    if (!btn) return;
+    const isOff = !!Game._isKaraokeOff;
+    btn.classList.toggle('karaoke-off', isOff);
+    btn.title = isOff ? 'Original audio (tap to switch to karaoke)' : 'Karaoke mode on (tap to switch to original)';
+    btn.setAttribute('aria-pressed', String(!isOff));
+  },
+
+  // Fetch leaderboard scores for the current song and cache them for
+  // rank computation during the game. Uses localStorage cache when available
+  // so this is instant on repeat plays — no visible delay.
+  async _fetchGameRanks(songId) {
+    this._gameRankScores = [];
+    try {
+      const scope = `song_${songId}`;
+      const cached = this._readLbCache(scope);
+      if (cached && cached.length) {
+        this._gameRankScores = cached.map(e => e.score);
+      }
+      // Background refresh — updates ranks silently if cache is stale
+      const sb = _getSupabase();
+      const { data } = await this._withTimeout(
+        sb.from('profiles').select('id, stats').not('stats', 'is', null).limit(200),
+        8000,
+      );
+      if (data) {
+        const scores = (data || [])
+          .filter(p => p.stats && p.stats.songBests && p.stats.songBests[songId] > 0)
+          .map(p => p.stats.songBests[songId])
+          .sort((a, b) => b - a);
+        this._gameRankScores = scores;
+        this._writeLbCache(scope,
+          (data || [])
+            .filter(p => p.stats && p.stats.songBests && p.stats.songBests[songId] > 0)
+            .map(p => ({ score: p.stats.songBests[songId], user_id: p.id }))
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 50)
+        );
+      }
+    } catch (e) { /* non-fatal — rank just won't show */ }
+  },
+
+  // Compute current rank from live score vs stored leaderboard scores.
+  // Returns a string like "#3" or null if no data.
+  _getGameRank(liveScore) {
+    if (!this._gameRankScores || this._gameRankScores.length === 0) return null;
+    if (liveScore <= 0) return null;
+    const rank = this._gameRankScores.filter(s => s > liveScore).length + 1;
+    return `#${rank}`;
   },
 
   replaySong() {
