@@ -580,6 +580,38 @@ const Synth = {
     return true;
   },
 
+  // Like playSong() but starts playback at offsetSec instead of 0.
+  // Used when switching from MV video audio back to Synth mid-song.
+  playSongFrom(songId, bpm, offsetSec) {
+    this.init();
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(e => console.warn('[Synth] ctx.resume failed:', e));
+    }
+    this.stop();
+    this.isPlaying = true;
+
+    const song = Songs.get(songId);
+    const wantKaraoke = this.stripVocalsOverride !== null
+      ? !!this.stripVocalsOverride
+      : !!(song && song.stripVocals);
+    this.stripVocalsOverride = null;
+
+    let buffer;
+    let bufferIsInstrumental = false;
+    if (wantKaraoke && this.instrumentalBuffers[songId]) {
+      buffer = this.instrumentalBuffers[songId];
+      bufferIsInstrumental = true;
+      this._lastUsedFakeCancel = false;
+    } else {
+      buffer = this.audioBuffers[songId] || this.audioBuffer;
+    }
+    if (!buffer) return false;
+
+    const clampedOffset = Math.max(0, Math.min(offsetSec, buffer.duration - 0.5));
+    this._restartAudioAt(clampedOffset, buffer);
+    return true;
+  },
+
   setVolume(vol) {
     if (this.masterGain) {
       this.masterGain.gain.value = vol;

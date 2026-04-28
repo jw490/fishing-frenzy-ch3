@@ -219,8 +219,11 @@ const Game = {
       }, 1500);
     }
 
-    // Start backing music — skipped for MV songs (video element handles audio)
-    if (!this.song.mvSrc) {
+    // Start backing music.
+    // MV songs: video provides audio only when karaoke is OFF (_isKaraokeOff=true).
+    // When karaoke is ON, Synth still plays the instrumental stem normally.
+    const mvAudioActive = !!(this.song.mvSrc && this._isKaraokeOff);
+    if (!mvAudioActive) {
       Synth.playSong(this.song.id, this.song.bpm);
     }
 
@@ -234,8 +237,9 @@ const Game = {
     if (this._gradeBombTimer) { clearTimeout(this._gradeBombTimer); this._gradeBombTimer = null; }
     const _bombEl = document.getElementById('grade-bomb');
     if (_bombEl) _bombEl.classList.remove('bomb-show');
-    // MV songs: audio comes from the video element, not Synth
-    if (!this.song || !this.song.mvSrc) Synth.stop();
+    // MV karaoke-OFF: audio came from the video element, not Synth — don't stop what wasn't started
+    const wasMvAudio = !!(this.song && this.song.mvSrc && this._isKaraokeOff);
+    if (!wasMvAudio) Synth.stop();
   },
 
   // Called by App.skipForward after Synth.seekBy jumps the audio buffer.

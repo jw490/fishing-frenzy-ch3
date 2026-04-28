@@ -444,18 +444,20 @@ const App = {
     this._trackEvent('song_start', { song_id: songId, karaoke: this.isKaraokeOn(song) });
     Game.loadSong(songId);
 
-    // Show/hide karaoke toggle — hidden for MV songs (video is the audio source)
-    // and for songs without an instrumental stem.
+    // Show/hide karaoke toggle — shown whenever the song has an instrumental stem
+    // (including MV songs, where toggling switches between Synth instrumental
+    // and the video's embedded audio track).
     const karaokeBtn = document.getElementById('game-karaoke-btn');
-    if (karaokeBtn) karaokeBtn.hidden = !song.stripVocals || !!song.mvSrc;
+    if (karaokeBtn) karaokeBtn.hidden = !song.stripVocals;
 
-    // MV mode: if this song has a music-video, swap canvas for video
-    // and use the video's audio track (muted=false) instead of Synth.
+    // MV mode: swap canvas for video. Audio routing depends on karaoke state:
+    //   Karaoke ON  → video muted (visual only),  Synth plays instrumental
+    //   Karaoke OFF → video unmuted (audio source), Synth silent
     const gameScreen = document.getElementById('screen-game');
     const mvEl = document.getElementById('game-mv');
     if (song.mvSrc && mvEl && gameScreen) {
       gameScreen.classList.add('has-mv');
-      mvEl.muted = false;   // video IS the audio source
+      mvEl.muted = this.isKaraokeOn(song); // muted when karaoke ON (Synth handles audio)
       mvEl.src = song.mvSrc;
       mvEl.currentTime = 0;
       mvEl.load();
@@ -496,7 +498,7 @@ const App = {
 
   _stopMv() {
     const mvEl = document.getElementById('game-mv');
-    if (mvEl) { mvEl.pause(); mvEl.currentTime = 0; }
+    if (mvEl) { mvEl.pause(); mvEl.currentTime = 0; mvEl.muted = true; }
     const gameScreen = document.getElementById('screen-game');
     if (gameScreen) gameScreen.classList.remove('has-mv');
   },
@@ -511,10 +513,33 @@ const App = {
     const currentlyOff = Game._isKaraokeOff;
     const wantKaraoke = currentlyOff; // flip
 
-    const switched = Synth.switchKaraoke(wantKaraoke, song.id);
-    if (!switched) {
-      this.showToast('Track not available', 'warn');
-      return;
+    if (song.mvSrc) {
+      // MV song: toggle between Synth instrumental and video audio
+      const mvEl = document.getElementById('game-mv');
+      if (!mvEl) return;
+
+      if (wantKaraoke) {
+        // Switch to karaoke: mute video, start Synth instrumental from video's position
+        const pos = mvEl.currentTime || 0;
+        mvEl.muted = true;
+        Synth.stripVocalsOverride = true; // force instrumental
+        const ok = Synth.playSongFrom(song.id, song.bpm, pos);
+        if (!ok) { this.showToast('Instrumental not available', 'warn'); return; }
+      } else {
+        // Switch to original: stop Synth, unmute video from Synth's position
+        const pos = Synth.getPlaybackTime() || mvEl.currentTime || 0;
+        Synth.stop();
+        mvEl.muted = false;
+        mvEl.currentTime = pos;
+        mvEl.play().catch(() => {});
+      }
+    } else {
+      // Normal song: swap between full mix and instrumental buffer seamlessly
+      const switched = Synth.switchKaraoke(wantKaraoke, song.id);
+      if (!switched) {
+        this.showToast('Track not available', 'warn');
+        return;
+      }
     }
 
     Game._isKaraokeOff = !wantKaraoke;
