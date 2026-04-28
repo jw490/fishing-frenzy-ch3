@@ -106,12 +106,12 @@ const Songs = {
       icon: '\uD83C\uDFB5',
       color: '#ff7043',
       hasAudioTrack: true,
-      audioSrc: 'audio/jia-bin.mp3',
-      instrumentalSrc: 'audio/jia-bin-instrumental.mp3',
+      audioSrc: 'audio/jia-bin-mv-audio.mp3',
+      instrumentalSrc: 'audio/jia-bin-mv-instrumental.mp3',
       stripVocals: true,
       mvSrc: 'audio/jia-bin-mv.mp4',
       lyricsMode: true,
-      durationSec: 311.4,
+      durationSec: 333.8,
       notes: [],
       // Extracted vocal melody for pitch grading in lyricsMode.
       melody: []
