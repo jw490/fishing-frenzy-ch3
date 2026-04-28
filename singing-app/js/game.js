@@ -219,8 +219,10 @@ const Game = {
       }, 1500);
     }
 
-    // Start backing music
-    Synth.playSong(this.song.id, this.song.bpm);
+    // Start backing music — skipped for MV songs (video element handles audio)
+    if (!this.song.mvSrc) {
+      Synth.playSong(this.song.id, this.song.bpm);
+    }
 
     this._gameLoop();
   },
@@ -232,7 +234,8 @@ const Game = {
     if (this._gradeBombTimer) { clearTimeout(this._gradeBombTimer); this._gradeBombTimer = null; }
     const _bombEl = document.getElementById('grade-bomb');
     if (_bombEl) _bombEl.classList.remove('bomb-show');
-    Synth.stop();
+    // MV songs: audio comes from the video element, not Synth
+    if (!this.song || !this.song.mvSrc) Synth.stop();
   },
 
   // Called by App.skipForward after Synth.seekBy jumps the audio buffer.

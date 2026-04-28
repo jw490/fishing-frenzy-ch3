@@ -444,21 +444,24 @@ const App = {
     this._trackEvent('song_start', { song_id: songId, karaoke: this.isKaraokeOn(song) });
     Game.loadSong(songId);
 
-    // Show/hide karaoke toggle based on whether this song has both tracks
+    // Show/hide karaoke toggle — hidden for MV songs (video is the audio source)
+    // and for songs without an instrumental stem.
     const karaokeBtn = document.getElementById('game-karaoke-btn');
-    if (karaokeBtn) karaokeBtn.hidden = !song.stripVocals;
+    if (karaokeBtn) karaokeBtn.hidden = !song.stripVocals || !!song.mvSrc;
 
     // MV mode: if this song has a music-video, swap canvas for video
+    // and use the video's audio track (muted=false) instead of Synth.
     const gameScreen = document.getElementById('screen-game');
     const mvEl = document.getElementById('game-mv');
     if (song.mvSrc && mvEl && gameScreen) {
       gameScreen.classList.add('has-mv');
+      mvEl.muted = false;   // video IS the audio source
       mvEl.src = song.mvSrc;
       mvEl.currentTime = 0;
       mvEl.load();
     } else if (gameScreen) {
       gameScreen.classList.remove('has-mv');
-      if (mvEl) { mvEl.pause(); mvEl.removeAttribute('src'); }
+      if (mvEl) { mvEl.pause(); mvEl.muted = true; mvEl.removeAttribute('src'); }
     }
 
     // Small delay to let screen render
