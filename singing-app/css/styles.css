@@ -1084,6 +1084,32 @@ html, body {
   background: var(--bg-dark);
 }
 
+/* ==========================================
+   GAME: MV (music video) background mode
+   Canvas hidden; video fills pitch-bar area
+   ========================================== */
+#game-mv {
+  display: none;
+  flex: 1;
+  width: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+/* When .has-mv is set on #screen-game */
+#screen-game.has-mv #game-mv  { display: block; }
+#screen-game.has-mv #game-canvas { display: none; }
+
+/* Darken the video slightly so lyrics stay readable */
+#screen-game.has-mv .lyrics-bar {
+  background: rgba(6,6,15,0.85);
+}
+
+/* Grade bomb needs a higher z-index when video is behind */
+#screen-game.has-mv .grade-bomb {
+  z-index: 20;
+}
+
 .lyrics-bar {
   padding: 20px 20px;
   text-align: center;

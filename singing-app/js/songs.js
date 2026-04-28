@@ -109,6 +109,7 @@ const Songs = {
       audioSrc: 'audio/jia-bin.mp3',
       instrumentalSrc: 'audio/jia-bin-instrumental.mp3',
       stripVocals: true,
+      mvSrc: 'audio/jia-bin-mv.mp4',
       lyricsMode: true,
       durationSec: 311.4,
       notes: [],

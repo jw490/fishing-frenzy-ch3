@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>VocalStar - Sing. Score. Improve.</title>
-  <link rel="stylesheet" href="css/styles.css?v=30">
+  <link rel="stylesheet" href="css/styles.css?v=31">
   <meta http-equiv="Cache-Control" content="no-cache">
   <meta name="theme-color" content="#06060f">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -410,6 +410,8 @@
     </div>
 
     <div id="grade-bomb" class="grade-bomb" aria-live="assertive"></div>
+    <!-- MV background video (muted; audio comes from Synth) -->
+    <video id="game-mv" muted playsinline preload="none" aria-hidden="true"></video>
     <canvas id="game-canvas"></canvas>
 
     <div class="lyrics-bar">
@@ -572,13 +574,13 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/auth.js?v=3"></script>
-  <script src="js/songs.js?v=47"></script>
+  <script src="js/songs.js?v=48"></script>
   <script src="js/pitch-detector.js?v=13"></script>
   <script src="js/synth.js?v=14"></script>
   <script src="js/midi-parser.js?v=10"></script>
   <script src="js/audio-analyzer.js?v=10"></script>
   <script src="js/game.js?v=31"></script>
-  <script src="js/app.js?v=34"></script>
+  <script src="js/app.js?v=35"></script>
   <script defer src="/_vercel/insights/script.js"></script>
   <script defer src="/_vercel/speed-insights/script.js"></script>
 </body>

@@ -448,10 +448,28 @@ const App = {
     const karaokeBtn = document.getElementById('game-karaoke-btn');
     if (karaokeBtn) karaokeBtn.hidden = !song.stripVocals;
 
+    // MV mode: if this song has a music-video, swap canvas for video
+    const gameScreen = document.getElementById('screen-game');
+    const mvEl = document.getElementById('game-mv');
+    if (song.mvSrc && mvEl && gameScreen) {
+      gameScreen.classList.add('has-mv');
+      mvEl.src = song.mvSrc;
+      mvEl.currentTime = 0;
+      mvEl.load();
+    } else if (gameScreen) {
+      gameScreen.classList.remove('has-mv');
+      if (mvEl) { mvEl.pause(); mvEl.removeAttribute('src'); }
+    }
+
     // Small delay to let screen render
     setTimeout(() => {
       Game._resize();
       Game.start();
+      // Start MV in sync with audio
+      if (song.mvSrc && mvEl && gameScreen.classList.contains('has-mv')) {
+        mvEl.currentTime = 0;
+        mvEl.play().catch(() => {/* autoplay may be blocked — video is muted so usually fine */});
+      }
       // Sync karaoke button to current state after Game.loadSong() has set _isKaraokeOff
       this._updateKaraokeBtn();
       // Hide rank until we have data
@@ -462,13 +480,22 @@ const App = {
 
   quitGame() {
     Game.stop();
+    this._stopMv();
     this.showScreen('songs');
   },
 
   // End the song early and go straight to results (same as natural end).
   endSong() {
     Game.stop();
+    this._stopMv();
     this.onGameEnd();
+  },
+
+  _stopMv() {
+    const mvEl = document.getElementById('game-mv');
+    if (mvEl) { mvEl.pause(); mvEl.currentTime = 0; }
+    const gameScreen = document.getElementById('screen-game');
+    if (gameScreen) gameScreen.classList.remove('has-mv');
   },
 
   // Toggle karaoke on/off mid-song. Swaps the audio track at the current
@@ -556,6 +583,7 @@ const App = {
   },
 
   async onGameEnd() {
+    this._stopMv();
     const results = Game.getResults();
     const song = Songs.get(this.currentSong);
 
