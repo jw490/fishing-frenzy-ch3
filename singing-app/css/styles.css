@@ -577,6 +577,7 @@ html, body {
   border-radius: var(--radius);
   transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
   overflow: hidden;
+  cursor: pointer;
   /* Grid items with overflow:hidden have min-height resolve to 0,
      collapsing the card. Force content-based minimum. */
   min-height: min-content;

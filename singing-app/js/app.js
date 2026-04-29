@@ -271,8 +271,8 @@ const App = {
       const karaokeOn = this.isKaraokeOn(song);
 
       return `
-        <div class="song-card" data-difficulty="${song.difficulty}" data-song-id="${song.id}">
-          <div class="song-card-main" onclick="App.selectSong('${song.id}')">
+        <div class="song-card" data-difficulty="${song.difficulty}" data-song-id="${song.id}" onclick="App.selectSong('${song.id}')">
+          <div class="song-card-main">
             <div class="song-art" style="--song-color: ${song.color}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M9 18V6l11-2v12"/>
