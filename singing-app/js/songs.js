@@ -426,11 +426,12 @@ const Songs = {
       icon: '\uD83C\uDFB5',
       color: '#a855f7',
       hasAudioTrack: true,
-      audioSrc: 'audio/yu-die.mp3',
-      instrumentalSrc: 'audio/yu-die-instrumental.mp3',
+      mvSrc: '/media/yu-die-mv.mp4',
+      audioSrc: '/media/yu-die-mv-audio.mp3',
+      instrumentalSrc: '/media/yu-die-mv-instrumental.mp3',
       stripVocals: true,
       lyricsMode: true,
-      durationSec: 205.9,
+      durationSec: 228,
       notes: [],
       // pYIN-extracted melody: 534 segments, MIDI 50..74 (median 64).
       melody: []
