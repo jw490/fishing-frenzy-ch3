@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/media/:path*",
+      "destination": "https://pub-7b37e1a1b08244c98f1735f2f95ab5f6.r2.dev/:path*"
+    }
+  ]
+}
