@@ -384,11 +384,12 @@ const Songs = {
       icon: '\uD83C\uDFB5',
       color: '#ff6b9d',
       hasAudioTrack: true,
-      audioSrc: 'audio/ai-qing-wen-zen-me-zou.mp3',
-      instrumentalSrc: 'audio/ai-qing-wen-zen-me-zou-instrumental.mp3',
+      mvSrc: '/media/ai-qing-wen-zen-me-zou-mv.mp4',
+      audioSrc: '/media/ai-qing-wen-zen-me-zou-mv-audio.mp3',
+      instrumentalSrc: '/media/ai-qing-wen-zen-me-zou-mv-instrumental.mp3',
       stripVocals: true,
       lyricsMode: true,
-      durationSec: 254.6,
+      durationSec: 265,
       notes: [],
       // pYIN-extracted melody: 775 segments, MIDI 47..74 (median 65).
       melody: []
