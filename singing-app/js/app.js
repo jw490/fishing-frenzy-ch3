@@ -351,6 +351,15 @@ const App = {
       // user-gesture callstack (before any awaits). Browsers require a gesture
       // for ctx.resume() — by the time we reach Synth.playSong() we've awaited
       // audio loading, mic, and a 3-second countdown, breaking the gesture chain.
+      //
+      // CRITICAL: call Synth.init() first so ctx EXISTS before we try to resume.
+      // If Synth was never initialised (first song pick), Synth.ctx is null,
+      // so the resume below is silently skipped. Synth.init() then gets called
+      // later inside a setTimeout (outside the gesture), and the new AudioContext
+      // may start in a suspended state that iOS Safari never auto-resumes — causing
+      // ctx.currentTime to freeze at 0 and the game clock to stall for ~90 seconds
+      // while the video (which is independent of WebAudio) plays on normally.
+      try { Synth.init(); } catch (e) {}
       try { if (Synth.ctx && Synth.ctx.state !== 'running') Synth.ctx.resume(); } catch (e) {}
       try { if (PitchDetector.audioContext && PitchDetector.audioContext.state !== 'running') PitchDetector.audioContext.resume(); } catch (e) {}
 
