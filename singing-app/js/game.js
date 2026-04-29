@@ -1463,13 +1463,26 @@ const Game = {
     // Update lyrics
     this._updateLyrics();
 
-    // Mic input indicator — lights up when the mic hears a pitched sound
-    const micDot = document.getElementById('mic-dot');
-    if (micDot) {
-      const hasPitch = this.currentPitch &&
-                       this.currentPitch.confidence >= 0.15 &&
-                       this.currentPitch.freq > 0;
-      micDot.classList.toggle('mic-active', !!hasPitch);
+    // Mic input — animate equaliser bars in real-time using pitch confidence
+    // as a proxy for voice volume. Each bar gets a slightly different random
+    // height so it looks like a live EQ, not a single number.
+    const micBarsEl = document.getElementById('mic-bars');
+    if (micBarsEl) {
+      const conf = (this.currentPitch &&
+                    this.currentPitch.confidence >= 0.15 &&
+                    this.currentPitch.freq > 0)
+                     ? this.currentPitch.confidence : 0;
+      const bars = micBarsEl.children;
+      const MAX_H = 28; // px
+      const color = conf > 0.65 ? '#00ff88' : conf > 0.35 ? '#00d4ff' : '#ffffff26';
+      for (let i = 0; i < bars.length; i++) {
+        const h = conf > 0
+          ? Math.max(4, conf * MAX_H * (0.45 + Math.random() * 0.7))
+          : 3;
+        bars[i].style.height = h + 'px';
+        bars[i].style.background = conf > 0 ? color : 'rgba(255,255,255,0.12)';
+        bars[i].style.boxShadow = conf > 0.4 ? `0 0 6px ${color}` : 'none';
+      }
     }
   },
 

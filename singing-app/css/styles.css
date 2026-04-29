@@ -1136,30 +1136,23 @@ html, body {
   100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
 }
 
-/* ---- Mic input indicator ---- */
-.mic-indicator {
+/* ---- Mic equaliser bars ---- */
+.mic-bars {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
+  gap: 3px;
+  height: 28px;
   margin-top: 6px;
+  padding: 0 2px;
 }
-.mic-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.2);
-  transition: background 0.08s, box-shadow 0.08s;
-}
-.mic-dot.mic-active {
-  background: #00ff88;
-  border-color: #00ff88;
-  box-shadow: 0 0 8px #00ff88, 0 0 3px #00ff88;
-  animation: mic-ping 0.15s ease-out;
-}
-@keyframes mic-ping {
-  0%   { transform: scale(1.6); }
-  100% { transform: scale(1); }
+.mic-bar {
+  width: 4px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.12);
+  /* height + color driven by JS each RAF tick */
+  transition: height 0.07s ease-out, background 0.1s, box-shadow 0.1s;
 }
 
 .lyrics-bar {
