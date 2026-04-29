@@ -489,11 +489,12 @@ const Songs = {
       icon: '🎵',
       color: '#10b981',
       hasAudioTrack: true,
-      audioSrc: 'audio/wang-ji-yong-bao.mp3',
-      instrumentalSrc: 'audio/wang-ji-yong-bao-instrumental.mp3',
+      mvSrc: '/media/wang-ji-yong-bao-mv.mp4',
+      audioSrc: '/media/wang-ji-yong-bao-mv-audio.mp3',
+      instrumentalSrc: '/media/wang-ji-yong-bao-mv-instrumental.mp3',
       stripVocals: true,
       lyricsMode: true,
-      durationSec: 264.3,
+      durationSec: 282,
       notes: [],
       // pYIN-extracted melody: 642 segments, MIDI 52..83 (median 66).
       melody: []
