@@ -1463,9 +1463,11 @@ const Game = {
     // Update lyrics
     this._updateLyrics();
 
-    // Mic input — animate equaliser bars in real-time using pitch confidence
-    // as a proxy for voice volume. Each bar gets a slightly different random
-    // height so it looks like a live EQ, not a single number.
+    // Mic equaliser bars — traffic-light colour system:
+    //   RED    voice heard but pitch is way off the current target note
+    //   CYAN   voice heard, pitch partially off (or no scored note active)
+    //   GREEN  voice heard and on-pitch
+    //   DIM    silent / no voice detected
     const micBarsEl = document.getElementById('mic-bars');
     if (micBarsEl) {
       const conf = (this.currentPitch &&
@@ -1473,15 +1475,33 @@ const Game = {
                     this.currentPitch.freq > 0)
                      ? this.currentPitch.confidence : 0;
       const bars = micBarsEl.children;
-      const MAX_H = 28; // px
-      const color = conf > 0.65 ? '#00ff88' : conf > 0.35 ? '#00d4ff' : '#ffffff26';
+      const MAX_H = 28;
+
+      let color = 'rgba(255,255,255,0.12)';
+      if (conf > 0) {
+        // Use the rolling accuracy window (last ~1s of scored frames) to
+        // determine pitch quality. Falls back to cyan when outside a scored
+        // note window (intro, interlude) so the bars still show voice activity.
+        const ra = this._rollingAcc;
+        if (ra && ra.length >= 2) {
+          let sum = 0;
+          for (const r of ra) sum += r.acc;
+          const avg = sum / ra.length;
+          if (avg >= 0.65)      color = '#00ff88'; // green  — on pitch
+          else if (avg >= 0.35) color = '#00d4ff'; // cyan   — close-ish
+          else                  color = '#ff4444'; // red    — way off
+        } else {
+          color = '#00d4ff'; // cyan — singing but no scored note active yet
+        }
+      }
+
       for (let i = 0; i < bars.length; i++) {
         const h = conf > 0
           ? Math.max(4, conf * MAX_H * (0.45 + Math.random() * 0.7))
           : 3;
         bars[i].style.height = h + 'px';
         bars[i].style.background = conf > 0 ? color : 'rgba(255,255,255,0.12)';
-        bars[i].style.boxShadow = conf > 0.4 ? `0 0 6px ${color}` : 'none';
+        bars[i].style.boxShadow = conf > 0.35 ? `0 0 6px ${color}` : 'none';
       }
     }
   },
