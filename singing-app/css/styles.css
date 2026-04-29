@@ -1100,9 +1100,10 @@ html, body {
 #screen-game.has-mv #game-mv  { display: block; }
 #screen-game.has-mv #game-canvas { display: none; }
 
-/* Darken the video slightly so lyrics stay readable */
+/* MV songs have KTV lyrics burned into the video — hide the custom overlay.
+   The video itself fills the screen and provides all lyric visuals. */
 #screen-game.has-mv .lyrics-bar {
-  background: rgba(6,6,15,0.85);
+  display: none;
 }
 
 /* Grade bomb needs a higher z-index when video is behind */

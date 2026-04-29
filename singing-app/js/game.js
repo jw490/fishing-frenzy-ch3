@@ -657,21 +657,31 @@ const Game = {
   _gameLoop() {
     if (!this.isPlaying) return;
 
-    // Clock source: prefer the audio buffer's actual playback position so
-    // the bars stay locked to what the user is hearing. performance.now()
-    // as a clock drifts from the audio because:
-    //   1. audioContext.currentTime and performance.now() are separate
-    //      monotonic clocks with no fixed offset
-    //   2. audioSource.start(when) has some hardware output latency on top
-    //   3. RAF stutters (GC, tab blur) advance wall time but not audio
-    // So whenever Synth has a real buffer playing, we slave the game clock
-    // to it. Synth-only songs (no audio buffer) fall back to wall clock.
-    const audioTime = (typeof Synth !== 'undefined') ? Synth.getPlaybackTime() : null;
-    if (audioTime != null) {
-      this.currentTime = audioTime;
+    // Clock source hierarchy:
+    //
+    // 1. MV mode → slave to the <video> element's currentTime.
+    //    The video plays on real wall-clock time and is completely independent
+    //    of AudioContext, so this is the most accurate reference for what the
+    //    user is actually watching. The instrumental audio is just played on
+    //    top; scoring windows must follow the video, not the audio clock.
+    //
+    // 2. Synth audio → slave to the audio buffer's playback position.
+    //    performance.now() drifts from AudioContext.currentTime due to separate
+    //    monotonic clocks, output latency, and RAF stutters.
+    //
+    // 3. Wall clock fallback for Synth-only / no-buffer songs.
+    const mvEl = document.getElementById('game-mv');
+    const isMvActive = !!(this.song && this.song.mvSrc && mvEl && !mvEl.paused);
+    if (isMvActive) {
+      this.currentTime = mvEl.currentTime;
     } else {
-      const now = performance.now() / 1000;
-      this.currentTime = now - this.startTime;
+      const audioTime = (typeof Synth !== 'undefined') ? Synth.getPlaybackTime() : null;
+      if (audioTime != null) {
+        this.currentTime = audioTime;
+      } else {
+        const now = performance.now() / 1000;
+        this.currentTime = now - this.startTime;
+      }
     }
 
     // Check if song is over
