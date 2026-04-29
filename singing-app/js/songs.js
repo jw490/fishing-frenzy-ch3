@@ -447,11 +447,12 @@ const Songs = {
       icon: '🎵',
       color: '#f59e0b',
       hasAudioTrack: true,
-      audioSrc: 'audio/dan-xiao-gui.mp3',
-      instrumentalSrc: 'audio/dan-xiao-gui-instrumental.mp3',
+      mvSrc: '/media/dan-xiao-gui-mv.mp4',
+      audioSrc: '/media/dan-xiao-gui-mv-audio.mp3',
+      instrumentalSrc: '/media/dan-xiao-gui-mv-instrumental.mp3',
       stripVocals: true,
       lyricsMode: true,
-      durationSec: 246.8,
+      durationSec: 256,
       notes: [],
       // pYIN-extracted melody: 522 segments, MIDI 49..72 (median 63).
       melody: []
@@ -467,11 +468,12 @@ const Songs = {
       icon: '🎵',
       color: '#ec4899',
       hasAudioTrack: true,
-      audioSrc: 'audio/ps-wo-ai-ni.mp3',
-      instrumentalSrc: 'audio/ps-wo-ai-ni-instrumental.mp3',
+      mvSrc: '/media/ps-wo-ai-ni-mv.mp4',
+      audioSrc: '/media/ps-wo-ai-ni-mv-audio.mp3',
+      instrumentalSrc: '/media/ps-wo-ai-ni-mv-instrumental.mp3',
       stripVocals: true,
       lyricsMode: true,
-      durationSec: 230.5,
+      durationSec: 256,
       notes: [],
       // pYIN-extracted melody: 598 segments, MIDI 48..82 (median 65).
       melody: []
