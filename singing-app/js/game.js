@@ -177,6 +177,8 @@ const Game = {
     this._lastParticleTime = 0;
     this._melodyIdx = 0;
     this._barIdx = 0;
+    this._countdownDone = false;
+    this._countdownLast = '';
     this._rollingAcc = [];
     this.liveScore = 0;
     this._comboLevel = 0;
@@ -693,6 +695,7 @@ const Game = {
 
     this._draw();
     this._updateHUD();
+    this._updateCountdown();
 
     this.animFrameId = requestAnimationFrame(() => this._gameLoop());
   },
@@ -1459,6 +1462,50 @@ const Game = {
 
     // Update lyrics
     this._updateLyrics();
+
+    // Mic input indicator — lights up when the mic hears a pitched sound
+    const micDot = document.getElementById('mic-dot');
+    if (micDot) {
+      const hasPitch = this.currentPitch &&
+                       this.currentPitch.confidence >= 0.15 &&
+                       this.currentPitch.freq > 0;
+      micDot.classList.toggle('mic-active', !!hasPitch);
+    }
+  },
+
+  // 3-2-1 countdown that fires in the 3 seconds before the first sung note.
+  _updateCountdown() {
+    const el = document.getElementById('singing-countdown');
+    if (!el) return;
+    if (this._countdownDone) { el.hidden = true; return; }
+
+    // Find the first note with real content
+    const firstNote = this.notes.find(n => n.start > 0.5);
+    if (!firstNote) { el.hidden = true; return; }
+
+    const t = firstNote.start - this.currentTime; // seconds until first note
+
+    if (t > 3.5 || t < -0.3) {
+      if (t < -0.3) this._countdownDone = true;
+      el.hidden = true;
+      return;
+    }
+
+    let label = '';
+    if (t > 2.5)      label = '3';
+    else if (t > 1.5) label = '2';
+    else if (t > 0.5) label = '1';
+    else               label = 'GO!';
+
+    // Only animate when the label changes (fires once per second)
+    if (label !== this._countdownLast) {
+      this._countdownLast = label;
+      el.textContent = label;
+      el.classList.remove('countdown-pop');
+      void el.offsetWidth; // reflow to restart animation
+      el.classList.add('countdown-pop');
+    }
+    el.hidden = false;
   },
 
   // Running score on the same 0-100 scale as the final result. Mirrors

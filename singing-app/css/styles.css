@@ -1111,6 +1111,57 @@ html, body {
   z-index: 20;
 }
 
+/* ---- Singing countdown overlay ---- */
+.singing-countdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 96px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -4px;
+  text-shadow: 0 0 60px rgba(0,212,255,0.9), 0 0 20px rgba(0,212,255,0.6);
+  pointer-events: none;
+  z-index: 30;
+  opacity: 0;
+}
+.singing-countdown.countdown-pop {
+  animation: countdown-pop 0.9s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+@keyframes countdown-pop {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
+  60%  { opacity: 1; transform: translate(-50%, -50%) scale(0.95); }
+  85%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+}
+
+/* ---- Mic input indicator ---- */
+.mic-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+}
+.mic-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  transition: background 0.08s, box-shadow 0.08s;
+}
+.mic-dot.mic-active {
+  background: #00ff88;
+  border-color: #00ff88;
+  box-shadow: 0 0 8px #00ff88, 0 0 3px #00ff88;
+  animation: mic-ping 0.15s ease-out;
+}
+@keyframes mic-ping {
+  0%   { transform: scale(1.6); }
+  100% { transform: scale(1); }
+}
+
 .lyrics-bar {
   padding: 20px 20px;
   text-align: center;
