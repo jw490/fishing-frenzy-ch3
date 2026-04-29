@@ -335,10 +335,12 @@ const Songs = {
       icon: '\uD83C\uDFB5',
       color: '#b87efc',
       hasAudioTrack: true,
-      audioSrc: 'audio/yi-nian.mp3',
-      instrumentalSrc: 'audio/yi-nian-instrumental.mp3',
+      mvSrc: '/media/yi-nian-mv.mp4',
+      audioSrc: '/media/yi-nian-mv-audio.mp3',
+      instrumentalSrc: '/media/yi-nian-mv-instrumental.mp3',
       stripVocals: true,
       lyricsMode: true,
+      durationSec: 106,
       // User-synced lyric timings via sync.html (tap-sync against
       // audio/yi-nian.mp3). 37 lines.
       durationSec: 165.3,
