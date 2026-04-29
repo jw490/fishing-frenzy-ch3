@@ -412,6 +412,24 @@ const App = {
       const hasMic = await this._ensureMic();
       if (!hasMic) return;
 
+      // Pre-buffer MV video during the countdown so it's ready the moment
+      // the game starts. Without this the video loads cold after Game.start(),
+      // arriving 60-90 seconds late on typical connections (23 MB file).
+      // We set src + load() here, then _startGame() just seeks to 0 + plays.
+      if (song.mvSrc) {
+        const mvPreloadEl = document.getElementById('game-mv');
+        if (mvPreloadEl) {
+          mvPreloadEl.preload = 'auto';
+          const alreadyLoaded = mvPreloadEl.src && mvPreloadEl.src.includes(
+            song.mvSrc.split('/').pop()
+          );
+          if (!alreadyLoaded) {
+            mvPreloadEl.src = song.mvSrc;
+            mvPreloadEl.load();
+          }
+        }
+      }
+
       // Show countdown
       document.getElementById('countdown-title').textContent = song.title;
       this.showScreen('countdown');
@@ -472,9 +490,15 @@ const App = {
     if (song.mvSrc && mvEl && gameScreen) {
       gameScreen.classList.add('has-mv');
       mvEl.muted = this.isKaraokeOn(song); // muted when karaoke ON (Synth handles audio)
-      mvEl.src = song.mvSrc;
+      // Only restart loading if src changed — if selectSong() already started
+      // buffering (preload during countdown), don't call load() again or we'd
+      // throw away all the buffered data and restart from scratch.
+      const mvFilename = song.mvSrc.split('/').pop();
+      if (!mvEl.src || !mvEl.src.includes(mvFilename)) {
+        mvEl.src = song.mvSrc;
+        mvEl.load();
+      }
       mvEl.currentTime = 0;
-      mvEl.load();
     } else if (gameScreen) {
       gameScreen.classList.remove('has-mv');
       if (mvEl) { mvEl.pause(); mvEl.muted = true; mvEl.removeAttribute('src'); }
