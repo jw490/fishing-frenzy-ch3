@@ -18,13 +18,12 @@ const Songs = {
       icon: '\uD83D\uDC9C',
       color: '#e040fb',
       hasAudioTrack: true,
-      audioSrc: 'audio/miss-you-3000.mp3',
-      instrumentalSrc: 'audio/miss-you-3000-instrumental.mp3',
+      audioSrc: 'https://pub-7b37e1a1b08244c98f1735f2f95ab5f6.r2.dev/miss-you-3000-mv-audio.mp3',
+      instrumentalSrc: 'https://pub-7b37e1a1b08244c98f1735f2f95ab5f6.r2.dev/miss-you-3000-mv-instrumental.mp3',
+      mvSrc: 'https://pub-7b37e1a1b08244c98f1735f2f95ab5f6.r2.dev/miss-you-3000-mv.mp4',
       stripVocals: true,
-      // Time-synced lyrics mode: timing in seconds from LRC, pitch is approximate center
       lyricsMode: true,
-      // lyricsMode: timing in SECONDS, lyrics are the primary guide, no pitch blocks shown
-      durationSec: 240.9,
+      durationSec: 242,
       notes: [],
       // Extracted vocal melody (Demucs htdemucs vocals + librosa pyin + smoothing,
       // via pipeline/contour_to_melody.py --range 48:76). 695 segments.
@@ -42,13 +41,12 @@ const Songs = {
       icon: '\uD83C\uDFB5',
       color: '#00b4a6',
       hasAudioTrack: true,
-      audioSrc: 'audio/zuo-wei.mp3',
-      instrumentalSrc: 'audio/zuo-wei-instrumental.mp3',
+      audioSrc: 'https://pub-7b37e1a1b08244c98f1735f2f95ab5f6.r2.dev/zuo-wei-mv-audio.mp3',
+      instrumentalSrc: 'https://pub-7b37e1a1b08244c98f1735f2f95ab5f6.r2.dev/zuo-wei-mv-instrumental.mp3',
+      mvSrc: 'https://pub-7b37e1a1b08244c98f1735f2f95ab5f6.r2.dev/zuo-wei-mv.mp4',
       stripVocals: true,
       lyricsMode: true,
-      // User-synced lyric timings via sync.html (tap-sync against actual
-      // audio). Replaces the earlier linear 5.5s estimate. 28 lines.
-      durationSec: 195.1,
+      durationSec: 208,
       notes: [],
       // Extracted vocal melody (Demucs htdemucs stem + librosa pyin,
       // smoothed + octave-error filtered via pipeline/contour_to_melody.py).
