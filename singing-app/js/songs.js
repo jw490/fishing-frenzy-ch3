@@ -87,7 +87,7 @@ const Songs = {
       hasAudioTrack: true,
       mvSrc: '/media/bu-neng-shuo-mv.mp4',
       audioSrc: '/media/bu-neng-shuo-mv-audio.mp3',
-      instrumentalSrc: '/media/bu-neng-shuo-mv-instrumental.mp3',
+      instrumentalSrc: '/media/bu-neng-shuo-mv-audio.mp3',
       stripVocals: true,
       lyricsMode: true,
       durationSec: 312,
