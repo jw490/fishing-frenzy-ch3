@@ -162,11 +162,12 @@ const Songs = {
       icon: '\uD83C\uDFB5',
       color: '#ffb74d',
       hasAudioTrack: true,
-      audioSrc: 'audio/tai-yang-yu-di-qiu.mp3',
-      instrumentalSrc: 'audio/tai-yang-yu-di-qiu-instrumental.mp3',
+      mvSrc: '/media/tai-yang-yu-di-qiu-mv.mp4',
+      audioSrc: '/media/tai-yang-yu-di-qiu-mv-audio.mp3',
+      instrumentalSrc: '/media/tai-yang-yu-di-qiu-mv-instrumental.mp3',
       stripVocals: true,
       lyricsMode: true,
-      durationSec: 235.2,
+      durationSec: 262,
       notes: [],
       // Extracted vocal melody for pitch grading (599 segments, MIDI 49-77)
       melody: []
