@@ -510,11 +510,12 @@ const Songs = {
       icon: '🎵',
       color: '#6366f1',
       hasAudioTrack: true,
-      audioSrc: 'audio/ke-zai-wo-xin-di-de-ming-zi.mp3',
-      instrumentalSrc: 'audio/ke-zai-wo-xin-di-de-ming-zi-instrumental.mp3',
+      mvSrc: '/media/ke-zai-wo-xin-di-de-ming-zi-mv.mp4',
+      audioSrc: '/media/ke-zai-wo-xin-di-de-ming-zi-mv-audio.mp3',
+      instrumentalSrc: '/media/ke-zai-wo-xin-di-de-ming-zi-mv-instrumental.mp3',
       stripVocals: true,
       lyricsMode: true,
-      durationSec: 290.9,
+      durationSec: 317,
       notes: [],
       // pYIN-extracted melody: 734 segments, MIDI 43..77 (median 60).
       melody: []
