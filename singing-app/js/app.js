@@ -336,95 +336,106 @@ const App = {
   // ---- SONG SELECTION & COUNTDOWN ----
 
   async selectSong(songId) {
-    this.currentSong = songId;
-    const song = Songs.get(songId);
-    if (!song) return;
+    // Guard against double-tap / rapid re-entry (two game instances = double scoring).
+    // Supabase analytics confirmed this fires twice within ~106ms on some taps,
+    // producing two simultaneous Game instances and corrupted scoring.
+    if (this._selectingSong) return;
+    this._selectingSong = true;
 
-    // Resume AudioContext synchronously here, while we're still inside the
-    // user-gesture callstack (before any awaits). Browsers require a gesture
-    // for ctx.resume() — by the time we reach Synth.playSong() we've awaited
-    // audio loading, mic, and a 3-second countdown, breaking the gesture chain.
-    try { if (Synth.ctx && Synth.ctx.state !== 'running') Synth.ctx.resume(); } catch (e) {}
-    try { if (PitchDetector.audioContext && PitchDetector.audioContext.state !== 'running') PitchDetector.audioContext.resume(); } catch (e) {}
+    try {
+      this.currentSong = songId;
+      const song = Songs.get(songId);
+      if (!song) return;
 
-    // Usage limit check
-    const limit = await Auth.checkSessionLimit();
-    if (!limit.allowed) {
-      this.showToast(limit.reason, 'warn', 5000);
-      return;
-    }
+      // Resume AudioContext synchronously here, while we're still inside the
+      // user-gesture callstack (before any awaits). Browsers require a gesture
+      // for ctx.resume() — by the time we reach Synth.playSong() we've awaited
+      // audio loading, mic, and a 3-second countdown, breaking the gesture chain.
+      try { if (Synth.ctx && Synth.ctx.state !== 'running') Synth.ctx.resume(); } catch (e) {}
+      try { if (PitchDetector.audioContext && PitchDetector.audioContext.state !== 'running') PitchDetector.audioContext.resume(); } catch (e) {}
 
-    // If this song depends on a backing track and we failed to load it,
-    // don't silently proceed into a broken session — tell the user.
-    if (song.audioSrc && song._audioLoadFailed) {
-      this.showToast(`Couldn't load backing track for "${song.title}". Check your connection and reload.`, 'error', 5000);
-      return;
-    }
-
-    // Audio still loading — fetch on demand instead of making the user wait.
-    // Optimization: when a song has both vocal + instrumental tracks, fetch
-    // them in parallel instead of serially. Halves the wait on karaoke songs.
-    if (song.audioSrc && !song._audioLoaded) {
-      this.showToast('Loading audio\u2026', 'info', 15000);
-      const fetchTrack = async (url) => {
-        const resp = await fetch(url);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const blob = await resp.blob();
-        return new File([blob], url.split('/').pop(), { type: 'audio/mpeg' });
-      };
-      try {
-        const [mainResult, instrResult] = await Promise.allSettled([
-          fetchTrack(song.audioSrc),
-          song.instrumentalSrc ? fetchTrack(song.instrumentalSrc) : Promise.resolve(null),
-        ]);
-        if (mainResult.status !== 'fulfilled') throw mainResult.reason;
-        const ok = await Synth.loadAudioTrack(mainResult.value, song.id, 'full');
-        if (!ok) throw new Error('decode failed');
-        song._audioLoaded = true;
-        if (instrResult.status === 'fulfilled' && instrResult.value) {
-          try {
-            const ok2 = await Synth.loadAudioTrack(instrResult.value, song.id, 'instrumental');
-            if (ok2) song._instrumentalLoaded = true;
-          } catch (_) { /* non-fatal */ }
-        }
-        // Dismiss the loading toast now that we're ready.
-        this.showToast('Ready!', 'info', 800);
-      } catch (e) {
-        song._audioLoadFailed = true;
-        this.showToast(`Couldn't load "${song.title}". Check your connection.`, 'error', 4000);
+      // Usage limit check
+      const limit = await Auth.checkSessionLimit();
+      if (!limit.allowed) {
+        this.showToast(limit.reason, 'warn', 5000);
         return;
       }
+
+      // If this song depends on a backing track and we failed to load it,
+      // don't silently proceed into a broken session — tell the user.
+      if (song.audioSrc && song._audioLoadFailed) {
+        this.showToast(`Couldn't load backing track for "${song.title}". Check your connection and reload.`, 'error', 5000);
+        return;
+      }
+
+      // Audio still loading — fetch on demand instead of making the user wait.
+      // Optimization: when a song has both vocal + instrumental tracks, fetch
+      // them in parallel instead of serially. Halves the wait on karaoke songs.
+      if (song.audioSrc && !song._audioLoaded) {
+        this.showToast('Loading audio\u2026', 'info', 15000);
+        const fetchTrack = async (url) => {
+          const resp = await fetch(url);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const blob = await resp.blob();
+          return new File([blob], url.split('/').pop(), { type: 'audio/mpeg' });
+        };
+        try {
+          const [mainResult, instrResult] = await Promise.allSettled([
+            fetchTrack(song.audioSrc),
+            song.instrumentalSrc ? fetchTrack(song.instrumentalSrc) : Promise.resolve(null),
+          ]);
+          if (mainResult.status !== 'fulfilled') throw mainResult.reason;
+          const ok = await Synth.loadAudioTrack(mainResult.value, song.id, 'full');
+          if (!ok) throw new Error('decode failed');
+          song._audioLoaded = true;
+          if (instrResult.status === 'fulfilled' && instrResult.value) {
+            try {
+              const ok2 = await Synth.loadAudioTrack(instrResult.value, song.id, 'instrumental');
+              if (ok2) song._instrumentalLoaded = true;
+            } catch (_) { /* non-fatal */ }
+          }
+          // Dismiss the loading toast now that we're ready.
+          this.showToast('Ready!', 'info', 800);
+        } catch (e) {
+          song._audioLoadFailed = true;
+          this.showToast(`Couldn't load "${song.title}". Check your connection.`, 'error', 4000);
+          return;
+        }
+      }
+
+      // Lazy-load song notes + melody (split out of songs.js for performance).
+      // This fetch is tiny (~20-35KB) and typically completes in <100ms behind
+      // the audio load, so the user never perceives it.
+      await Songs.loadData(songId);
+
+      // Request mic if needed
+      const hasMic = await this._ensureMic();
+      if (!hasMic) return;
+
+      // Show countdown
+      document.getElementById('countdown-title').textContent = song.title;
+      this.showScreen('countdown');
+
+      // Countdown 3-2-1
+      const numEl = document.getElementById('countdown-num');
+      for (let i = 3; i >= 1; i--) {
+        numEl.textContent = i;
+        numEl.style.animation = 'none';
+        void numEl.offsetHeight; // force reflow
+        numEl.style.animation = 'countPulse 1s ease-in-out';
+        PitchDetector.playClick();
+        await this._wait(1000);
+      }
+
+      numEl.textContent = '\u266A';
+      await this._wait(400);
+
+      // Start game
+      this._startGame(songId);
+    } finally {
+      // Always release the lock so subsequent song selections work normally.
+      this._selectingSong = false;
     }
-
-    // Lazy-load song notes + melody (split out of songs.js for performance).
-    // This fetch is tiny (~20-35KB) and typically completes in <100ms behind
-    // the audio load, so the user never perceives it.
-    await Songs.loadData(songId);
-
-    // Request mic if needed
-    const hasMic = await this._ensureMic();
-    if (!hasMic) return;
-
-    // Show countdown
-    document.getElementById('countdown-title').textContent = song.title;
-    this.showScreen('countdown');
-
-    // Countdown 3-2-1
-    const numEl = document.getElementById('countdown-num');
-    for (let i = 3; i >= 1; i--) {
-      numEl.textContent = i;
-      numEl.style.animation = 'none';
-      void numEl.offsetHeight; // force reflow
-      numEl.style.animation = 'countPulse 1s ease-in-out';
-      PitchDetector.playClick();
-      await this._wait(1000);
-    }
-
-    numEl.textContent = '\u266A';
-    await this._wait(400);
-
-    // Start game
-    this._startGame(songId);
   },
 
   _startGame(songId) {
