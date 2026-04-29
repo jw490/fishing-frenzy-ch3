@@ -59,20 +59,20 @@ const Songs = {
     {
       id: 'gu-dan-bei-ban-qiu',
       title: '孤單北半球',
-      artist: '林依晨 Ariel Lin',
+      artist: 'Ocean Yang',
       difficulty: 'medium',
       bpm: 78,
       key: 'F Major',
       icon: '\uD83C\uDFB5',
       color: '#e91e63',
       hasAudioTrack: true,
-      audioSrc: 'audio/gu-dan-bei-ban-qiu.mp3',
-      instrumentalSrc: 'audio/gu-dan-bei-ban-qiu-instrumental.mp3',
+      audioSrc: '/media/gu-dan-bei-ban-qiu-mv-audio.mp3',
+      instrumentalSrc: '/media/gu-dan-bei-ban-qiu-mv-instrumental.mp3',
+      mvSrc: '/media/gu-dan-bei-ban-qiu-mv.mp4',
       stripVocals: true,
       lyricsMode: true,
-      // Extracted vocal melody (pipeline/contour_to_melody.py). 638 segments, MIDI 51-76.
       melody: [],
-      durationSec: 244.3,
+      durationSec: 249,
       notes: []
     },
     {
@@ -85,13 +85,13 @@ const Songs = {
       icon: '\uD83C\uDFB5',
       color: '#5c6bc0',
       hasAudioTrack: true,
-      audioSrc: 'audio/bu-neng-shuo.mp3',
-      instrumentalSrc: 'audio/bu-neng-shuo-instrumental.mp3',
+      mvSrc: '/media/bu-neng-shuo-mv.mp4',
+      audioSrc: '/media/bu-neng-shuo-mv-audio.mp3',
+      instrumentalSrc: '/media/bu-neng-shuo-mv-instrumental.mp3',
       stripVocals: true,
       lyricsMode: true,
-      durationSec: 290.5,
+      durationSec: 312,
       notes: [],
-      // Extracted vocal melody for pitch grading in lyricsMode.
       melody: []
     },
     {
