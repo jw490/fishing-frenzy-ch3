@@ -405,11 +405,12 @@ const Songs = {
       icon: '\uD83C\uDFB5',
       color: '#7b9eff',
       hasAudioTrack: true,
-      audioSrc: 'audio/you-yi-zhong-bei-shang.mp3',
-      instrumentalSrc: 'audio/you-yi-zhong-bei-shang-instrumental.mp3',
+      mvSrc: '/media/you-yi-zhong-bei-shang-mv.mp4',
+      audioSrc: '/media/you-yi-zhong-bei-shang-mv-audio.mp3',
+      instrumentalSrc: '/media/you-yi-zhong-bei-shang-mv-instrumental.mp3',
       stripVocals: true,
       lyricsMode: true,
-      durationSec: 224,
+      durationSec: 242,
       notes: [],
       // pYIN-extracted melody: 441 segments, MIDI 49..75 (median 67).
       melody: []
