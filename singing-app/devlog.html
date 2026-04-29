@@ -120,6 +120,16 @@
   <div class="timeline">
 
     <div class="entry">
+      <div class="entry-date">Apr 29, 2026</div>
+      <ul>
+        <li><span class="tag tag-feature">Feature</span> KTV MV mode: all 30 songs now have full music video playback. During a song, the original KTV video plays with burned-in lyrics; Demucs vocal separation provides a clean instrumental track for karaoke mode</li>
+        <li><span class="tag tag-feature">Feature</span> MV video layout: video centred and constrained (max 720px, 90% width, rounded corners) rather than full-bleed, giving a cleaner KTV-booth feel</li>
+        <li><span class="tag tag-fix">Fix</span> Karaoke-source songs (Perfect, Love Story, Beautiful Things, Espresso, 不能說的秘密) correctly reuse the audio file as the instrumental track — no Demucs pass needed since the source already has no lead vocals</li>
+        <li><span class="tag tag-fix">Fix</span> All media served from Cloudflare R2 via Vercel /media/ proxy rewrite, eliminating CORS issues</li>
+      </ul>
+    </div>
+
+    <div class="entry">
       <div class="entry-date">Apr 27, 2026</div>
       <ul>
         <li><span class="tag tag-fix">Fix</span> Silent backing track on second song: AudioContext auto-suspends after ~30 s of silence between songs. The unlock handler was one-shot and wouldn't revive it. Now re-fires on every user gesture; also resumes the context synchronously at the top of song selection, before the countdown breaks the gesture chain</li>
