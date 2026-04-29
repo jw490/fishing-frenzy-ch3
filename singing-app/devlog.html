@@ -126,6 +126,7 @@
         <li><span class="tag tag-feature">Feature</span> MV video layout: video centred and constrained (max 720px, 90% width, rounded corners) rather than full-bleed, giving a cleaner KTV-booth feel</li>
         <li><span class="tag tag-fix">Fix</span> Karaoke-source songs (Perfect, Love Story, Beautiful Things, Espresso, 不能說的秘密) correctly reuse the audio file as the instrumental track — no Demucs pass needed since the source already has no lead vocals</li>
         <li><span class="tag tag-fix">Fix</span> All media served from Cloudflare R2 via Vercel /media/ proxy rewrite, eliminating CORS issues</li>
+        <li><span class="tag tag-fix">Fix</span> Entire song card is now clickable — onclick moved from inner content div to the outer card wrapper; karaoke toggle retains stopPropagation so it doesn't accidentally launch the song</li>
       </ul>
     </div>
 
