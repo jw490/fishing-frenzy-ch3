@@ -361,13 +361,12 @@ const Songs = {
       icon: '\uD83C\uDFB5',
       color: '#ffb44b',
       hasAudioTrack: true,
-      audioSrc: 'audio/xiao-xin-yi-yi.mp3',
-      instrumentalSrc: 'audio/xiao-xin-yi-yi-instrumental.mp3',
+      mvSrc: '/media/xiao-xin-yi-yi-mv.mp4',
+      audioSrc: '/media/xiao-xin-yi-yi-mv-audio.mp3',
+      instrumentalSrc: '/media/xiao-xin-yi-yi-mv-instrumental.mp3',
       stripVocals: true,
       lyricsMode: true,
-      // User-synced lyric timings via sync.html (tap-sync against
-      // audio/xiao-xin-yi-yi.mp3). 36 lines.
-      durationSec: 251,
+      durationSec: 282,
       notes: [],
       // pYIN-extracted melody from audio/xiao-xin-yi-yi.mp3 via
       //   pipeline/extract_melody.py + pipeline/contour_to_melody.py
