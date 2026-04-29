@@ -1392,6 +1392,21 @@ const App = {
   // Useful for songs with long instrumental intros.
   skipForward() {
     if (this.currentScreen !== 'game') return;
+
+    // For MV songs the game clock is slaved to the video element, so we
+    // must seek the video. Also seek the instrumental audio in sync.
+    const song = this.currentSong ? Songs.get(this.currentSong) : null;
+    const mvEl = document.getElementById('game-mv');
+    if (song && song.mvSrc && mvEl) {
+      const newPos = Math.min(mvEl.currentTime + 5, mvEl.duration || Infinity);
+      mvEl.currentTime = newPos;
+      // Seek the instrumental audio to match
+      Synth.seekBy(5);
+      if (typeof Game !== 'undefined' && Game.onSeek) Game.onSeek(newPos);
+      this.showToast(`+5s`, 'info', 900);
+      return;
+    }
+
     const newPos = Synth.seekBy(5);
     if (newPos == null) {
       // Synth path: either no audio buffer (synthesized backing) or not
@@ -1401,7 +1416,7 @@ const App = {
     }
     // Tell the game its scoring state needs to resync. Some per-note
     // caches (melody cursor, streak bad-frame counter) should reset so
-    // the user doesn't get "missed" penalties for notes they skipped.
+    // the user don't get "missed" penalties for notes they skipped.
     if (typeof Game !== 'undefined' && Game.onSeek) Game.onSeek(newPos);
     this.showToast(`+5s`, 'info', 900);
   },
