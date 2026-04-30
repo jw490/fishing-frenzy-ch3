@@ -83,12 +83,39 @@ Go through every applicable section before `vercel deploy --prod`.
 
 ```bash
 # All songs missing firstVocalSec
-node -e "const s=require('./js/songs.js'); /* check manually */"
 grep -c "firstVocalSec" singing-app/js/songs.js
+# should equal number of songs (32)
 
 # Songs where instrumentalSrc = audioSrc (karaoke source)
 grep -A2 "audioSrc:" singing-app/js/songs.js | grep "instrumentalSrc" | grep "mv-audio"
 
 # Confidence thresholds in game.js
 grep "confidence" singing-app/js/game.js | grep -v "//"
+
+# Full firstVocalSec audit — compare JSON first-note vs songs.js value, flag long notes
+python3 -c "
+import json, os, re
+songs_dir = 'singing-app/data/songs'
+songs_js = open('singing-app/js/songs.js').read()
+fvs = dict(re.findall(r\"id: '([^']+)'.*?firstVocalSec: (\d+)\", songs_js, re.DOTALL))
+for fname in sorted(os.listdir(songs_dir)):
+    if not fname.endswith('.json'): continue
+    sid = fname[:-5]
+    notes = json.load(open(f'{songs_dir}/{fname}')).get('notes', [])
+    if not notes: print(f'{sid}: EMPTY'); continue
+    n0 = notes[0]
+    fv = int(fvs.get(sid, -1))
+    diff = abs(fv - n0['start'])
+    flags = []
+    if diff > 3: flags.append(f'DIFF {diff:.0f}s')
+    if n0['dur'] > 8: flags.append('LONG_DUR')
+    if n0['start'] < 4: flags.append('VERY_EARLY')
+    if flags: print(f'⚠ {sid}: firstVocalSec={fv} jsonFirst={n0[\"start\"]:.1f} dur={n0[\"dur\"]:.1f} {flags}')
+print('Audit done.')
+"
 ```
+
+### What to look for in the audit
+- **DIFF Xs**: `firstVocalSec` and JSON first-note are far apart — verify which is correct by checking the video
+- **LONG_DUR**: First note duration > 8s — usually means background/choral intro was captured; the real singing may start at a later note. Check the lyric text: does it match what the user actually sings?
+- **VERY_EARLY**: First note < 4s — confirm vocals truly start that early in the downloaded video (not a detection artefact)
