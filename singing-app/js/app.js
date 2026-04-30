@@ -294,8 +294,8 @@ const App = {
               ${best ? `<div class="song-best-score">${best}</div><div class="song-best-label">BEST</div>` : '<div class="song-play-hint">\u25B6</div>'}
             </div>
           </div>
-          ${canKaraoke ? `
           <div class="song-options">
+            ${canKaraoke ? `
             <button type="button"
                     class="karaoke-toggle ${karaokeOn ? 'is-on' : 'is-off'}"
                     aria-pressed="${karaokeOn}"
@@ -313,12 +313,10 @@ const App = {
               <span class="karaoke-state">${karaokeOn ? 'ON' : 'OFF'}</span>
             </button>
             <span class="karaoke-hint">
-              ${karaokeOn
-                ? 'Vocals removed'
-                : 'Use headphones for accurate scoring'}
+              ${karaokeOn ? 'Vocals removed' : 'Use headphones for accurate scoring'}
             </span>
+            ` : `<span class="karaoke-hint">Use headphones for accurate scoring</span>`}
           </div>
-          ` : ''}
         </div>
       `;
     }).join('');
