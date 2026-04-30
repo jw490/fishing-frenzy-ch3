@@ -454,7 +454,7 @@ const Game = {
         // No lyric windows (MV-only song) — track global presence for scoring
         if (this.syllableBars.length === 0 && this.currentTime > 3) {
           this._mvTotalFrames++;
-          if (data.confidence >= 0.15) this._mvVoicedFrames++;
+          if (data.confidence >= 0.5) this._mvVoicedFrames++;
         }
         return;
       }
@@ -1425,7 +1425,7 @@ const Game = {
     // the windows that have been sung so far, so the HUD number IS the final
     // score scale — no more raw points that grow with song length.
     this.liveScore = this._computeLiveScore();
-    if (scoreEl) scoreEl.textContent = Math.round(this.liveScore);
+    if (scoreEl) scoreEl.textContent = this.liveScore > 0 ? Math.round(this.liveScore) : '—';
 
     // Live rank — computed by App against cached leaderboard scores.
     if (typeof App !== 'undefined' && App._getGameRank) {
