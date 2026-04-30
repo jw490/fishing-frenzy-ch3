@@ -1535,8 +1535,16 @@ const App = {
       this._writeLbCache('global', entries);
 
       if (entries.length === 0) {
-        statusEl.innerHTML = '<div class="lb-empty-icon">&#9733;</div><div class="lb-status-text">No scores yet. Be the first!</div>';
-        statusEl.hidden = false;
+        // If the user IS signed in but no scores came back, the most likely cause
+        // is a stale/missing session on the Supabase client (RLS returns 0 rows
+        // for anon). Show a retry so they aren't stuck on "Be the first!" when
+        // other users' scores definitely exist.
+        if (Auth.isSignedIn()) {
+          this._showLbError(statusEl, 'Scores didn\'t load — tap to retry.', () => this.loadGlobalLeaderboard());
+        } else {
+          statusEl.innerHTML = '<div class="lb-empty-icon">&#9733;</div><div class="lb-status-text">No scores yet. Be the first!</div>';
+          statusEl.hidden = false;
+        }
         return;
       }
       statusEl.hidden = true;
@@ -1553,7 +1561,7 @@ const App = {
       if (hadCache) return;
       const msg = e && e.message === 'timeout'
         ? 'Leaderboard took too long to load.'
-        : 'Could not load leaderboard.';
+        : 'Scores didn\'t load — tap to retry.';
       this._showLbError(statusEl, msg, () => this.loadGlobalLeaderboard());
     }
   },
