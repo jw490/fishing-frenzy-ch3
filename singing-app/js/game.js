@@ -454,7 +454,7 @@ const Game = {
         // No lyric windows (MV-only song) — track global presence for scoring
         if (this.syllableBars.length === 0 && this.currentTime > 3) {
           this._mvTotalFrames++;
-          if (data.confidence >= 0.5) this._mvVoicedFrames++;
+          if (data.confidence >= 0.3) this._mvVoicedFrames++;
         }
         return;
       }
@@ -1425,7 +1425,13 @@ const Game = {
     // the windows that have been sung so far, so the HUD number IS the final
     // score scale — no more raw points that grow with song length.
     this.liveScore = this._computeLiveScore();
-    if (scoreEl) scoreEl.textContent = this.liveScore > 0 ? Math.round(this.liveScore) : '—';
+    const scoreBlock = document.getElementById('game-score-block');
+    if (this.liveScore > 0) {
+      if (scoreEl) scoreEl.textContent = Math.round(this.liveScore);
+      if (scoreBlock) scoreBlock.hidden = false;
+    } else {
+      if (scoreBlock) scoreBlock.hidden = true;
+    }
 
     // Live rank — computed by App against cached leaderboard scores.
     if (typeof App !== 'undefined' && App._getGameRank) {
@@ -1524,29 +1530,31 @@ const Game = {
     }
   },
 
-  // 3-2-1 countdown that fires in the 3 seconds before the first sung note.
+  // 5-4-3-2-1 countdown that fires in the 5 seconds before the first sung note.
   _updateCountdown() {
     const el = document.getElementById('singing-countdown');
     if (!el) return;
     if (this._countdownDone) { el.hidden = true; return; }
 
     // Find the first note with real content.
-    // For MV songs with no lyric windows, countdown fires at 3s into the song.
+    // For MV songs with no lyric windows, use firstVocalSec if set, else 8s.
     const firstNote = this.notes.find(n => n.start > 0.5)
       || (this.song && this.song.mvSrc && this.syllableBars && this.syllableBars.length === 0
-          ? { start: 5 } : null);
+          ? { start: this.song.firstVocalSec || 8 } : null);
     if (!firstNote) { el.hidden = true; return; }
 
     const t = firstNote.start - this.currentTime; // seconds until first note
 
-    if (t > 3.5 || t < -0.3) {
+    if (t > 5.5 || t < -0.3) {
       if (t < -0.3) this._countdownDone = true;
       el.hidden = true;
       return;
     }
 
     let label = '';
-    if (t > 2.5)      label = '3';
+    if (t > 4.5)      label = '5';
+    else if (t > 3.5) label = '4';
+    else if (t > 2.5) label = '3';
     else if (t > 1.5) label = '2';
     else if (t > 0.5) label = '1';
     else               label = 'GO!';
@@ -1567,7 +1575,14 @@ const Game = {
   // sing (start <= currentTime). Before any singing this is 0; it
   // stabilises toward the final value as the song progresses.
   _computeLiveScore() {
-    if (!this.notes || this.notes.length === 0) return 0;
+    if (!this.notes || this.notes.length === 0) {
+      // MV mode with no lyric windows — show presence-based score once user starts singing
+      if (this._mvTotalFrames > 0 && this._mvVoicedFrames > 0) {
+        const coverage = (this._mvVoicedFrames / this._mvTotalFrames) * 100;
+        return Math.min(100, Math.max(0, Math.round(20 + coverage * 0.65)));
+      }
+      return 0;
+    }
     const time = this.currentTime;
 
     const hasMelodyData = !!(this.song && this.song.melody && this.song.melody.length > 0);
