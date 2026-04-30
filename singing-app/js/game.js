@@ -325,8 +325,11 @@ const Game = {
     // Combined score formula differs based on whether we have real pitch
     let combined;
     if (hasRealMelody) {
-      // Real pitch grading: weight pitch accuracy heavily
-      combined = Math.round(rawAccuracy * 0.6 + coverage * 0.3 + Math.min(this.bestStreak / 10, 1) * 10);
+      // Real pitch grading.
+      // Target curve: average singer (~55% acc, 75% cov) → ~71,
+      // good (~72% acc, 85% cov) → ~85, 95+ requires ~90% acc + 97% cov + full streak.
+      // Base of 20 lifts the floor; reduced multipliers compress the ceiling.
+      combined = Math.round(20 + rawAccuracy * 0.50 + coverage * 0.25 + Math.min(this.bestStreak / 10, 1) * 10);
     } else if (isKaraokeOff) {
       // Original audio — can't grade pitch (singer's voice bleeds into mic).
       // Presence-only: give credit for coverage and streak, but cap at 75 so
@@ -334,8 +337,10 @@ const Game = {
       // The toast already tells the user to enable Karaoke Mode for pitch grading.
       combined = Math.min(75, Math.round(coverage * 0.65 + Math.min(this.bestStreak / 10, 1) * 10));
     } else {
-      // No melody data: score is purely about coverage + streak.
-      combined = Math.round(coverage * 0.85 + Math.min(this.bestStreak / 10, 1) * 15);
+      // No melody data (all MV / lyricsMode songs): score is coverage + streak.
+      // Target curve: average (~65% cov, streak 6) → ~71, good (~80% cov, streak 8) → ~84,
+      // 95+ requires ~92% cov + full streak (genuinely hard).
+      combined = Math.round(20 + coverage * 0.65 + Math.min(this.bestStreak / 10, 1) * 15);
     }
 
     // Per-note breakdown. Status labels differ based on whether we're grading
