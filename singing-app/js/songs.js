@@ -243,7 +243,7 @@ const Songs = {
     },
     {
       id: 'lv-guang',
-      firstVocalSec: 3,
+      firstVocalSec: 14,
       title: '绿光',
       artist: '孙燕姿 Stefanie Sun',
       difficulty: 'medium',
