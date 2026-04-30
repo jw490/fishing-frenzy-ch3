@@ -1536,11 +1536,13 @@ const Game = {
     if (!el) return;
     if (this._countdownDone) { el.hidden = true; return; }
 
-    // Find the first note with real content.
-    // For MV songs with no lyric windows, use firstVocalSec if set, else 8s.
-    const firstNote = this.notes.find(n => n.start > 0.5)
-      || (this.song && this.song.mvSrc && this.syllableBars && this.syllableBars.length === 0
-          ? { start: this.song.firstVocalSec || 8 } : null);
+    // Find the first singing note. song.firstVocalSec always wins (explicit
+    // per-song calibration); fall back to JSON first note; then MV fallback.
+    const firstNote = (this.song && this.song.firstVocalSec)
+      ? { start: this.song.firstVocalSec }
+      : (this.notes.find(n => n.start > 0.5)
+          || (this.song && this.song.mvSrc && this.syllableBars && this.syllableBars.length === 0
+              ? { start: 8 } : null));
     if (!firstNote) { el.hidden = true; return; }
 
     const t = firstNote.start - this.currentTime; // seconds until first note

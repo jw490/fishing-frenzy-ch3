@@ -10,6 +10,7 @@ const Songs = {
   library: [
     {
       id: 'miss-you-3000',
+      firstVocalSec: 19,
       title: '\u60F3\u898B\u4F60\u60F3\u898B\u4F60\u60F3\u898B\u4F60',
       artist: '\u516B\u4E09\u5941 831',
       difficulty: 'hard',
@@ -33,6 +34,7 @@ const Songs = {
 
     {
       id: 'zuo-wei',
+      firstVocalSec: 14,
       title: '\u5EA7\u4F4D',
       artist: '\u4E8E\u51AC\u7136',
       difficulty: 'medium',
@@ -58,6 +60,7 @@ const Songs = {
     },
     {
       id: 'gu-dan-bei-ban-qiu',
+      firstVocalSec: 24,
       title: '孤單北半球',
       artist: 'Ocean Yang',
       difficulty: 'medium',
@@ -77,6 +80,7 @@ const Songs = {
     },
     {
       id: 'bu-neng-shuo',
+      firstVocalSec: 43,
       title: '不能說的秘密',
       artist: '周杰倫 Jay Chou',
       difficulty: 'hard',
@@ -96,6 +100,7 @@ const Songs = {
     },
     {
       id: 'jia-bin',
+      firstVocalSec: 22,
       title: '嘉賓',
       artist: '張遠 Zhang Yuan',
       difficulty: 'medium',
@@ -116,6 +121,7 @@ const Songs = {
     },
     {
       id: 'jie-yan',
+      firstVocalSec: 22,
       title: '戒烟',
       artist: '李榮浩 Ronghao Li',
       difficulty: 'medium',
@@ -135,6 +141,7 @@ const Songs = {
     },
     {
       id: 'diu-le-ni',
+      firstVocalSec: 35,
       title: '丟了你',
       artist: '井朧 Jing Long',
       difficulty: 'hard',
@@ -154,6 +161,7 @@ const Songs = {
     },
     {
       id: 'tai-yang-yu-di-qiu',
+      firstVocalSec: 18,
       title: '太陽與地球',
       artist: '盧廣仲 Crowd Lu',
       difficulty: 'easy',
@@ -175,6 +183,7 @@ const Songs = {
 
     {
       id: 'kai-shi-dong-le',
+      firstVocalSec: 22,
       title: '開始懂了',
       artist: '孫燕姿 Sun Yan-Zi',
       difficulty: 'medium',
@@ -194,6 +203,7 @@ const Songs = {
     },
     {
       id: 'perfect',
+      firstVocalSec: 3,
       title: 'Perfect',
       artist: 'Ed Sheeran',
       difficulty: 'medium',
@@ -213,6 +223,7 @@ const Songs = {
     },
     {
       id: 'ru-guo-ke-yi',
+      firstVocalSec: 12,
       title: '如果可以',
       artist: '韋禮安 WeiBird',
       difficulty: 'medium',
@@ -232,6 +243,7 @@ const Songs = {
     },
     {
       id: 'lv-guang',
+      firstVocalSec: 3,
       title: '绿光',
       artist: '孙燕姿 Stefanie Sun',
       difficulty: 'medium',
@@ -251,6 +263,7 @@ const Songs = {
     },
     {
       id: 'i-dont-wanna-wait',
+      firstVocalSec: 1,
       title: "I Don't Wanna Wait",
       artist: 'David Guetta & OneRepublic',
       difficulty: 'easy',
@@ -270,6 +283,7 @@ const Songs = {
     },
     {
       id: 'qi-feng-le',
+      firstVocalSec: 26,
       title: '起风了',
       artist: '买辣椒也用券',
       difficulty: 'medium',
@@ -289,6 +303,7 @@ const Songs = {
     },
     {
       id: 'love-story',
+      firstVocalSec: 17,
       title: 'Love Story',
       artist: 'Taylor Swift',
       difficulty: 'medium',
@@ -308,6 +323,7 @@ const Songs = {
     },
     {
       id: 'pu-tong-peng-you',
+      firstVocalSec: 20,
       title: '普通朋友',
       artist: '陶喆 David Tao',
       difficulty: 'medium',
@@ -327,6 +343,7 @@ const Songs = {
     },
     {
       id: 'yi-nian',
+      firstVocalSec: 24,
       title: '\u4E00\u5FF5',
       artist: '\u5F35\u7D2B\u5BE7 & \u674E\u946B\u4E00',
       difficulty: 'medium',
@@ -353,6 +370,7 @@ const Songs = {
 
     {
       id: 'xiao-xin-yi-yi',
+      firstVocalSec: 28,
       title: '\u6211\u5BF9\u7F18\u5206\u5C0F\u5FC3\u7FFC\u7FFC',
       artist: '\u6797\u4FCA\u5091 JJ Lin',
       difficulty: 'medium',
@@ -376,6 +394,7 @@ const Songs = {
 
     {
       id: 'ai-qing-wen-zen-me-zou',
+      firstVocalSec: 19,
       title: '\u611B\uFF0C\u8ACB\u554F\u600E\u9EBC\u8D70',
       artist: 'A-Lin \u9EC3\u9E97\u73B2',
       difficulty: 'medium',
@@ -397,6 +416,7 @@ const Songs = {
 
     {
       id: 'you-yi-zhong-bei-shang',
+      firstVocalSec: 18,
       title: '\u6709\u4E00\u7A2E\u60B2\u50B7',
       artist: 'A-Lin \u9EC3\u9E97\u73B2',
       difficulty: 'medium',
@@ -418,6 +438,7 @@ const Songs = {
 
     {
       id: 'yu-die',
+      firstVocalSec: 31,
       title: '\u96E8\u8776',
       artist: '\u674E\u7FCA\u541B',
       difficulty: 'medium',
@@ -439,6 +460,7 @@ const Songs = {
 
     {
       id: 'dan-xiao-gui',
+      firstVocalSec: 28,
       title: '胆小鬼',
       artist: '梁咏琪 Gigi Leung',
       difficulty: 'medium',
@@ -460,6 +482,7 @@ const Songs = {
 
     {
       id: 'ps-wo-ai-ni',
+      firstVocalSec: 18,
       title: 'P.S. 我愛你',
       artist: 'A-Lin 黃麗玲',
       difficulty: 'medium',
@@ -481,6 +504,7 @@ const Songs = {
 
     {
       id: 'wang-ji-yong-bao',
+      firstVocalSec: 27,
       title: '忘記擁抱',
       artist: 'A-Lin 黃麗玲',
       difficulty: 'medium',
@@ -502,6 +526,7 @@ const Songs = {
 
     {
       id: 'ke-zai-wo-xin-di-de-ming-zi',
+      firstVocalSec: 34,
       title: '刻在我心底的名字',
       artist: '盧廣仲 Crowd Lu',
       difficulty: 'hard',
@@ -523,6 +548,7 @@ const Songs = {
 
     {
       id: 'ji-fen-zhi-ji',
+      firstVocalSec: 17,
       title: '幾分之幾',
       artist: '盧廣仲 Crowd Lu',
       difficulty: 'medium',
@@ -544,6 +570,7 @@ const Songs = {
 
     {
       id: 'beautiful-things',
+      firstVocalSec: 16,
       title: 'Beautiful Things',
       artist: 'Benson Boone',
       difficulty: 'medium',
@@ -566,6 +593,7 @@ const Songs = {
 
     {
       id: 'espresso',
+      firstVocalSec: 5,
       title: 'Espresso',
       artist: 'Sabrina Carpenter',
       difficulty: 'easy',
@@ -588,6 +616,7 @@ const Songs = {
 
     {
       id: 'qi-li-xiang',
+      firstVocalSec: 22,
       title: '七里香',
       artist: '周杰倫 Jay Chou',
       difficulty: 'medium',
@@ -610,6 +639,7 @@ const Songs = {
 
     {
       id: 'ai-de-jiu-shi-ni',
+      firstVocalSec: 18,
       title: '愛的就是你',
       artist: '王力宏 Leehom Wang',
       difficulty: 'medium',
