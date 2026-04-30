@@ -117,6 +117,7 @@ const App = {
     this._updateProfileChip();
     this._updateHomeStats();
     Game.init('game-canvas');
+    Feedback.init();
     this._preloadAudioTracks();
     this._installAudioUnlock();
 

@@ -574,6 +574,52 @@
   <!-- ============ TOAST ============ -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <!-- ============ FEEDBACK BUTTON + MODAL ============ -->
+  <button id="feedback-btn" class="feedback-btn" title="Report a bug or send feedback" aria-label="Send feedback">
+    <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" aria-hidden="true">
+      <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+    </svg>
+    <span>Feedback</span>
+  </button>
+
+  <div id="feedback-modal-wrap" class="feedback-modal-wrap" hidden>
+    <div id="feedback-overlay" class="feedback-overlay"></div>
+    <div id="feedback-modal" class="feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-modal-title">
+      <div class="feedback-modal-header">
+        <h3 id="feedback-modal-title">Report a Bug / Send Feedback</h3>
+        <button id="feedback-close" class="feedback-close" aria-label="Close">&times;</button>
+      </div>
+
+      <form id="feedback-form" class="feedback-form">
+        <div class="feedback-type-row">
+          <label class="feedback-type-label">
+            <input type="radio" name="feedback-type" value="bug" checked>
+            <span>🐛 Bug</span>
+          </label>
+          <label class="feedback-type-label">
+            <input type="radio" name="feedback-type" value="feedback">
+            <span>💡 Idea</span>
+          </label>
+          <label class="feedback-type-label">
+            <input type="radio" name="feedback-type" value="timing">
+            <span>⏱ Timing</span>
+          </label>
+        </div>
+
+        <textarea id="feedback-message" class="feedback-textarea"
+          placeholder="Describe what happened or what you'd like to see…"
+          rows="4" maxlength="1000" required></textarea>
+
+        <div id="feedback-context-preview" class="feedback-context-preview"></div>
+
+        <div class="feedback-footer">
+          <span id="feedback-status" class="feedback-status"></span>
+          <button id="feedback-submit" type="submit" class="feedback-submit">Send</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/auth.js?v=3"></script>
   <script src="js/songs.js?v=49"></script>
@@ -583,6 +629,7 @@
   <script src="js/audio-analyzer.js?v=10"></script>
   <script src="js/game.js?v=37"></script>
   <script src="js/app.js?v=43"></script>
+  <script src="js/feedback.js?v=1"></script>
   <script defer src="/_vercel/insights/script.js"></script>
   <script defer src="/_vercel/speed-insights/script.js"></script>
 </body>
