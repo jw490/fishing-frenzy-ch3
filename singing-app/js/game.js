@@ -184,13 +184,6 @@ const Game = {
     this._mvVoicedFrames = 0;
     this._mvTotalFrames = 0;
     this.liveScore = 0;
-    // Adaptive noise floor: calibrated from mic RMS before firstVocalSec.
-    // Catches speaker bleed (instrumental playing through speakers into mic)
-    // that confidence gating alone misses because clean instrument notes
-    // (piano, guitar) have HIGH YIN confidence just like a singing voice.
-    // Reset each song so a loud song doesn't pollute a quiet one.
-    this._noiseFloor = 0;
-    this._noiseFloorSamples = 0;
     this._comboLevel = 0;
     this._lastStreakMilestone = 0;
     this._lastScoredLineIdx = -1;
@@ -415,29 +408,6 @@ const Game = {
     // ---- Adaptive noise floor — runs first, gates ALL scoring paths ----
     // Problem: echo cancellation is disabled for pitch accuracy, so karaoke
     // instrumentals (clean piano/guitar) bleed through speakers into the mic
-    // with HIGH YIN confidence. Confidence gating alone can't fix this because
-    // clean instrument notes look identical to a singing voice to YIN.
-    //
-    // Fix: during the pre-vocal intro (before firstVocalSec – 1 s) we measure
-    // the ambient mic RMS as the "noise floor". During scoring we require the
-    // mic to be noticeably louder (2.5×) than that floor. On headphones the
-    // floor is ≈0 so the gate is just the 0.012 minimum; on speakers the floor
-    // is set by the bleed and the gate filters it out without blocking singers.
-    //
-    // This must run BEFORE any early returns so it covers MV songs too.
-    {
-      const firstVocal = (this.song && this.song.firstVocalSec) || 999;
-      if (this.currentTime < firstVocal - 1 && data.volume > 0) {
-        // Running max — floor only rises toward ambient level, never drops.
-        this._noiseFloor = Math.max(
-          this._noiseFloor * 0.95 + data.volume * 0.05,
-          this._noiseFloor,
-        );
-      }
-      // Gate all scoring: RMS must exceed 2.5× noise floor (min 0.012).
-      if (data.volume < Math.max(0.012, this._noiseFloor * 2.5)) return;
-    }
-
     // Only record to trail if confidence is high enough to be a real voice.
     // Threshold lowered from 0.35 → 0.15: early frames can be slightly noisier.
     if (data.confidence >= 0.15) {
@@ -1609,11 +1579,8 @@ const Game = {
   // stabilises toward the final value as the song progresses.
   _computeLiveScore() {
     if (!this.notes || this.notes.length === 0) {
-      // MV mode with no lyric windows — show presence-based score once user starts singing
-      if (this._mvTotalFrames > 0 && this._mvVoicedFrames > 0) {
-        const coverage = (this._mvVoicedFrames / this._mvTotalFrames) * 100;
-        return Math.min(100, Math.max(0, Math.round(20 + coverage * 0.65)));
-      }
+      // No melody data — presence-based scoring picks up instrumental bleed from speakers.
+      // Return 0 so HUD shows "—". Songs without notes can't be reliably scored.
       return 0;
     }
     const time = this.currentTime;
