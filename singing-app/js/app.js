@@ -479,6 +479,7 @@ const App = {
     // Reset rank state and kick off a background leaderboard fetch so the
     // live rank display has data as soon as possible.
     this._gameRankScores = [];
+    this._gameRankReady = false;
     this._fetchGameRanks(songId);
 
     this.showScreen('game');
@@ -613,41 +614,56 @@ const App = {
   // so this is instant on repeat plays — no visible delay.
   async _fetchGameRanks(songId) {
     this._gameRankScores = [];
+    this._gameRankReady = false;
     try {
       const scope = `song_${songId}`;
       const cached = this._readLbCache(scope);
       if (cached && cached.length) {
         this._gameRankScores = cached.map(e => e.score);
+        this._gameRankReady = true;
       }
-      // Background refresh — updates ranks silently if cache is stale
+      // Filter server-side using JSONB path — much faster with GIN index
+      // than fetching all profiles and filtering client-side.
       const sb = _getSupabase();
       const { data } = await this._withTimeout(
-        sb.from('profiles').select('id, stats').not('stats', 'is', null).limit(200),
+        sb.from('profiles')
+          .select('id, stats')
+          .filter(`stats->songBests->>${songId}`, 'gt', '0')
+          .limit(200),
         8000,
       );
       if (data) {
-        const scores = (data || [])
-          .filter(p => p.stats && p.stats.songBests && p.stats.songBests[songId] > 0)
-          .map(p => p.stats.songBests[songId])
+        const scores = data
+          .map(p => p.stats?.songBests?.[songId] ?? 0)
+          .filter(s => s > 0)
           .sort((a, b) => b - a);
         this._gameRankScores = scores;
+        this._gameRankReady = true;
         this._writeLbCache(scope,
-          (data || [])
-            .filter(p => p.stats && p.stats.songBests && p.stats.songBests[songId] > 0)
-            .map(p => ({ score: p.stats.songBests[songId], user_id: p.id }))
+          data
+            .map(p => ({ score: p.stats?.songBests?.[songId] ?? 0, user_id: p.id }))
+            .filter(e => e.score > 0)
             .sort((a, b) => b.score - a.score)
             .slice(0, 50)
         );
       }
-    } catch (e) { /* non-fatal — rank just won't show */ }
+    } catch (e) {
+      // Non-fatal — rank will still show as #1 if user has a score and
+      // no cached data, rather than hiding the rank block entirely.
+      this._gameRankReady = true;
+    }
   },
 
   // Compute current rank from live score vs stored leaderboard scores.
-  // Returns a string like "#3" or null if no data.
+  // Returns "#N" string, or null if the user hasn't scored yet.
+  // When no leaderboard data is available (fetch timed out, new song, no
+  // other players), defaults to #1 as long as the user has a score — this
+  // is accurate (they ARE first) and avoids the rank block never appearing.
   _getGameRank(liveScore) {
-    if (!this._gameRankScores || this._gameRankScores.length === 0) return null;
+    if (!this._gameRankReady) return null;  // still loading — don't flash
     if (liveScore <= 0) return null;
-    const rank = this._gameRankScores.filter(s => s > liveScore).length + 1;
+    const scores = this._gameRankScores || [];
+    const rank = scores.filter(s => s > liveScore).length + 1;
     return `#${rank}`;
   },
 
