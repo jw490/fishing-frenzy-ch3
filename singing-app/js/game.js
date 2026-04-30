@@ -412,13 +412,34 @@ const Game = {
     const time = this.currentTime;
     const isLyricsMode = this.song && this.song.lyricsMode;
 
+    // ---- Adaptive noise floor — runs first, gates ALL scoring paths ----
+    // Problem: echo cancellation is disabled for pitch accuracy, so karaoke
+    // instrumentals (clean piano/guitar) bleed through speakers into the mic
+    // with HIGH YIN confidence. Confidence gating alone can't fix this because
+    // clean instrument notes look identical to a singing voice to YIN.
+    //
+    // Fix: during the pre-vocal intro (before firstVocalSec – 1 s) we measure
+    // the ambient mic RMS as the "noise floor". During scoring we require the
+    // mic to be noticeably louder (2.5×) than that floor. On headphones the
+    // floor is ≈0 so the gate is just the 0.012 minimum; on speakers the floor
+    // is set by the bleed and the gate filters it out without blocking singers.
+    //
+    // This must run BEFORE any early returns so it covers MV songs too.
+    {
+      const firstVocal = (this.song && this.song.firstVocalSec) || 999;
+      if (this.currentTime < firstVocal - 1 && data.volume > 0) {
+        // Running max — floor only rises toward ambient level, never drops.
+        this._noiseFloor = Math.max(
+          this._noiseFloor * 0.95 + data.volume * 0.05,
+          this._noiseFloor,
+        );
+      }
+      // Gate all scoring: RMS must exceed 2.5× noise floor (min 0.012).
+      if (data.volume < Math.max(0.012, this._noiseFloor * 2.5)) return;
+    }
+
     // Only record to trail if confidence is high enough to be a real voice.
-    // Instrumental bleed produces low-confidence readings from mixed harmonics;
-    // a singing voice produces a clear fundamental, typically confidence > 0.15.
-    // Threshold lowered from 0.35 → 0.15: early frames (right after mic opens,
-    // or at the start of a new phrase) can be slightly noisier — 0.35 was cutting
-    // out the first ~1s of trail, making the screen look blank.
-    // consec is filled in after acc is known (further below in each branch).
+    // Threshold lowered from 0.35 → 0.15: early frames can be slightly noisier.
     if (data.confidence >= 0.15) {
       this.pitchHistory.push({ time, midi: data.midi, consec: 0 });
     }
@@ -469,31 +490,9 @@ const Game = {
       const lineIdx = activeBar.lineIdx;
       const targetMidi = activeBar.timingOnly ? -1 : activeBar.midi;
 
-      // ---- Adaptive noise floor calibration ----
-      // During the pre-vocal intro (before firstVocalSec – 1 s), sample the
-      // mic's RMS to measure ambient speaker bleed. With echo-cancellation
-      // disabled, clean karaoke instrumentals through speakers produce high
-      // YIN confidence AND loud RMS, so confidence gating alone isn't enough.
-      // We track a smoothed peak of the pre-vocal RMS as the noise floor and
-      // gate scoring to frames where the user is noticeably louder than it.
-      const firstVocal = (this.song && this.song.firstVocalSec) || 999;
-      if (this.currentTime < firstVocal - 1 && data.volume > 0) {
-        // Exponential running max with slow rise, fast fall so brief spikes
-        // don't inflate the floor but sustained bleed does.
-        this._noiseFloor = Math.max(
-          this._noiseFloor * 0.97 + data.volume * 0.03,
-          this._noiseFloor,
-        );
-        this._noiseFloorSamples++;
-      }
-      // Gate: require RMS > 2.5× noise floor (or 0.012 minimum).
-      // This filters speaker bleed without blocking quiet headphone singers.
-      const volumeGate = Math.max(0.012, this._noiseFloor * 2.5);
-      if (data.volume < volumeGate) return;
-
-      // Filter out instrumental bleed using YIN confidence.
-      // Threshold lowered from 0.3 → 0.15 to match trail gate — ensures the
-      // first few frames of each phrase are scored, not silently dropped.
+      // Filter out low-confidence noise (instruments, breath, etc.)
+      // Noise floor gate is already applied above — this catches remaining
+      // low-confidence frames that passed the volume test.
       if (data.confidence < 0.15) return;
 
       let acc = 0;
