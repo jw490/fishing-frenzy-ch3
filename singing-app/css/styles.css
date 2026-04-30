@@ -2034,7 +2034,8 @@ html, body {
 /* ==========================================
    GAME HUD: live rank display
    ========================================== */
-.hud-rank[hidden] { display: none !important; }
+.hud-rank[hidden]       { display: none !important; }
+.btn-karaoke-mid[hidden] { display: none !important; }
 
 .hud-score--waiting {
   opacity: 0.25;

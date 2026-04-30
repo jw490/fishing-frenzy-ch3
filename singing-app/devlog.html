@@ -120,6 +120,17 @@
   <div class="timeline">
 
     <div class="entry">
+      <div class="entry-date">Apr 30, 2026 (evening)</div>
+      <ul>
+        <li><span class="tag tag-feature">Feature</span> Added 3 new songs: 倒帶 (蔡依林 Jolin Tsai), 至少還有你 (林憶蓮 Sandy Lam), 跳樓機 (LBI 利比) — all karaoke-source videos, no Demucs needed</li>
+        <li><span class="tag tag-fix">Fix</span> Countdown invisible on MV songs (一念, 至少還有你, etc.): browser composites <code>&lt;video&gt;</code> elements in their own layer above positioned overlays regardless of z-index. Fixed by giving <code>#game-mv</code> explicit <code>position: relative; z-index: 1</code> so the compositor correctly layers it below the countdown (z-index 30) and grade-bomb (z-index 60). All 32 songs confirmed to have a countdown source</li>
+        <li><span class="tag tag-fix">Fix</span> Karaoke toggle still visible on songs with no vocal stem: CSS <code>display: inline-flex</code> on <code>.btn-karaoke-mid</code> was overriding the HTML <code>[hidden]</code> attribute. Added <code>display: none !important</code> rule — toggle now correctly hidden for all <code>stripVocals: false</code> songs</li>
+        <li><span class="tag tag-feature">Feature</span> In-game feedback &amp; bug reporting system: floating "Feedback" pill (bottom-right) opens a compact modal with Bug / Idea / Timing report types. Auto-attaches game context (song, timestamp, score, streak, karaoke state, browser). Reports write to <code>public.feedback</code> in Supabase with RLS — anonymous INSERT only, authenticated read</li>
+        <li><span class="tag tag-feature">Feature</span> Triage keyword: say <strong>triage</strong> to trigger automatic feedback review — Claude queries unresolved reports, fixes what it can (timing adjustments, bugs), marks them resolved in Supabase, and deploys</li>
+      </ul>
+    </div>
+
+    <div class="entry">
       <div class="entry-date">Apr 30, 2026</div>
       <ul>
         <li><span class="tag tag-fix">Fix</span> Ambient noise scoring 100 without singing: all lyric notes have midi=0 (presence-only mode), so the confidence gate of 0.15 let room noise score freely. Raised presence-only gate to 0.6 — real singing voice produces a clean fundamental well above this; ambient hum does not</li>
