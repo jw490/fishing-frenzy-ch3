@@ -469,7 +469,8 @@ const App = {
     const song = Songs.get(songId);
     document.getElementById('game-title').textContent = song.title;
     document.getElementById('game-artist').textContent = song.artist;
-    document.getElementById('game-score').textContent = '—';
+    const scoreEl = document.getElementById('game-score');
+    if (scoreEl) { scoreEl.textContent = '—'; scoreEl.classList.add('hud-score--waiting'); }
     document.getElementById('game-time').textContent = '0:00';
     document.getElementById('game-lyrics').innerHTML = '';
 

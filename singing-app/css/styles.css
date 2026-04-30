@@ -2030,8 +2030,12 @@ html, body {
 /* ==========================================
    GAME HUD: live rank display
    ========================================== */
-.hud-rank[hidden],
-.hud-score-block[hidden] { display: none !important; }
+.hud-rank[hidden] { display: none !important; }
+
+.hud-score--waiting {
+  opacity: 0.25;
+  letter-spacing: 0.05em;
+}
 
 .hud-rank {
   display: flex;

@@ -1430,12 +1430,14 @@ const Game = {
     // the windows that have been sung so far, so the HUD number IS the final
     // score scale — no more raw points that grow with song length.
     this.liveScore = this._computeLiveScore();
-    const scoreBlock = document.getElementById('game-score-block');
-    if (this.liveScore > 0) {
-      if (scoreEl) scoreEl.textContent = Math.round(this.liveScore);
-      if (scoreBlock) scoreBlock.hidden = false;
-    } else {
-      if (scoreBlock) scoreBlock.hidden = true;
+    if (scoreEl) {
+      if (this.liveScore > 0) {
+        scoreEl.textContent = Math.round(this.liveScore);
+        scoreEl.classList.remove('hud-score--waiting');
+      } else {
+        scoreEl.textContent = '—';
+        scoreEl.classList.add('hud-score--waiting');
+      }
     }
 
     // Live rank — computed by App against cached leaderboard scores.
