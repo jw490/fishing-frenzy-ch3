@@ -1000,6 +1000,7 @@ html, body {
   font-family: var(--font-display);
   font-size: 28px;
   font-weight: 800;
+  line-height: 1;            /* match hud-rank-num so both blocks are same height */
   background: linear-gradient(135deg, var(--cyan), var(--purple));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -2381,6 +2382,7 @@ html, body {
   .hud-song-info { display: none; }
   .game-hud { padding: 8px 12px; }
   .hud-score { font-size: 24px; }
+  .hud-rank-num { font-size: 24px; }   /* match hud-score at mobile — same height */
   .lyrics-bar { padding: 14px 16px; font-size: 18px; }
 
   /* ---- Touch targets — 44px minimum per Apple HIG ---- */

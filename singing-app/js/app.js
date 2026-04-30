@@ -1464,11 +1464,11 @@ const App = {
     ).join('');
   },
 
-  // Leaderboard requests have no built-in timeout, so a flaky mobile signal
-  // (or a Supabase cold start) leaves the spinner up forever — exactly the
-  // bug a user reported. Race every query against a 10s deadline; if it
-  // wins, surface a "Tap to retry" so the user has agency.
-  _LB_TIMEOUT_MS: 10000,
+  // Supabase free-tier projects pause after inactivity and take 20-30s to
+  // wake (cold start). We race each query against a 25s first-try deadline.
+  // If it times out, we auto-retry once with a fresh 30s window (the DB is
+  // usually warm by then). Only surface "Tap to retry" after both attempts fail.
+  _LB_TIMEOUT_MS: 25000,
 
   _withTimeout(promise, ms) {
     return Promise.race([
@@ -1555,14 +1555,21 @@ const App = {
       const meRow = listEl.querySelector('.lb-row.is-me');
       if (meRow) meRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     } catch (e) {
-      console.warn('Leaderboard load failed:', e);
-      // If we already painted cached rows, don't blow them away with an error
-      // card — a transient timeout shouldn't make the UX worse than cached.
-      if (hadCache) return;
-      const msg = e && e.message === 'timeout'
-        ? 'Leaderboard took too long to load.'
-        : 'Scores didn\'t load — tap to retry.';
-      this._showLbError(statusEl, msg, () => this.loadGlobalLeaderboard());
+      console.warn('Global leaderboard load failed:', e);
+      if (hadCache) return; // cached rows still showing — don't overwrite
+
+      if (e && e.message === 'timeout' && !this._lbRetried) {
+        // First timeout: Supabase cold start. Show a spinner and auto-retry
+        // once — the DB is usually warm by the time this fires.
+        this._lbRetried = true;
+        statusEl.hidden = false;
+        statusEl.innerHTML = '<div class="lb-status-text">Waking up… retrying</div>';
+        await new Promise(r => setTimeout(r, 1500));
+        this._lbRetried = false;
+        return this.loadGlobalLeaderboard();
+      }
+
+      this._showLbError(statusEl, 'Scores didn\'t load — tap to retry.', () => this.loadGlobalLeaderboard());
     }
   },
 
@@ -1650,10 +1657,17 @@ const App = {
     } catch (e) {
       console.warn('Song leaderboard load failed:', e);
       if (hadCache) return;
-      const msg = e && e.message === 'timeout'
-        ? 'Leaderboard took too long to load.'
-        : 'Could not load leaderboard.';
-      this._showLbError(statusEl, msg, () => this.loadSongLeaderboard(songId));
+
+      if (e && e.message === 'timeout' && !this._lbRetried) {
+        this._lbRetried = true;
+        statusEl.hidden = false;
+        statusEl.innerHTML = '<div class="lb-status-text">Waking up… retrying</div>';
+        await new Promise(r => setTimeout(r, 1500));
+        this._lbRetried = false;
+        return this.loadSongLeaderboard(songId);
+      }
+
+      this._showLbError(statusEl, 'Scores didn\'t load — tap to retry.', () => this.loadSongLeaderboard(songId));
     }
   },
 

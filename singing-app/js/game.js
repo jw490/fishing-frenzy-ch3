@@ -184,6 +184,13 @@ const Game = {
     this._mvVoicedFrames = 0;
     this._mvTotalFrames = 0;
     this.liveScore = 0;
+    // Adaptive noise floor: calibrated from mic RMS before firstVocalSec.
+    // Catches speaker bleed (instrumental playing through speakers into mic)
+    // that confidence gating alone misses because clean instrument notes
+    // (piano, guitar) have HIGH YIN confidence just like a singing voice.
+    // Reset each song so a loud song doesn't pollute a quiet one.
+    this._noiseFloor = 0;
+    this._noiseFloorSamples = 0;
     this._comboLevel = 0;
     this._lastStreakMilestone = 0;
     this._lastScoredLineIdx = -1;
@@ -462,11 +469,29 @@ const Game = {
       const lineIdx = activeBar.lineIdx;
       const targetMidi = activeBar.timingOnly ? -1 : activeBar.midi;
 
-      // Filter out instrumental bleed using YIN confidence, not volume.
-      // Volume gating (old approach) blocked quiet singers entirely.
-      // Confidence works better: instrumental bleed produces a messy mix of
-      // frequencies → low confidence. A real singing voice has a clear
-      // fundamental → confidence stays above 0.15 even when singing quietly.
+      // ---- Adaptive noise floor calibration ----
+      // During the pre-vocal intro (before firstVocalSec – 1 s), sample the
+      // mic's RMS to measure ambient speaker bleed. With echo-cancellation
+      // disabled, clean karaoke instrumentals through speakers produce high
+      // YIN confidence AND loud RMS, so confidence gating alone isn't enough.
+      // We track a smoothed peak of the pre-vocal RMS as the noise floor and
+      // gate scoring to frames where the user is noticeably louder than it.
+      const firstVocal = (this.song && this.song.firstVocalSec) || 999;
+      if (this.currentTime < firstVocal - 1 && data.volume > 0) {
+        // Exponential running max with slow rise, fast fall so brief spikes
+        // don't inflate the floor but sustained bleed does.
+        this._noiseFloor = Math.max(
+          this._noiseFloor * 0.97 + data.volume * 0.03,
+          this._noiseFloor,
+        );
+        this._noiseFloorSamples++;
+      }
+      // Gate: require RMS > 2.5× noise floor (or 0.012 minimum).
+      // This filters speaker bleed without blocking quiet headphone singers.
+      const volumeGate = Math.max(0.012, this._noiseFloor * 2.5);
+      if (data.volume < volumeGate) return;
+
+      // Filter out instrumental bleed using YIN confidence.
       // Threshold lowered from 0.3 → 0.15 to match trail gate — ensures the
       // first few frames of each phrase are scored, not silently dropped.
       if (data.confidence < 0.15) return;
