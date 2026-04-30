@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocalStar — Profile</title>
+  <meta name="theme-color" content="#06060f">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #06060f;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 0 16px 80px;
+    }
+
+    a { color: #00d4ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Header ── */
+    .top-bar {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 24px 0 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .back-btn {
+      font-size: 13px;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: color .15s;
+    }
+    .back-btn:hover { color: #00d4ff; text-decoration: none; }
+
+    /* ── Profile hero ── */
+    .hero {
+      max-width: 680px;
+      margin: 28px auto 0;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .avatar-ring {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      flex-shrink: 0;
+      border: 3px solid rgba(255,255,255,0.08);
+    }
+    .avatar-ring img {
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .hero-info h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .hero-info .member-since {
+      font-size: 13px;
+      color: #666;
+      margin-top: 4px;
+    }
+    .hero-info .hero-badges {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 20px;
+      letter-spacing: .3px;
+    }
+    .badge-streak { background: rgba(255,180,75,.15); color: #ffb44b; }
+    .badge-sessions { background: rgba(0,212,255,.12); color: #00d4ff; }
+
+    /* ── Section ── */
+    .section {
+      max-width: 680px;
+      margin: 32px auto 0;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 12px;
+    }
+
+    /* ── Stat grid ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    @media (min-width: 420px) { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+    .stat-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 12px;
+      padding: 14px 12px;
+      text-align: center;
+    }
+    .stat-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    /* ── Song bests table ── */
+    .song-list { display: flex; flex-direction: column; gap: 8px; }
+    .song-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 10px;
+      padding: 10px 14px;
+    }
+    .song-rank {
+      font-size: 12px;
+      font-weight: 700;
+      color: #444;
+      width: 20px;
+      flex-shrink: 0;
+      text-align: right;
+    }
+    .song-name { flex: 1; font-size: 14px; color: #ccc; }
+    .song-score {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .song-grade {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 5px;
+      flex-shrink: 0;
+    }
+    .grade-s { background: rgba(168,85,247,.2); color: #a855f7; }
+    .grade-a { background: rgba(0,212,255,.15); color: #00d4ff; }
+    .grade-b { background: rgba(0,255,136,.12); color: #00ff88; }
+    .grade-c { background: rgba(255,180,75,.12); color: #ffb44b; }
+    .grade-d { background: rgba(255,100,100,.12); color: #ff6464; }
+    .grade-f { background: rgba(255,255,255,.06); color: #555; }
+
+    /* ── Sing-Off history ── */
+    .singoff-list { display: flex; flex-direction: column; gap: 8px; }
+    .singoff-row {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .singoff-vs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+    }
+    .singoff-player { font-size: 13px; color: #ccc; font-weight: 500; }
+    .singoff-divider { font-size: 11px; color: #444; font-weight: 700; flex-shrink: 0; }
+    .singoff-scores {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .singoff-score {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .singoff-score.winner { color: #a855f7; }
+    .singoff-score.loser  { color: #555; }
+    .singoff-score.tie    { color: #ffb44b; }
+    .singoff-dash { font-size: 12px; color: #444; }
+    .singoff-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .singoff-result {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+    }
+    .result-win     { background: rgba(168,85,247,.15); color: #a855f7; }
+    .result-loss    { background: rgba(255,255,255,.05); color: #555; }
+    .result-tie     { background: rgba(255,180,75,.12); color: #ffb44b; }
+    .result-pending { background: rgba(0,212,255,.1); color: #00d4ff; }
+    .singoff-song { font-size: 11px; color: #555; }
+    .singoff-date { font-size: 11px; color: #444; }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 32px; color: #444; font-size: 14px; }
+
+    /* ── Loading skeleton ── */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,.05) 25%, rgba(255,255,255,.09) 50%, rgba(255,255,255,.05) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 8px;
+      height: 20px;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* ── Not signed in ── */
+    .gate {
+      max-width: 400px;
+      margin: 80px auto;
+      text-align: center;
+      color: #555;
+    }
+    .gate h2 { font-size: 18px; color: #888; margin-bottom: 8px; }
+    .gate a { font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <a href="/" class="back-btn">← VocalStar</a>
+  </div>
+
+  <div id="gate" class="gate" hidden>
+    <h2>Sign in to view your profile</h2>
+    <a href="/">Go back and sign in</a>
+  </div>
+
+  <div id="profile-shell" hidden>
+
+    <div class="hero">
+      <div class="avatar-ring" id="hero-avatar"></div>
+      <div class="hero-info">
+        <h1 id="hero-name">—</h1>
+        <div class="member-since" id="hero-since"></div>
+        <div class="hero-badges" id="hero-badges"></div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="section">
+      <div class="section-title">Stats</div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-sessions">—</div>
+          <div class="stat-label">Sessions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-best">—</div>
+          <div class="stat-label">Best Score</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-songs">—</div>
+          <div class="stat-label">Songs Played</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-singoffs">—</div>
+          <div class="stat-label">Sing-Offs</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Song bests -->
+    <div class="section">
+      <div class="section-title">Song Bests</div>
+      <div class="song-list" id="song-bests-list">
+        <div class="empty">No songs played yet</div>
+      </div>
+    </div>
+
+    <!-- Sing-Off history -->
+    <div class="section">
+      <div class="section-title">Sing-Off History</div>
+      <div class="singoff-list" id="singoff-list">
+        <div class="empty">No Sing-Offs yet</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/auth.js?v=3"></script>
+  <script src="js/songs.js?v=49"></script>
+  <script>
+  (async () => {
+    await Auth.init();
+
+    if (!Auth.isSignedIn()) {
+      document.getElementById('gate').hidden = false;
+      return;
+    }
+
+    const SUPABASE_URL = 'https://qyfsxekfxhnjgbukypun.supabase.co';
+    const SUPABASE_ANON_KEY = [
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+      'eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5ZnN4ZWtmeGhuamdidWt5cHVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5NDUyNjQsImV4cCI6MjA5MTUyMTI2NH0',
+      'trMEo5g6nb6zLM1wyo4bgEpPFZoQ7UBVZfuRiSfL56E',
+    ].join('.');
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ── Determine whose profile to show ──
+    // ?id=uuid → view another user's profile (read-only)
+    // no param  → view own profile
+    const params      = new URLSearchParams(location.search);
+    const targetId    = params.get('id');
+    const myId        = Auth._user?.id;
+    const viewingOther = targetId && targetId !== myId;
+    const userId      = targetId || myId;
+
+    // Fetch the target profile fresh from Supabase
+    let profile = null;
+    try {
+      const { data } = await sb.from('profiles').select('*').eq('id', userId).single();
+      profile = data;
+    } catch (_) {}
+
+    // Fall back to cached own profile if fetch fails
+    if (!profile && !viewingOther) {
+      profile = Auth.getCurrent();
+    }
+
+    if (!profile) {
+      document.getElementById('gate').innerHTML =
+        '<h2>Profile not found</h2><a href="/">Go back</a>';
+      document.getElementById('gate').hidden = false;
+      return;
+    }
+
+    document.getElementById('profile-shell').hidden = false;
+
+    // Update page title for other-user view
+    if (viewingOther) {
+      document.title = `${profile.display_name} — VocalStar`;
+    }
+
+    const stats = profile.stats || {};
+
+    // ── Helper functions ──
+    function gradeClass(score) {
+      if (score >= 90) return 'grade-s';
+      if (score >= 75) return 'grade-a';
+      if (score >= 60) return 'grade-b';
+      if (score >= 45) return 'grade-c';
+      if (score >= 30) return 'grade-d';
+      return 'grade-f';
+    }
+    function gradeLabel(score) {
+      if (score >= 90) return 'S';
+      if (score >= 75) return 'A';
+      if (score >= 60) return 'B';
+      if (score >= 45) return 'C';
+      if (score >= 30) return 'D';
+      return 'F';
+    }
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function songTitle(songId) {
+      const song = Songs.library.find(s => s.id === songId);
+      return song ? song.title : songId;
+    }
+
+    // ── Hero ──
+    const avatarEl = document.getElementById('hero-avatar');
+    avatarEl.style.background = `linear-gradient(135deg, ${profile.color}44, ${profile.color}22)`;
+    avatarEl.style.borderColor = (profile.color || '#00d4ff') + '55';
+    if (profile.avatar_url) {
+      avatarEl.innerHTML = `<img src="${esc(profile.avatar_url)}" alt="">`;
+    } else {
+      avatarEl.textContent = (profile.display_name || 'S')[0].toUpperCase();
+      avatarEl.style.color = profile.color || '#00d4ff';
+    }
+
+    document.getElementById('hero-name').textContent = profile.display_name || 'Singer';
+
+    const joined = new Date(profile.created_at || Date.now());
+    document.getElementById('hero-since').textContent =
+      'Member since ' + joined.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    const badgesEl = document.getElementById('hero-badges');
+    if (stats.streak > 0) {
+      badgesEl.innerHTML += `<span class="badge badge-streak">🔥 ${stats.streak}-day streak</span>`;
+    }
+    if (stats.sessions > 0) {
+      badgesEl.innerHTML += `<span class="badge badge-sessions">${stats.sessions} session${stats.sessions !== 1 ? 's' : ''}</span>`;
+    }
+
+    // ── Stats ──
+    const songBests = stats.songBests || {};
+    const songCount = Object.keys(songBests).length;
+    document.getElementById('stat-sessions').textContent = stats.sessions || 0;
+    document.getElementById('stat-best').textContent     = stats.bestScore || 0;
+    document.getElementById('stat-songs').textContent    = songCount;
+
+    // ── Song bests ──
+    const bestsList = document.getElementById('song-bests-list');
+    const sorted = Object.entries(songBests).sort((a, b) => b[1] - a[1]);
+    if (sorted.length > 0) {
+      bestsList.innerHTML = sorted.map(([id, score], i) => {
+        const gc = gradeClass(score);
+        const gl = gradeLabel(score);
+        const color = gc === 'grade-s' ? '#a855f7' : gc === 'grade-a' ? '#00d4ff' :
+                      gc === 'grade-b' ? '#00ff88'  : gc === 'grade-c' ? '#ffb44b' :
+                      gc === 'grade-d' ? '#ff6464'  : '#555';
+        return `<div class="song-row">
+          <div class="song-rank">${i + 1}</div>
+          <div class="song-name">${esc(songTitle(id))}</div>
+          <div class="song-score" style="color:${color}">${score}</div>
+          <div class="song-grade ${gc}">${gl}</div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── Sing-Off history ──
+    try {
+      const { data: singOffs } = await Promise.race([
+        sb.from('sing_offs')
+          .select('*')
+          .or(`challenger_id.eq.${userId},opponent_id.eq.${userId}`)
+          .order('created_at', { ascending: false })
+          .limit(20),
+        new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 8000)),
+      ]);
+
+      document.getElementById('stat-singoffs').textContent = (singOffs || []).length;
+
+      const soList = document.getElementById('singoff-list');
+      if (singOffs && singOffs.length > 0) {
+        soList.innerHTML = singOffs.map(so => {
+          const isChallenger = so.challenger_id === userId;
+          const myScore    = isChallenger ? so.challenger_score : so.opponent_score;
+          const theirScore = isChallenger ? so.opponent_score   : so.challenger_score;
+          const myName     = isChallenger ? so.challenger_name  : (so.opponent_name || '?');
+          const theirName  = isChallenger ? (so.opponent_name || 'Waiting…') : so.challenger_name;
+
+          let result = 'pending', resultClass = 'result-pending';
+          let myClass = '', theirClass = '';
+          if (so.status === 'complete' && myScore != null && theirScore != null) {
+            if      (myScore > theirScore) { result = 'WIN';  resultClass = 'result-win';  myClass = 'winner'; theirClass = 'loser'; }
+            else if (myScore < theirScore) { result = 'LOSS'; resultClass = 'result-loss'; myClass = 'loser';  theirClass = 'winner'; }
+            else                           { result = 'TIE';  resultClass = 'result-tie';  myClass = theirClass = 'tie'; }
+          }
+
+          const date = new Date(so.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          const title = esc(songTitle(so.song_id));
+          const scoreDisplay = so.status === 'complete' && myScore != null && theirScore != null
+            ? `<span class="singoff-score ${myClass}">${myScore}</span>
+               <span class="singoff-dash">–</span>
+               <span class="singoff-score ${theirClass}">${theirScore}</span>`
+            : `<span class="singoff-score" style="color:#555">${myScore ?? '—'}</span>`;
+
+          return `<div class="singoff-row">
+            <div class="singoff-vs">
+              <span class="singoff-player">${esc(myName)}</span>
+              <span class="singoff-divider">vs</span>
+              <span class="singoff-player">${esc(theirName)}</span>
+            </div>
+            <div class="singoff-scores">${scoreDisplay}</div>
+            <div class="singoff-meta">
+              <span class="singoff-result ${resultClass}">${result}</span>
+              <span class="singoff-song">${title}</span>
+              <span class="singoff-date">${esc(date)}</span>
+            </div>
+          </div>`;
+        }).join('');
+      }
+    } catch (e) {
+      document.getElementById('stat-singoffs').textContent = '—';
+    }
+
+  })();
+  </script>
+</body>
+</html>

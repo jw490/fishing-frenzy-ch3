@@ -1661,8 +1661,12 @@ const App = {
     const avatarContent = entry.avatar_url ? '' : initial;
     const imgClass = entry.avatar_url ? ' has-img' : '';
 
+    const clickAttr = !isMe && entry.user_id
+      ? `onclick="window.location.href='/profile.html?id=${entry.user_id}'" style="cursor:pointer"`
+      : '';
+
     return `
-      <div class="lb-row${isMe ? ' is-me' : ''}${topClass}">
+      <div class="lb-row${isMe ? ' is-me' : ''}${topClass}" ${clickAttr}>
         <div class="lb-rank">${medal}</div>
         <div class="lb-avatar${imgClass}" style="${avatarStyle}">${avatarContent}</div>
         <div class="lb-name">${this._escapeHtml(entry.display_name)}${isMe ? ' <span class="lb-you">YOU</span>' : ''}</div>
