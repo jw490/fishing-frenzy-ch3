@@ -629,6 +629,50 @@ const Songs = {
       notes: [],
       melody: []
     },
+
+    {
+      id: 'shen-qi-bai-ma',
+      title: '身騎白馬',
+      artist: '徐佳莹 Lala Hsu',
+      difficulty: 'medium',
+      bpm: 90,
+      key: 'G Major',
+      icon: '🎵',
+      color: '#8b5cf6',
+      hasAudioTrack: true,
+      mvSrc: '/media/shen-qi-bai-ma-mv.mp4',
+      audioSrc: '/media/shen-qi-bai-ma-mv-audio.mp3',
+      instrumentalSrc: '/media/shen-qi-bai-ma-mv-audio.mp3',
+      stripVocals: true,
+      hasMelodyData: false,
+      pitchGradingReady: false,
+      lyricsMode: true,
+      durationSec: 214,
+      notes: [],
+      melody: []
+    },
+
+    {
+      id: 'make-you-feel-my-love',
+      title: 'Make You Feel My Love',
+      artist: 'Adele',
+      difficulty: 'easy',
+      bpm: 72,
+      key: 'Bb Major',
+      icon: '🎵',
+      color: '#f97316',
+      hasAudioTrack: true,
+      mvSrc: '/media/make-you-feel-my-love-mv.mp4',
+      audioSrc: '/media/make-you-feel-my-love-mv-audio.mp3',
+      instrumentalSrc: '/media/make-you-feel-my-love-mv-audio.mp3',
+      stripVocals: true,
+      hasMelodyData: false,
+      pitchGradingReady: false,
+      lyricsMode: true,
+      durationSec: 311,
+      notes: [],
+      melody: []
+    },
   ],
 
   // Helper: convert beats to seconds
