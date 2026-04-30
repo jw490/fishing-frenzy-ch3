@@ -570,7 +570,7 @@ const Songs = {
 
     {
       id: 'beautiful-things',
-      firstVocalSec: 16,
+      firstVocalSec: 11,
       title: 'Beautiful Things',
       artist: 'Benson Boone',
       difficulty: 'medium',
