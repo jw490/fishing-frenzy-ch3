@@ -475,6 +475,11 @@ const Game = {
       let centsDiff = 0;
       if (this._isKaraokeOff || targetMidi <= 0) {
         // Original-audio mode OR no melody reference → presence-only.
+        // Require much higher confidence here: we're just detecting "is the
+        // user actively singing" with no pitch reference. 0.15 lets ambient
+        // room noise score freely. 0.6 filters it out while still catching
+        // genuine (even quiet) singing.
+        if (data.confidence < 0.6) return;
         acc = 0.8;
       } else {
         // Normal pitch scoring against extracted melody target.
