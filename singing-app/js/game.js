@@ -180,6 +180,9 @@ const Game = {
     this._countdownDone = false;
     this._countdownLast = '';
     this._rollingAcc = [];
+    // Global frame counters for MV songs with no lyric windows
+    this._mvVoicedFrames = 0;
+    this._mvTotalFrames = 0;
     this.liveScore = 0;
     this._comboLevel = 0;
     this._lastStreakMilestone = 0;
@@ -318,9 +321,12 @@ const Game = {
     // (0.8 credit per sample). We'll split these into honest fields below.
     const rawAccuracy = scoredNotes > 0 ? (totalPresence / scoredNotes) * 100 : 0;
 
-    // Coverage: how many lyric windows the user sang during at all
+    // Coverage: how many lyric windows the user sang during at all.
+    // For MV songs with no lyric windows, fall back to global frame presence.
     const notesAttempted = this.noteScores.filter(n => n.samples > 0).length;
-    const coverage = this.notes.length > 0 ? (notesAttempted / this.notes.length) * 100 : 0;
+    const coverage = this.notes.length > 0
+      ? (notesAttempted / this.notes.length) * 100
+      : (this._mvTotalFrames > 0 ? (this._mvVoicedFrames / this._mvTotalFrames) * 100 : 0);
 
     // Combined score formula differs based on whether we have real pitch
     let combined;
@@ -444,7 +450,14 @@ const Game = {
           break;
         }
       }
-      if (!activeBar) return; // between syllables — don't score
+      if (!activeBar) {
+        // No lyric windows (MV-only song) — track global presence for scoring
+        if (this.syllableBars.length === 0 && this.currentTime > 3) {
+          this._mvTotalFrames++;
+          if (data.confidence >= 0.15) this._mvVoicedFrames++;
+        }
+        return;
+      }
 
       const lineIdx = activeBar.lineIdx;
       const targetMidi = activeBar.timingOnly ? -1 : activeBar.midi;
@@ -1517,8 +1530,11 @@ const Game = {
     if (!el) return;
     if (this._countdownDone) { el.hidden = true; return; }
 
-    // Find the first note with real content
-    const firstNote = this.notes.find(n => n.start > 0.5);
+    // Find the first note with real content.
+    // For MV songs with no lyric windows, countdown fires at 3s into the song.
+    const firstNote = this.notes.find(n => n.start > 0.5)
+      || (this.song && this.song.mvSrc && this.syllableBars && this.syllableBars.length === 0
+          ? { start: 5 } : null);
     if (!firstNote) { el.hidden = true; return; }
 
     const t = firstNote.start - this.currentTime; // seconds until first note
