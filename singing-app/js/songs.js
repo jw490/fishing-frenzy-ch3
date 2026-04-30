@@ -642,7 +642,7 @@ const Songs = {
       hasAudioTrack: true,
       mvSrc: '/media/shen-qi-bai-ma-mv.mp4',
       audioSrc: '/media/shen-qi-bai-ma-mv-audio.mp3',
-      instrumentalSrc: '/media/shen-qi-bai-ma-mv-audio.mp3',
+      instrumentalSrc: '/media/shen-qi-bai-ma-mv-instrumental.mp3',
       stripVocals: true,
       hasMelodyData: false,
       pitchGradingReady: false,
