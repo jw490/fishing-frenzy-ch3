@@ -120,6 +120,22 @@
   <div class="timeline">
 
     <div class="entry">
+      <div class="entry-date">Apr 30, 2026</div>
+      <ul>
+        <li><span class="tag tag-fix">Fix</span> Ambient noise scoring 100 without singing: all lyric notes have midi=0 (presence-only mode), so the confidence gate of 0.15 let room noise score freely. Raised presence-only gate to 0.6 — real singing voice produces a clean fundamental well above this; ambient hum does not</li>
+        <li><span class="tag tag-fix">Fix</span> RANK and SCORE HUD blocks visible at game start showing "#—" and "0": CSS <code>display: flex</code> was overriding the HTML <code>[hidden]</code> attribute. Added <code>display: none !important</code> rule for both blocks; also cleared "#—" placeholder from rank HTML so any flash shows nothing</li>
+        <li><span class="tag tag-fix">Fix</span> SCORE now hides until user starts singing — score block only appears once liveScore > 0, driven by actual voiced frames, not a floor constant</li>
+        <li><span class="tag tag-fix">Fix</span> Countdown fires too late / after user needed to start singing: extended warning window from 3.5 s → 5.5 s (now shows 5-4-3-2-1-GO!). Added explicit <code>firstVocalSec</code> to all 32 songs pulled from actual lyric JSON first-note timestamps — countdown now always fires at the right moment regardless of JSON loading order</li>
+        <li><span class="tag tag-fix">Fix</span> Make You Feel My Love and 身騎白馬 countdown fired at 3 s (wrong): emptied their lyric JSON files so MV global-frame scoring applies; <code>firstVocalSec</code> (14 s and 18 s) drives the countdown instead</li>
+        <li><span class="tag tag-fix">Fix</span> MV songs (empty notes) showed live score "—" throughout: <code>_computeLiveScore()</code> now returns a presence-based score once voiced frames accumulate, so the score builds live as you sing</li>
+        <li><span class="tag tag-fix">Fix</span> Karaoke toggle audit: 6 songs downloaded from karaoke/instrumental YouTube sources have <code>instrumentalSrc === audioSrc</code> — toggling did nothing. Set <code>stripVocals: false</code> to hide the toggle for bu-neng-shuo, perfect, love-story, beautiful-things, espresso, make-you-feel-my-love</li>
+        <li><span class="tag tag-fix">Fix</span> Key metadata corrected (verified via Tunebat/SongBPM): Espresso E Major → A Minor; Beautiful Things C Major → Bb Major; 七里香 F Major → C Minor; 愛的就是你 G Major → F Major</li>
+        <li><span class="tag tag-feature">Feature</span> Added 2 new songs: 身騎白馬 (徐佳瑩 Lala Hsu) and Make You Feel My Love (Adele) — full MV pipeline with Demucs vocal separation on 身騎白馬</li>
+        <li><span class="tag tag-feature">Feature</span> Pre-deploy checklist added (<code>DEPLOY_CHECKLIST.md</code>): covers scoring logic, CSS hidden states, countdown timing, karaoke toggle correctness, new song requirements, and HUD behaviour — run before every production deploy</li>
+      </ul>
+    </div>
+
+    <div class="entry">
       <div class="entry-date">Apr 29, 2026</div>
       <ul>
         <li><span class="tag tag-feature">Feature</span> KTV MV mode: all 30 songs now have full music video playback. During a song, the original KTV video plays with burned-in lyrics; Demucs vocal separation provides a clean instrumental track for karaoke mode</li>
