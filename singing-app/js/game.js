@@ -1579,8 +1579,12 @@ const Game = {
   // stabilises toward the final value as the song progresses.
   _computeLiveScore() {
     if (!this.notes || this.notes.length === 0) {
-      // No melody data — presence-based scoring picks up instrumental bleed from speakers.
-      // Return 0 so HUD shows "—". Songs without notes can't be reliably scored.
+      // No note data — fall back to MV presence scoring (voicedFrames %).
+      // Songs with proper Demucs instrumentals won't bleed, so this works.
+      if (this._mvTotalFrames > 0 && this._mvVoicedFrames > 0) {
+        const coverage = (this._mvVoicedFrames / this._mvTotalFrames) * 100;
+        return Math.min(100, Math.max(0, Math.round(20 + coverage * 0.65)));
+      }
       return 0;
     }
     const time = this.currentTime;
