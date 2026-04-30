@@ -1098,6 +1098,10 @@ html, body {
   border-radius: 12px;
   object-fit: contain;
   background: #000;
+  /* Explicit stacking so the browser compositor keeps this video layer
+     below positioned overlays (countdown, grade-bomb, etc.) */
+  position: relative;
+  z-index: 1;
 }
 
 /* When .has-mv is set on #screen-game */
