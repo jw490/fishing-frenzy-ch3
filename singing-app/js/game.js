@@ -300,10 +300,12 @@ const Game = {
     // and we'd be shipping a fake pitch number.
     const hasMelodyData = !!(this.song && this.song.melody && this.song.melody.length > 0);
     const pitchGradingReady = !this.song || this.song.pitchGradingReady !== false;
-    // When karaoke is off, the original singer's voice bleeds into the mic and we
-    // scored presence-only — treat the same as a song with no extracted melody so
-    // the results screen shows honest "sang/silent" labels, not fake pitch numbers.
-    const hasRealMelody = hasMelodyData && pitchGradingReady && !this._isKaraokeOff;
+    // Real pitch grading requires: melody data + pitchGradingReady + karaoke on
+    // + actual notes[] windows to score against. Without notes[], syllableBars
+    // is empty and _scorePitch never accumulates noteScores — so rawAccuracy = 0
+    // and the pitch formula gives much lower scores than presence scoring would.
+    const hasNoteWindows = this.notes && this.notes.length > 0;
+    const hasRealMelody = hasMelodyData && pitchGradingReady && !this._isKaraokeOff && hasNoteWindows;
     const isLyricsMode = !!(this.song && this.song.lyricsMode);
     const isKaraokeOff = !!this._isKaraokeOff;
 
@@ -1591,7 +1593,8 @@ const Game = {
 
     const hasMelodyData = !!(this.song && this.song.melody && this.song.melody.length > 0);
     const pitchGradingReady = !this.song || this.song.pitchGradingReady !== false;
-    const hasRealMelody = hasMelodyData && pitchGradingReady && !this._isKaraokeOff;
+    const hasNoteWindows = this.notes && this.notes.length > 0;
+    const hasRealMelody = hasMelodyData && pitchGradingReady && !this._isKaraokeOff && hasNoteWindows;
 
     // Count notes where the user has had the chance to sing.
     let notesSoFar = 0;
