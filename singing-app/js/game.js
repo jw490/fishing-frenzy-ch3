@@ -451,10 +451,79 @@ const Game = {
         }
       }
       if (!activeBar) {
-        // No lyric windows (MV-only song) — track global presence for scoring
+        // No lyric windows — use melody[] as real-time pitch reference.
+        // Old approach (confidence >= 0.3) let instrumental bleed count as
+        // "voiced", locking every song at ~85. Now we only score frames that
+        // fall inside an active melody segment and require the user to sing
+        // close to the target MIDI. Frames outside melody segments are gaps
+        // (instrumentals / rests) and don't affect the score either way.
         if (this.syllableBars.length === 0 && this.currentTime > 3) {
-          this._mvTotalFrames++;
-          if (data.confidence >= 0.3) this._mvVoicedFrames++;
+          const mel = this.song && this.song.melody;
+          if (mel && mel.length > 0) {
+            // Advance cursor — melody is time-sorted, walk forward only.
+            while (this._melodyIdx < mel.length - 1 &&
+                   mel[this._melodyIdx].start + mel[this._melodyIdx].dur + 0.15 < time) {
+              this._melodyIdx++;
+            }
+            // Find the active segment (small ±0.1s grace window).
+            let activeSeg = null;
+            for (let k = this._melodyIdx; k < Math.min(mel.length, this._melodyIdx + 5); k++) {
+              const s = mel[k];
+              if (time >= s.start - 0.1 && time <= s.start + s.dur + 0.1) {
+                activeSeg = s;
+                break;
+              }
+              if (s.start > time + 0.6) break; // nothing upcoming soon
+            }
+            if (activeSeg) {
+              // Singing window — score pitch accuracy.
+              // _mvTotalFrames = frames where singing was expected.
+              // _mvVoicedFrames = weighted accuracy sum (0–1 per frame).
+              this._mvTotalFrames++;
+              // Require confidence >= 0.5 to reject instrumental bleed
+              // (music notes trigger pitch detector at ~0.2–0.4, real voice ≥ 0.5).
+              if (data.confidence >= 0.5) {
+                let sung = data.midi;
+                const tgt = activeSeg.midi;
+                // Fold to nearest octave so male/female both score correctly.
+                while (sung - tgt > 6) sung -= 12;
+                while (tgt - sung > 6) sung += 12;
+                const cents = Math.abs((sung - tgt) * 100);
+                // Same thresholds as the syllableBars pitch path above.
+                const acc = cents < 80  ? 1.0
+                          : cents < 160 ? 0.75
+                          : cents < 320 ? 0.35
+                          : 0;
+                this._mvVoicedFrames += acc;
+                // Streak tracking: hitting the note keeps combo alive.
+                if (acc >= 0.7) {
+                  this._consecutiveGoodFrames++;
+                  this._streakBadFrames = 0;
+                  // Only tick streak once per segment (use activeSeg as a key).
+                  if (!activeSeg._streakHit) {
+                    activeSeg._streakHit = true;
+                    this.currentStreak++;
+                    if (this.currentStreak > this.bestStreak) this.bestStreak = this.currentStreak;
+                  }
+                } else if (acc === 0 && data.confidence >= 0.5) {
+                  // Sung but badly wrong pitch — soft-reset streak.
+                  this._consecutiveGoodFrames = 0;
+                  this._streakBadFrames = (this._streakBadFrames || 0) + 1;
+                  if (this._streakBadFrames >= 3) {
+                    this.currentStreak = 0;
+                    this._streakBadFrames = 0;
+                  }
+                }
+              }
+              // confidence < 0.5 (not singing): _mvTotalFrames++ already counted,
+              // no accuracy credited — correctly lowers coverage.
+            }
+            // Outside active segment (gap/instrumental): no scoring at all.
+          } else {
+            // No melody data: legacy presence with raised threshold.
+            this._mvTotalFrames++;
+            if (data.confidence >= 0.65) this._mvVoicedFrames++;
+          }
         }
         return;
       }
