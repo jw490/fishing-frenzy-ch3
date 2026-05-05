@@ -1336,6 +1336,7 @@ const Game = {
       }
 
       el.innerHTML = html;
+    }
   },
 
   // Flashes a centered grade label over the canvas (e.g. "PERFECT! ✨").
