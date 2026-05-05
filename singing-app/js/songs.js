@@ -723,7 +723,7 @@ const Songs = {
     },
     {
       id: 'shen-hou',
-      firstVocalSec: 46,
+      firstVocalSec: 58,
       title: '身後',
       artist: 'A-mei 張惠妹',
       difficulty: 'medium',
