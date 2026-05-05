@@ -206,6 +206,7 @@ const App = {
 
     if (id === 'warmup') this._initWarmupCanvas();
     if (id === 'home') this._updateHomeStats();
+    if (id === 'songs') this._renderSongGrid(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
     if (id === 'leaderboard') {
       this._populateSongPicker();
       this.loadGlobalLeaderboard();
