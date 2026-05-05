@@ -743,7 +743,7 @@ const Songs = {
 
     {
       id: 'diao-le',
-      firstVocalSec: 7,
+      firstVocalSec: 20,
       title: '掉了',
       artist: '阿密特 A-MIT 張惠妹',
       difficulty: 'medium',
