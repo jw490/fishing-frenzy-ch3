@@ -16,11 +16,6 @@ const Game = {
   animFrameId: null,
 
   // Scoring state
-  score: 0,
-  pitchHits: 0,
-  pitchTotal: 0,
-  timingHits: 0,
-  timingTotal: 0,
   currentStreak: 0,
   bestStreak: 0,
   noteScores: [],     // per-note scoring data
@@ -148,26 +143,9 @@ const Game = {
       }
       this.NOTE_RANGE = this.MIDI_HIGH - this.MIDI_LOW;
       this.NOTE_HEIGHT = this.displayHeight / this.NOTE_RANGE;
-    } else {
-      this.syllableBars = null;
-      // Adjust midi range to fit song
-      let lo = 999, hi = 0;
-      for (const n of this.notes) {
-        if (n.midi < lo) lo = n.midi;
-        if (n.midi > hi) hi = n.midi;
-      }
-      this.MIDI_LOW = lo - 4;
-      this.MIDI_HIGH = hi + 4;
-      this.NOTE_RANGE = this.MIDI_HIGH - this.MIDI_LOW;
-      this.NOTE_HEIGHT = this.displayHeight / this.NOTE_RANGE;
     }
 
     // Reset scoring
-    this.score = 0;
-    this.pitchHits = 0;
-    this.pitchTotal = 0;
-    this.timingHits = 0;
-    this.timingTotal = 0;
     this.currentStreak = 0;
     this.bestStreak = 0;
     this.noteScores = this.notes.map(() => ({ hit: false, pitchAcc: 0, samples: 0, totalCents: 0 }));
@@ -180,9 +158,15 @@ const Game = {
     this._countdownDone = false;
     this._countdownLast = '';
     this._rollingAcc = [];
-    // Global frame counters for MV songs with no lyric windows
-    this._mvVoicedFrames = 0;
-    this._mvTotalFrames = 0;
+    // Melody-cursor pitch scoring accumulators (renamed from _mvVoicedFrames/_mvTotalFrames).
+    // _mvWeightedAcc: sum of per-frame accuracy scores (0–1 each).
+    // _mvScoredFrames: count of frames inside an active melody segment.
+    this._mvWeightedAcc = 0;
+    this._mvScoredFrames = 0;
+    // Clear _streakHit flags on melody segments so replay starts fresh.
+    if (this.song && this.song.melody) {
+      for (const seg of this.song.melody) delete seg._streakHit;
+    }
     this.liveScore = 0;
     this._comboLevel = 0;
     this._lastStreakMilestone = 0;
@@ -328,7 +312,7 @@ const Game = {
     const notesAttempted = this.noteScores.filter(n => n.samples > 0).length;
     const coverage = this.notes.length > 0
       ? (notesAttempted / this.notes.length) * 100
-      : (this._mvTotalFrames > 0 ? (this._mvVoicedFrames / this._mvTotalFrames) * 100 : 0);
+      : (this._mvScoredFrames > 0 ? (this._mvWeightedAcc / this._mvScoredFrames) * 100 : 0);
 
     // Combined score formula differs based on whether we have real pitch
     let combined;
@@ -477,9 +461,9 @@ const Game = {
             }
             if (activeSeg) {
               // Singing window — score pitch accuracy.
-              // _mvTotalFrames = frames where singing was expected.
-              // _mvVoicedFrames = weighted accuracy sum (0–1 per frame).
-              this._mvTotalFrames++;
+              // _mvScoredFrames: frames inside an active melody segment.
+              // _mvWeightedAcc: weighted accuracy sum (0–1 per frame).
+              this._mvScoredFrames++;
               // Require confidence >= 0.5 to reject instrumental bleed
               // (music notes trigger pitch detector at ~0.2–0.4, real voice ≥ 0.5).
               if (data.confidence >= 0.5) {
@@ -494,7 +478,7 @@ const Game = {
                           : cents < 160 ? 0.75
                           : cents < 320 ? 0.35
                           : 0;
-                this._mvVoicedFrames += acc;
+                this._mvWeightedAcc += acc;
                 // Streak tracking: hitting the note keeps combo alive.
                 if (acc >= 0.7) {
                   this._consecutiveGoodFrames++;
@@ -521,8 +505,8 @@ const Game = {
             // Outside active segment (gap/instrumental): no scoring at all.
           } else {
             // No melody data: legacy presence with raised threshold.
-            this._mvTotalFrames++;
-            if (data.confidence >= 0.65) this._mvVoicedFrames++;
+            this._mvScoredFrames++;
+            if (data.confidence >= 0.65) this._mvWeightedAcc++;
           }
         }
         return;
@@ -557,7 +541,7 @@ const Game = {
         if (centsDiff < 80) acc = 1.0;
         else if (centsDiff < 160) acc = 0.75;
         else if (centsDiff < 320) acc = 0.35;
-        else acc = 0.1;
+        else acc = 0;
       }
 
       // Accumulate onto the line-level noteScores (used by getResults).
@@ -652,96 +636,6 @@ const Game = {
 
       return;
     }
-
-    // --- NON-LYRICS MODE (synth songs with midi per note): unchanged ---
-    for (let i = 0; i < this.notes.length; i++) {
-      const note = this.notes[i];
-      if (time >= note.start - 0.1 && time <= note.start + note.dur + 0.1) {
-        const targetMidi = note.midi;
-        const sungMidi = data.midi;
-        if (targetMidi === 0) { break; } // shouldn't happen outside lyricsMode
-
-        // Fold sung pitch to the nearest octave of the target so users can
-        // sing along in any comfortable octave (male user on a female-range
-        // song, etc.) without being penalized. Same logic as lyricsMode above.
-        let foldedSung = sungMidi;
-        while (foldedSung - targetMidi > 6) foldedSung -= 12;
-        while (targetMidi - foldedSung > 6) foldedSung += 12;
-        const centsDiff = Math.abs(foldedSung - targetMidi) * 100;
-
-        // Score: same realistic thresholds as lyricsMode branch (see comment
-        // above). 80¢ "perfect" matches trained-vocal physics, not auto-tune.
-        // When karaoke is off, fall back to presence-only — can't grade pitch
-        // through the original singer's voice bleeding into the mic.
-        let acc = 0;
-        if (this._isKaraokeOff) {
-          acc = 0.8; // presence-only
-        } else if (centsDiff < 80) acc = 1.0;
-        else if (centsDiff < 160) acc = 0.75;
-        else if (centsDiff < 320) acc = 0.35;
-        else acc = 0.1;
-
-        this.noteScores[i].pitchAcc += acc;
-        this.noteScores[i].samples++;
-        this.noteScores[i].totalCents += centsDiff;
-
-        if (acc >= 0.7 && !this.noteScores[i].hit) {
-          this.noteScores[i].hit = true;
-          this.currentStreak++;
-          if (this.currentStreak > this.bestStreak) this.bestStreak = this.currentStreak;
-          this.score += Math.round(10 * (1 + this.currentStreak * 0.1));
-        } else if (acc < 0.3) {
-          this.currentStreak = 0;
-        }
-
-        // Spawn particles for good pitch
-        if (acc >= 0.7) {
-          this._consecutiveGoodFrames++;
-          const now = performance.now();
-          // Spawn stars every ~80ms while on pitch
-          if (now - this._lastParticleTime > 80) {
-            this._lastParticleTime = now;
-            const playheadX = this.displayWidth * this.PLAYHEAD_X;
-            const py = this._midiToY(data.midi);
-            const intensity = this._consecutiveGoodFrames > 10 ? 3 : this._consecutiveGoodFrames > 5 ? 2 : 1;
-            for (let p = 0; p < intensity; p++) {
-              this.particles.push({
-                x: playheadX + (Math.random() - 0.5) * 20,
-                y: py + (Math.random() - 0.5) * 16,
-                vx: (Math.random() - 0.5) * 3 + 1.5,
-                vy: (Math.random() - 0.5) * 3 - 1,
-                life: 1.0,
-                decay: 0.015 + Math.random() * 0.01,
-                size: 4 + Math.random() * 6,
-                type: acc >= 1.0 ? 'perfect' : 'good',
-                rotation: Math.random() * Math.PI * 2,
-                rotSpeed: (Math.random() - 0.5) * 0.15,
-              });
-            }
-          }
-        } else {
-          this._consecutiveGoodFrames = 0;
-        }
-
-        // Stamp consec onto pitch history for trail heatmap coloring.
-        const _lastPH2 = this.pitchHistory[this.pitchHistory.length - 1];
-        if (_lastPH2) _lastPH2.consec = acc >= 0.7 ? this._consecutiveGoodFrames : 0;
-
-        // Streak milestone grade bombs.
-        const _MILESTONES2 = [5, 10, 20];
-        for (const _m2 of _MILESTONES2) {
-          if (this.currentStreak >= _m2 && (this._lastStreakMilestone || 0) < _m2) {
-            this._lastStreakMilestone = _m2;
-            if (_m2 === 5)  this._showGradeBomb('NICE!', '#00ff88');
-            if (_m2 === 10) this._showGradeBomb('ON FIRE! 🔥', '#ffd700');
-            if (_m2 === 20) this._showGradeBomb('UNSTOPPABLE! ⚡', '#ff6b35');
-          }
-        }
-        if (this.currentStreak === 0) this._lastStreakMilestone = 0;
-
-        break;
-      }
-    }
   },
 
   _gameLoop() {
@@ -803,129 +697,8 @@ const Game = {
 
     const isLyricsMode = this.song && this.song.lyricsMode;
 
-    // Draw grid lines for each semitone
-    if (!isLyricsMode) this._drawGrid(ctx, W, H);
-
-    // Draw notes (skip for lyricsMode - no pitch blocks)
-    if (!isLyricsMode) {
-    for (let i = 0; i < this.notes.length; i++) {
-      const note = this.notes[i];
-      const ns = this.noteScores[i];
-      const x = playheadX + (note.start - time) * pxPerSec;
-      const w = note.dur * pxPerSec;
-      const y = this._midiToY(note.midi);
-
-      // Skip if off screen
-      if (x + w < -10 || x > W + 10) continue;
-
-      const isPast = note.start + note.dur < time;
-      const isActive = time >= note.start && time <= note.start + note.dur;
-
-      // Note rectangle
-      ctx.save();
-      const nh = this.NOTE_HEIGHT * 0.8;
-      const cornerR = Math.min(nh / 2, 6);
-
-      if (isActive) {
-        // Active note - bright glow
-        const acc = ns.samples > 0 ? ns.pitchAcc / ns.samples : 0;
-        let color;
-        if (acc > 0.7) color = this.COLORS.pitchGood;
-        else if (acc > 0.3) color = this.COLORS.pitchOk;
-        else color = this.COLORS.noteStroke;
-
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 15;
-        ctx.fillStyle = color + '40';
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        this._roundRect(ctx, x, y - nh/2, w, nh, cornerR);
-        ctx.fill();
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-      } else if (isPast) {
-        // Past note - dim, colored by accuracy
-        const acc = ns.samples > 0 ? ns.pitchAcc / ns.samples : 0;
-        let color;
-        if (ns.samples === 0) color = 'rgba(255,255,255,0.08)';
-        else if (acc > 0.7) color = this.COLORS.pitchGood + '30';
-        else if (acc > 0.3) color = this.COLORS.pitchOk + '30';
-        else color = this.COLORS.pitchBad + '20';
-
-        ctx.fillStyle = color;
-        ctx.strokeStyle = ns.samples > 0 ? (acc > 0.7 ? this.COLORS.pitchGood + '50' : acc > 0.3 ? this.COLORS.pitchOk + '40' : this.COLORS.pitchBad + '30') : this.COLORS.noteStrokePast;
-        ctx.lineWidth = 1;
-        this._roundRect(ctx, x, y - nh/2, w, nh, cornerR);
-        ctx.fill();
-        ctx.stroke();
-      } else {
-        // Future note
-        ctx.fillStyle = this.COLORS.noteFill;
-        ctx.strokeStyle = this.COLORS.noteStroke;
-        ctx.lineWidth = 1.5;
-        this._roundRect(ctx, x, y - nh/2, w, nh, cornerR);
-        ctx.fill();
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-    } // end if (!isLyricsMode)
-
-    if (isLyricsMode) {
-      // StarMaker-style: scrolling syllable bars with playhead
-      this._drawLyricsModeBars(ctx, W, H, time, playheadX, pxPerSec);
-    } else {
-      // Standard mode: pitch trail + playhead + pitch dot
-      this._drawPitchTrail(ctx, W, H, time, playheadX, pxPerSec);
-
-      // Draw playhead line
-      ctx.save();
-      const grad = ctx.createLinearGradient(playheadX, 0, playheadX, H);
-      grad.addColorStop(0, 'rgba(0,212,255,0)');
-      grad.addColorStop(0.2, 'rgba(0,212,255,0.5)');
-      grad.addColorStop(0.8, 'rgba(0,212,255,0.5)');
-      grad.addColorStop(1, 'rgba(0,212,255,0)');
-      ctx.strokeStyle = grad;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(playheadX, 0);
-      ctx.lineTo(playheadX, H);
-      ctx.stroke();
-      ctx.restore();
-
-      // Draw current pitch indicator on playhead
-      if (this.currentPitch.freq > 0) {
-        const py = this._midiToY(this.currentPitch.midi);
-        if (py > 0 && py < H) {
-          ctx.save();
-
-          let dotColor = this.COLORS.trail;
-          for (const note of this.notes) {
-            if (time >= note.start - 0.1 && time <= note.start + note.dur + 0.1) {
-              const diff = Math.abs(this.currentPitch.midi - note.midi);
-              if (diff < 0.5) dotColor = this.COLORS.pitchGood;
-              else if (diff < 1) dotColor = this.COLORS.pitchOk;
-              else if (diff < 2) dotColor = this.COLORS.pitchOk;
-              else dotColor = this.COLORS.pitchBad;
-              break;
-            }
-          }
-
-          ctx.shadowColor = dotColor;
-          ctx.shadowBlur = 20;
-          ctx.fillStyle = dotColor;
-          ctx.beginPath();
-          ctx.arc(playheadX, py, 6, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-          ctx.fillStyle = '#fff';
-          ctx.beginPath();
-          ctx.arc(playheadX, py, 2.5, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        }
-      }
-    }
+    // Scrolling syllable bars with playhead
+    this._drawLyricsModeBars(ctx, W, H, time, playheadX, pxPerSec);
 
     // Draw particles
     this._drawParticles(ctx);
@@ -970,8 +743,6 @@ const Game = {
       ctx.fillStyle = color;
       ctx.beginPath();
       for (let j = 0; j < 5; j++) {
-        const angle = (j * 4 * Math.PI) / 5 - Math.PI / 2;
-        const r = j === 0 ? s : s;
         const method = j === 0 ? 'moveTo' : 'lineTo';
         // Outer point
         ctx[method](
@@ -993,30 +764,6 @@ const Game = {
     // Cap particle count
     if (this.particles.length > 100) {
       this.particles.splice(0, this.particles.length - 100);
-    }
-  },
-
-  _drawGrid(ctx, W, H) {
-    const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-    ctx.font = '10px Inter, sans-serif';
-
-    for (let midi = this.MIDI_LOW; midi <= this.MIDI_HIGH; midi++) {
-      const y = this._midiToY(midi);
-      const name = noteNames[midi % 12];
-      const isC = name === 'C';
-      const isNatural = !name.includes('#');
-
-      ctx.strokeStyle = isC ? this.COLORS.gridLineAccent : this.COLORS.gridLine;
-      ctx.lineWidth = isC ? 1 : 0.5;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(W, y);
-      ctx.stroke();
-
-      if (isNatural) {
-        ctx.fillStyle = this.COLORS.noteLabel;
-        ctx.fillText(name + Math.floor(midi / 12 - 1), 6, y + 3);
-      }
     }
   },
 
@@ -1218,9 +965,8 @@ const Game = {
         }
         ctx.lineWidth = 1;
       } else if (isActive) {
-        // Active bar
+        // Active bar — bar.hit is set authoritatively by _scorePitch, not here.
         if (isSinging) {
-          bar.hit = true;
           ctx.shadowColor = '#00ff88';
           ctx.shadowBlur = 12;
           ctx.fillStyle = 'rgba(0,255,136,0.4)';
@@ -1292,171 +1038,6 @@ const Game = {
       }
       ctx.restore();
     }
-  },
-
-  _drawVoiceOrb(ctx, W, H, time) {
-    const cx = W / 2;
-    const cy = H / 2;
-    const isSinging = this.currentPitch.freq > 0;
-    const volume = this.currentPitch.volume || 0;
-
-    // Check if we're in a lyric line
-    let inLyricLine = false;
-    for (const note of this.notes) {
-      if (time >= note.start && time <= note.start + note.dur) {
-        inLyricLine = true;
-        break;
-      }
-    }
-
-    // Pulsing rings
-    const baseRadius = 40;
-    const pulseScale = isSinging ? 1 + volume * 8 : 0.8;
-    const t = performance.now() / 1000;
-
-    // Outer ambient rings
-    for (let ring = 3; ring >= 0; ring--) {
-      const r = baseRadius * pulseScale + ring * 25;
-      const alpha = (0.03 - ring * 0.006) * (isSinging ? 1.5 : 0.5);
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.strokeStyle = isSinging && inLyricLine
-        ? `rgba(0,212,255,${alpha})`
-        : `rgba(255,255,255,${alpha * 0.5})`;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // Main orb
-    ctx.save();
-    const orbR = baseRadius * pulseScale * 0.6;
-    const orbGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, orbR);
-
-    if (isSinging && inLyricLine) {
-      // Singing during lyrics - bright cyan/green
-      const sinPhase = Math.sin(t * 3) * 0.15;
-      orbGrad.addColorStop(0, `rgba(0,255,200,${0.3 + sinPhase})`);
-      orbGrad.addColorStop(0.6, `rgba(0,212,255,${0.15 + sinPhase * 0.5})`);
-      orbGrad.addColorStop(1, 'rgba(0,212,255,0)');
-
-      ctx.shadowColor = '#00d4ff';
-      ctx.shadowBlur = 30 + volume * 50;
-    } else if (isSinging) {
-      // Singing during instrumental
-      orbGrad.addColorStop(0, 'rgba(123,47,255,0.2)');
-      orbGrad.addColorStop(0.6, 'rgba(123,47,255,0.08)');
-      orbGrad.addColorStop(1, 'rgba(123,47,255,0)');
-      ctx.shadowColor = '#7b2fff';
-      ctx.shadowBlur = 15;
-    } else {
-      // Silent - dim pulse
-      const dimPulse = Math.sin(t * 1.5) * 0.03;
-      orbGrad.addColorStop(0, `rgba(255,255,255,${0.04 + dimPulse})`);
-      orbGrad.addColorStop(1, 'rgba(255,255,255,0)');
-    }
-
-    ctx.fillStyle = orbGrad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, orbR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    // Note name display when singing
-    if (isSinging) {
-      ctx.save();
-      ctx.font = '14px "Space Grotesk", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = inLyricLine ? 'rgba(0,212,255,0.6)' : 'rgba(255,255,255,0.3)';
-      ctx.fillText(this.currentPitch.note, cx, cy + orbR + 20);
-      ctx.restore();
-    }
-
-    // Spawn particles when singing during lyrics
-    if (isSinging && inLyricLine && this._consecutiveGoodFrames > 3) {
-      const now = performance.now();
-      if (now - this._lastParticleTime > 120) {
-        this._lastParticleTime = now;
-        const angle = Math.random() * Math.PI * 2;
-        const dist = orbR + Math.random() * 20;
-        this.particles.push({
-          x: cx + Math.cos(angle) * dist,
-          y: cy + Math.sin(angle) * dist,
-          vx: Math.cos(angle) * (1 + Math.random() * 2),
-          vy: Math.sin(angle) * (1 + Math.random() * 2) - 1,
-          life: 0.6 + Math.random() * 0.4,
-          decay: 0.015,
-          size: 4 + Math.random() * 5,
-          type: 'good',
-          rotation: Math.random() * Math.PI * 2,
-          rotSpeed: (Math.random() - 0.5) * 0.1,
-        });
-      }
-    }
-  },
-
-  _drawPitchTrail(ctx, W, H, time, playheadX, pxPerSec) {
-    if (this.pitchHistory.length < 2) return;
-
-    ctx.save();
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    // Draw trail segments colored by accuracy
-    for (let i = 1; i < this.pitchHistory.length; i++) {
-      const prev = this.pitchHistory[i - 1];
-      const curr = this.pitchHistory[i];
-
-      const x1 = playheadX + (prev.time - time) * pxPerSec;
-      const x2 = playheadX + (curr.time - time) * pxPerSec;
-
-      if (x2 < 0 || x1 > playheadX + 10) continue;
-      if (prev.midi <= 0 || curr.midi <= 0) continue; // silence — don't draw
-
-      const y1 = this._midiToY(prev.midi);
-      const y2 = this._midiToY(curr.midi);
-
-      // Color trail by consecutive good frames (heatmap: blue → green → gold → orange).
-      // Falls back to per-note accuracy coloring when not on a hot streak.
-      const consec = curr.consec || 0;
-      let color;
-      if (consec >= 18) {
-        color = 'rgba(255,107,53,0.92)';   // 🔥 on fire — orange
-      } else if (consec >= 8) {
-        color = 'rgba(255,215,0,0.88)';    // gold
-      } else if (consec >= 1) {
-        color = this.COLORS.pitchGood + '80'; // green — on pitch
-      } else {
-        // Off-pitch or between notes: note-accuracy coloring
-        color = 'rgba(0,212,255,0.3)';
-        for (const note of this.notes) {
-          if (curr.time >= note.start && curr.time <= note.start + note.dur) {
-            const diff = Math.abs(curr.midi - note.midi);
-            if (diff < 0.5) color = this.COLORS.pitchGood + '80';
-            else if (diff < 1) color = this.COLORS.pitchOk + '70';
-            else if (diff < 2) color = this.COLORS.pitchOk + '50';
-            else color = this.COLORS.pitchBad + '50';
-            break;
-          }
-        }
-      }
-
-      // Fade older trail
-      const age = time - curr.time;
-      const alpha = Math.max(0.1, 1 - age / (this.VISIBLE_SECONDS * 0.8));
-
-      ctx.globalAlpha = alpha;
-      ctx.strokeStyle = color;
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.stroke();
-    }
-
-    ctx.globalAlpha = 1;
-    ctx.restore();
   },
 
   _midiToY(midi) {
@@ -1648,28 +1229,25 @@ const Game = {
   // getResults() logic but uses only notes the user has had a chance to
   // sing (start <= currentTime). Before any singing this is 0; it
   // stabilises toward the final value as the song progresses.
+  // Running score on the same 0-100 scale as getResults(). Uses identical
+  // formulas so the HUD number IS the final score — no jump at song end.
   _computeLiveScore() {
     if (!this.notes || this.notes.length === 0) {
-      // No note data — fall back to MV presence scoring (voicedFrames %).
-      // Songs with proper Demucs instrumentals won't bleed, so this works.
-      if (this._mvTotalFrames > 0 && this._mvVoicedFrames > 0) {
-        const coverage = (this._mvVoicedFrames / this._mvTotalFrames) * 100;
-        return Math.min(100, Math.max(0, Math.round(20 + coverage * 0.65)));
+      // Melody-cursor path: no lyric windows, scored against melody[].
+      if (this._mvScoredFrames > 0) {
+        const coverage = (this._mvWeightedAcc / this._mvScoredFrames) * 100;
+        return Math.min(100, Math.max(0, Math.round(20 + coverage * 0.65 + Math.min(this.bestStreak / 10, 1) * 15)));
       }
       return 0;
     }
-    const time = this.currentTime;
 
+    // Notes-based path: syllableBars scoring from notes[].
+    const time = this.currentTime;
     const hasMelodyData = !!(this.song && this.song.melody && this.song.melody.length > 0);
     const pitchGradingReady = !this.song || this.song.pitchGradingReady !== false;
-    const hasNoteWindows = this.notes && this.notes.length > 0;
-    const hasRealMelody = hasMelodyData && pitchGradingReady && !this._isKaraokeOff && hasNoteWindows;
+    const hasRealMelody = hasMelodyData && pitchGradingReady && !this._isKaraokeOff;
 
-    // Count notes where the user has had the chance to sing.
-    let notesSoFar = 0;
-    let totalPresence = 0;
-    let scoredNotes = 0;
-    let notesAttempted = 0;
+    let notesSoFar = 0, totalPresence = 0, scoredNotes = 0, notesAttempted = 0;
     for (let i = 0; i < this.notes.length; i++) {
       const n = this.notes[i];
       if (n.start > time) continue;
@@ -1685,16 +1263,15 @@ const Game = {
 
     const rawAccuracy = scoredNotes > 0 ? (totalPresence / scoredNotes) * 100 : 0;
     const coverage = (notesAttempted / notesSoFar) * 100;
-    const streakBonus = Math.min(this.bestStreak / 10, 1) * 10;
+    const streakBonus = Math.min(this.bestStreak / 10, 1) * 15;
 
-    const isKaraokeOff = !!this._isKaraokeOff;
     let combined;
     if (hasRealMelody) {
-      combined = rawAccuracy * 0.6 + coverage * 0.3 + streakBonus;
-    } else if (isKaraokeOff) {
-      combined = Math.min(75, coverage * 0.65 + streakBonus);
+      combined = Math.round(20 + rawAccuracy * 0.50 + coverage * 0.25 + Math.min(this.bestStreak / 10, 1) * 10);
+    } else if (this._isKaraokeOff) {
+      combined = Math.min(75, Math.round(coverage * 0.65 + Math.min(this.bestStreak / 10, 1) * 10));
     } else {
-      combined = coverage * 0.85 + Math.min(this.bestStreak / 10, 1) * 15;
+      combined = Math.round(20 + coverage * 0.65 + streakBonus);
     }
     return Math.min(100, Math.max(0, combined));
   },
@@ -1759,32 +1336,6 @@ const Game = {
       }
 
       el.innerHTML = html;
-      return;
-    }
-
-    // Standard mode: per-syllable display
-    let html = '';
-    const windowStart = time - 2;
-    const windowEnd = time + 4;
-
-    for (const note of this.notes) {
-      if (!note.lyric || note.lyric.trim() === '') continue;
-      if (note.start > windowEnd) break;
-      if (note.start + note.dur < windowStart) continue;
-
-      const isActive = time >= note.start && time <= note.start + note.dur;
-      const isPast = note.start + note.dur < time;
-
-      if (isActive) {
-        html += `<span class="lyric-active">${note.lyric}</span>`;
-      } else if (isPast) {
-        html += `<span class="lyric-past">${note.lyric}</span>`;
-      } else {
-        html += `<span class="lyric-future">${note.lyric}</span>`;
-      }
-    }
-
-    el.innerHTML = html;
   },
 
   // Flashes a centered grade label over the canvas (e.g. "PERFECT! ✨").
