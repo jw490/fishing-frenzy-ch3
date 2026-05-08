@@ -2395,11 +2395,13 @@ html, body {
     align-self: stretch;
   }
 
-  /* ---- Declutter HUD on mobile: hide mic bars + karaoke label ---- */
-  .mic-bars { display: none; }
-  .btn-karaoke-mid-label { display: none; }
-  .hud-rank-label { display: none; }
-  .hud-score-label { display: none; }
+  /* ---- Compact HUD on mobile: shrink, don't hide ---- */
+  .hud-left, .hud-right { gap: 8px; }
+  .hud-score, .hud-rank-num { font-size: 20px; }
+  .mic-bars { height: 20px; gap: 2px; margin-top: 4px; }
+  .mic-bar { width: 3px; }
+  .btn-karaoke-mid { padding: 3px 8px; font-size: 9px; }
+  .streak-indicator { padding: 3px 8px; font-size: 12px; }
 
   /* ---- Touch targets — 44px minimum per Apple HIG ---- */
   .auth-tab { min-height: 44px; }
