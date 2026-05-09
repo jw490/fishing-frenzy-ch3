@@ -577,10 +577,16 @@ const App = {
       if (wantKaraoke) {
         // Switch to karaoke: mute video, start Synth instrumental from video's position
         const pos = mvEl.currentTime || 0;
-        mvEl.muted = true;
         Synth.stripVocalsOverride = true; // force instrumental
         const ok = Synth.playSongFrom(song.id, song.bpm, pos);
-        if (!ok) { this.showToast('Instrumental not available', 'warn'); return; }
+        if (!ok) {
+          // Instrumental not loaded — abort without muting the video, so the
+          // user keeps hearing audio rather than ending up in a silent state.
+          Synth.stripVocalsOverride = null;
+          this.showToast('Instrumental not available', 'warn');
+          return;
+        }
+        mvEl.muted = true; // only mute video after we know Synth will play
       } else {
         // Switch to original: stop Synth, unmute video from Synth's position
         const pos = Synth.getPlaybackTime() || mvEl.currentTime || 0;
