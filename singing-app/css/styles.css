@@ -1122,6 +1122,32 @@ html, body {
   z-index: 20;
 }
 
+/* ==========================================
+   GAME: lyricsMode MV — video + pitch canvas stacked
+   Songs that have both an MV and lyricsMode need the pitch canvas
+   visible so the user gets real-time vocal feedback. The video sits
+   on top (fixed 16:9 height), the pitch canvas fills the space below.
+   ========================================== */
+#screen-game.has-mv.has-mv-lyrics #game-canvas {
+  display: block;   /* override the generic has-mv hide */
+  background: #06060f;
+}
+#screen-game.has-mv.has-mv-lyrics #game-mv {
+  flex: none;
+  width: 100%;
+  max-width: none;
+  border-radius: 0;
+  /* Height: natural 16:9 of width, capped at 50vh so canvas always has room */
+  height: min(calc(100% * 9 / 16), 50vh);
+  max-height: 50vh;
+  object-fit: contain;
+  background: #000;
+}
+/* Lyrics bar: KTV lyrics are in the video — keep overlay hidden */
+#screen-game.has-mv.has-mv-lyrics .lyrics-bar {
+  display: none;
+}
+
 /* ---- Singing countdown overlay ---- */
 .singing-countdown {
   position: absolute;

@@ -67,8 +67,15 @@ const Game = {
     const parent = this.canvas.parentElement;
     const rect = parent.getBoundingClientRect();
     const hudHeight = document.querySelector('.game-hud')?.offsetHeight || 60;
-    const lyricsHeight = document.querySelector('.lyrics-bar')?.offsetHeight || 60;
-    const h = window.innerHeight - hudHeight - lyricsHeight;
+    // Lyrics bar may be hidden (e.g. has-mv mode) — don't count it when display:none.
+    const lyricsEl = document.querySelector('.lyrics-bar');
+    const lyricsHeight = (lyricsEl && getComputedStyle(lyricsEl).display !== 'none')
+      ? (lyricsEl.offsetHeight || 0) : 0;
+    // For has-mv-lyrics mode the video sits above the canvas — subtract its rendered height.
+    const mvEl = document.getElementById('game-mv');
+    const mvHeight = (mvEl && getComputedStyle(mvEl).display !== 'none' && mvEl.offsetHeight > 0)
+      ? mvEl.offsetHeight : 0;
+    const h = Math.max(80, window.innerHeight - hudHeight - lyricsHeight - mvHeight);
 
     const dpr = window.devicePixelRatio;
     this.canvas.width = rect.width * dpr;

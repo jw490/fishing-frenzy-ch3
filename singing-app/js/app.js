@@ -500,6 +500,8 @@ const App = {
     const mvEl = document.getElementById('game-mv');
     if (song.mvSrc && mvEl && gameScreen) {
       gameScreen.classList.add('has-mv');
+      // lyricsMode MV: show pitch canvas stacked below video for vocal feedback
+      if (song.lyricsMode) gameScreen.classList.add('has-mv-lyrics');
       mvEl.muted = this.isKaraokeOn(song); // muted when karaoke ON (Synth handles audio)
       // Only restart loading if src changed — if selectSong() already started
       // buffering (preload during countdown), don't call load() again or we'd
@@ -533,9 +535,11 @@ const App = {
   },
 
   quitGame() {
+    // Save score + show results, same as endSong(), so the user's progress
+    // is never silently discarded when they tap the × mid-song.
     Game.stop();
     this._stopMv();
-    this.showScreen('songs');
+    this.onGameEnd();
   },
 
   // End the song early and go straight to results (same as natural end).
@@ -549,7 +553,10 @@ const App = {
     const mvEl = document.getElementById('game-mv');
     if (mvEl) { mvEl.pause(); mvEl.currentTime = 0; mvEl.muted = true; }
     const gameScreen = document.getElementById('screen-game');
-    if (gameScreen) gameScreen.classList.remove('has-mv');
+    if (gameScreen) {
+      gameScreen.classList.remove('has-mv');
+      gameScreen.classList.remove('has-mv-lyrics');
+    }
   },
 
   // Toggle karaoke on/off mid-song. Swaps the audio track at the current

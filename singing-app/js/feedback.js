@@ -121,7 +121,15 @@ const Feedback = {
 
     try {
       const sb = _getFbClient();
-      const { error } = await sb.from('feedback').insert(payload);
+      // 10-second hard timeout prevents the modal from getting stuck on "Sending…"
+      // if the Supabase network request hangs (e.g. captive portal, slow mobile).
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 10000)
+      );
+      const { error } = await Promise.race([
+        sb.from('feedback').insert(payload),
+        timeoutPromise,
+      ]);
       if (error) throw error;
 
       this._setStatus('✓ Sent! Thank you.', 'ok');
@@ -130,7 +138,10 @@ const Feedback = {
       setTimeout(() => this.closeModal(), 1400);
     } catch (err) {
       console.error('[Feedback]', err);
-      this._setStatus('Failed to send — please try again.', 'error');
+      const msg = err.message === 'timeout'
+        ? 'Request timed out — check your connection and try again.'
+        : 'Failed to send — please try again.';
+      this._setStatus(msg, 'error');
     } finally {
       if (btn) btn.disabled = false;
     }
