@@ -487,7 +487,13 @@
         <div class="feedback-text" id="feedback-text"></div>
       </div>
 
-      <div class="breakdown-details" id="breakdown-details" hidden></div>
+      <div class="breakdown-details" id="breakdown-details" hidden>
+        <button class="breakdown-toggle" id="breakdown-toggle" type="button" aria-expanded="false">
+          <span class="breakdown-toggle-label">See your line-by-line breakdown</span>
+          <span class="breakdown-toggle-chevron">&#8964;</span>
+        </button>
+        <div class="breakdown-list" id="breakdown-list" hidden></div>
+      </div>
 
       <div class="results-actions">
         <button class="btn btn-primary btn-glow" onclick="App.replaySong()">

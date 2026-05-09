@@ -943,7 +943,7 @@ html, body {
    ========================================== */
 .game-hud {
   display: flex;
-  align-items: center;
+  align-items: stretch;  /* stretch all columns to the same height so internal centering aligns */
   justify-content: space-between;
   /* Extra top padding gives the floating time label room above the button row */
   padding: 28px 20px 10px;
@@ -2116,7 +2116,6 @@ html, body {
    GAME HUD: skip-forward button
    ========================================== */
 .btn-skip {
-  margin-top: 4px;
   display: inline-flex;
   align-items: center;
   gap: 6px;

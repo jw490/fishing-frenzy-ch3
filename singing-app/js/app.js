@@ -816,8 +816,8 @@ const App = {
   _renderBreakdown(results) {
     const listEl = document.getElementById('breakdown-list');
     const toggleEl = document.getElementById('breakdown-toggle');
-    const labelEl = toggleEl.querySelector('.breakdown-toggle-label');
     if (!listEl || !toggleEl) return;
+    const labelEl = toggleEl.querySelector('.breakdown-toggle-label');
 
     // Only show lines with real lyric text (skips instrumental notes)
     const lines = (results.perNote || []).filter(n => n.lyric);
