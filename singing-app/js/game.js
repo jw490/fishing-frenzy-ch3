@@ -625,9 +625,9 @@ const Game = {
       for (const _m of _MILESTONES) {
         if (this.currentStreak >= _m && (this._lastStreakMilestone || 0) < _m) {
           this._lastStreakMilestone = _m;
-          if (_m === 5)  this._showGradeBomb('NICE!', '#00ff88');
-          if (_m === 10) this._showGradeBomb('ON FIRE! 🔥', '#ffd700');
-          if (_m === 20) this._showGradeBomb('UNSTOPPABLE! ⚡', '#ff6b35');
+          if (_m === 5)  this._showGradeBomb(this._pickMsg('streak5'), '#00ff88');
+          if (_m === 10) this._showGradeBomb(this._pickMsg('streak10'), '#ffd700');
+          if (_m === 20) this._showGradeBomb(this._pickMsg('streak20'), '#ff6b35');
         }
       }
       if (this.currentStreak === 0) this._lastStreakMilestone = 0;
@@ -638,8 +638,8 @@ const Game = {
         const _prevNs = this.noteScores[this._lastScoredLineIdx];
         if (_prevNs && _prevNs.samples > 0 && !this._gradeBombTimer) {
           const _avgAcc = _prevNs.pitchAcc / _prevNs.samples;
-          if (_avgAcc >= 0.88) this._showGradeBomb('PERFECT! ✨', '#ffd700');
-          else if (_avgAcc >= 0.70) this._showGradeBomb('GREAT!', '#00ff88');
+          if (_avgAcc >= 0.88) this._showGradeBomb(this._pickMsg('perfect'), '#ffd700');
+          else if (_avgAcc >= 0.70) this._showGradeBomb(this._pickMsg('good'), '#00ff88');
         }
       }
       this._lastScoredLineIdx = lineIdx;
@@ -1037,10 +1037,32 @@ const Game = {
         const age = time - curr.time;
         const alpha = Math.max(0.05, 0.5 - age / (this.VISIBLE_SECONDS * 0.6));
         const consec = curr.consec || 0;
-        if (consec >= 18)     ctx.strokeStyle = `rgba(255,107,53,${alpha})`; // 🔥 orange
-        else if (consec >= 8) ctx.strokeStyle = `rgba(255,215,0,${alpha})`;   // gold
-        else if (consec >= 1) ctx.strokeStyle = `rgba(0,255,136,${alpha})`;   // green
-        else                  ctx.strokeStyle = `rgba(0,212,255,${alpha})`; // blue (off pitch)
+        // Combo level shifts the "good pitch" trail accent:
+        //   level 0 → cyan base, green on-pitch
+        //   level 1 (×2, streak 5+) → green base, gold on-pitch
+        //   level 2 (×3, streak 10+) → gold base, orange on-pitch
+        //   level 3 (×5, streak 20+) → whole trail goes purple/hot
+        const cl = this._comboLevel || 0;
+        if (consec <= 0) {
+          ctx.strokeStyle = `rgba(0,212,255,${alpha})`; // blue (off pitch, always)
+        } else if (cl >= 3) {
+          // Streak 20+: purple trail for all good frames, hot orange for sustained
+          if (consec >= 10) ctx.strokeStyle = `rgba(255,107,53,${alpha})`;
+          else              ctx.strokeStyle = `rgba(180,60,255,${alpha})`;
+        } else if (cl >= 2) {
+          // Streak 10+: gold → orange
+          if (consec >= 12) ctx.strokeStyle = `rgba(255,107,53,${alpha})`;
+          else              ctx.strokeStyle = `rgba(255,215,0,${alpha})`;
+        } else if (cl >= 1) {
+          // Streak 5+: green → gold
+          if (consec >= 14) ctx.strokeStyle = `rgba(255,215,0,${alpha})`;
+          else              ctx.strokeStyle = `rgba(0,255,136,${alpha})`;
+        } else {
+          // No combo: classic green → gold → orange ladder
+          if (consec >= 18)     ctx.strokeStyle = `rgba(255,107,53,${alpha})`;
+          else if (consec >= 8) ctx.strokeStyle = `rgba(255,215,0,${alpha})`;
+          else                  ctx.strokeStyle = `rgba(0,255,136,${alpha})`;
+        }
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
@@ -1088,9 +1110,19 @@ const Game = {
     this.liveScore = this._computeLiveScore();
     if (scoreEl) {
       if (this.liveScore > 0) {
-        scoreEl.textContent = Math.round(this.liveScore);
+        // Smoothly interpolate the displayed score toward liveScore so it
+        // ticks up rather than jumping. Max step of 2 per frame (~120ms/pt at 60fps).
+        const displayed = parseFloat(scoreEl.dataset.displayed || '0');
+        const target = Math.round(this.liveScore);
+        const step = Math.max(1, Math.ceil(Math.abs(target - displayed) * 0.12));
+        const next = displayed < target
+          ? Math.min(target, displayed + step)
+          : Math.max(target, displayed - step);
+        scoreEl.dataset.displayed = next;
+        scoreEl.textContent = Math.round(next);
         scoreEl.classList.remove('hud-score--waiting');
       } else {
+        scoreEl.dataset.displayed = '0';
         scoreEl.textContent = '—';
         scoreEl.classList.add('hud-score--waiting');
       }
@@ -1146,6 +1178,16 @@ const Game = {
       else if (newComboLevel === 2) streakIndicator.classList.add('mult-3');
       else if (newComboLevel === 3) streakIndicator.classList.add('mult-5');
     }
+
+    // Apply combo level as a class on the lyrics bar so CSS can shift its accent color.
+    const lyricsBarEl = document.querySelector('.lyrics-bar');
+    if (lyricsBarEl) {
+      lyricsBarEl.classList.remove('combo-1', 'combo-2', 'combo-3');
+      if (newComboLevel > 0) lyricsBarEl.classList.add(`combo-${newComboLevel}`);
+    }
+
+    // Pitch direction arrow — shows ↑/↓ when singer is > 1 semitone off target
+    this._updatePitchDirection();
 
     // Update lyrics
     this._updateLyrics();
@@ -1286,6 +1328,58 @@ const Game = {
     return Math.min(100, Math.max(0, combined));
   },
 
+  _updatePitchDirection() {
+    const el = document.getElementById('pitch-direction');
+    if (!el) return;
+
+    // Only show when user is actively singing and a target note is active
+    const pitch = this.currentPitch;
+    const isSinging = pitch && pitch.freq > 0 && pitch.confidence >= 0.5;
+    if (!isSinging || this._isKaraokeOff) {
+      el.textContent = '';
+      el.className = 'pitch-direction';
+      return;
+    }
+
+    // Find current target MIDI from syllableBars cursor
+    let targetMidi = -1;
+    if (this.syllableBars && this.syllableBars.length > 0) {
+      const time = this.currentTime;
+      const idx = this._barIdx || 0;
+      for (let k = idx; k < Math.min(this.syllableBars.length, idx + 4); k++) {
+        const b = this.syllableBars[k];
+        if (time >= b.start - 0.1 && time <= b.start + b.dur + 0.1 && !b.timingOnly) {
+          targetMidi = b.midi;
+          break;
+        }
+      }
+    }
+
+    if (targetMidi <= 0) {
+      el.textContent = '';
+      el.className = 'pitch-direction';
+      return;
+    }
+
+    // Fold sung pitch to nearest octave of target (same as _scorePitch)
+    let sung = pitch.midi;
+    while (sung - targetMidi > 6) sung -= 12;
+    while (targetMidi - sung > 6) sung += 12;
+
+    const diff = sung - targetMidi; // positive = too high, negative = too low
+
+    if (diff > 1) {
+      el.textContent = '↑'; // ↑
+      el.className = 'pitch-direction pd-high';
+    } else if (diff < -1) {
+      el.textContent = '↓'; // ↓
+      el.className = 'pitch-direction pd-low';
+    } else {
+      el.textContent = '✓'; // ✓
+      el.className = 'pitch-direction pd-good';
+    }
+  },
+
   _updateLyrics() {
     const el = document.getElementById('game-lyrics');
     if (!el) return;
@@ -1417,6 +1511,19 @@ const Game = {
     }
   },
 
+  // Pick a random message from a labelled bucket for grade-bomb variety.
+  _pickMsg(bucket) {
+    const pools = {
+      perfect: ['完美 ✨', 'NAILED IT', '神了！', 'FLAWLESS', '完璧！', 'PERFECT ✨', '太棒了！'],
+      good:    ['良好！', 'Keep it up!', 'GREAT!', '唱得好！', 'Nice one!', '加油！'],
+      streak5: ['🔥 ×5', 'NICE!', '连击！', 'Combo!', '不错哦！', '5 streak!'],
+      streak10: ['ON FIRE 🔥🔥', '×10 连击！', 'AMAZING!', '好厉害！', 'Unstoppable!'],
+      streak20: ['LEGEND 👑', '传说！', 'GODLIKE 👑', '无敌！', 'UNSTOPPABLE ⚡'],
+    };
+    const arr = pools[bucket] || ['GREAT!'];
+    return arr[Math.floor(Math.random() * arr.length)];
+  },
+
   // Flashes a centered grade label over the canvas (e.g. "PERFECT! ✨").
   // Streak milestones fire automatically; line-completion bombs are triggered
   // from _scorePitch. If a bomb is already showing it's left alone (streak
@@ -1435,7 +1542,7 @@ const Game = {
     this._gradeBombTimer = setTimeout(() => {
       el.classList.remove('bomb-show');
       this._gradeBombTimer = null;
-    }, 1500);
+    }, 1200);
   },
 
   // --- Warm-up pitch meter ---

@@ -1078,15 +1078,14 @@ html, body {
   white-space: nowrap;
 }
 .grade-bomb.bomb-show {
-  animation: gradeBomb 1.5s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+  animation: gradeBomb 1.2s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
 }
 @keyframes gradeBomb {
-  0%   { opacity: 0;   transform: translateX(-50%) translateY(-50%) scale(0.4); }
-  12%  { opacity: 1;   transform: translateX(-50%) translateY(-50%) scale(1.12); }
-  22%  { opacity: 1;   transform: translateX(-50%) translateY(-50%) scale(0.97); }
-  28%  { opacity: 1;   transform: translateX(-50%) translateY(-50%) scale(1.02); }
-  60%  { opacity: 1;   transform: translateX(-50%) translateY(-50%) scale(1); }
-  100% { opacity: 0;   transform: translateX(-50%) translateY(-64%) scale(0.9); }
+  0%   { opacity: 0;   transform: translateX(-50%) translateY(-50%) scale(0.6); }
+  10%  { opacity: 1;   transform: translateX(-50%) translateY(-50%) scale(1.05); }
+  18%  { opacity: 1;   transform: translateX(-50%) translateY(-50%) scale(1.0); }
+  55%  { opacity: 1;   transform: translateX(-50%) translateY(-50%) scale(1); }
+  100% { opacity: 0;   transform: translateX(-50%) translateY(-60%) scale(0.9); }
 }
 
 #game-canvas {
@@ -1168,6 +1167,39 @@ html, body {
 /* has-mv-lyrics: same — show our custom char-level lyrics bar */
 #screen-game.has-mv.has-mv-lyrics .lyrics-bar {
   display: flex;
+}
+
+/* ---- Pitch direction indicator ---- */
+/* Arrow shown when singer is too high/low vs target note.
+   Positioned at right edge of canvas area, mid-height.
+   Hidden when on-pitch or no melody segment active. */
+.pitch-direction {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 25;
+  opacity: 0;
+  transition: opacity 0.08s ease-out, color 0.08s ease-out;
+  text-shadow: 0 0 12px currentColor;
+  /* nudge up slightly so it sits in the canvas zone, not over lyrics */
+  margin-top: -70px;
+}
+.pitch-direction.pd-high {
+  color: #ff8844;
+  opacity: 0.85;
+}
+.pitch-direction.pd-low {
+  color: #00d4ff;
+  opacity: 0.85;
+}
+.pitch-direction.pd-good {
+  color: #00ff88;
+  opacity: 0.5;
 }
 
 /* ---- Singing countdown overlay ---- */
@@ -1258,13 +1290,13 @@ html, body {
 .lyr-line {
   display: flex;
   flex-wrap: wrap;
-  gap: 1px 3px;
+  gap: 1px 6px;
   justify-content: center;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 .lyr-line.lyr-next {
-  margin-top: 10px;
-  transform: scale(0.85);
+  margin-top: 12px;
+  transform: scale(0.82);
   transform-origin: center top;
   opacity: 0.35;
   transition: opacity 0.3s ease;
@@ -1273,19 +1305,25 @@ html, body {
   font-size: clamp(26px, 6.5vw, 36px);
   font-weight: 700;
   font-family: var(--font-display);
+  letter-spacing: 0.06em;
   transition: color 0.08s ease, text-shadow 0.08s ease, transform 0.06s ease;
   display: inline-block;
 }
-/* Already sung — lit warm gold */
+/* Already sung — accent purple wipe */
 .lyr-char.lyr-past {
-  color: #FFD700;
-  text-shadow: 0 0 12px rgba(255,215,0,0.4);
+  color: #c084fc;
+  text-shadow: 0 0 14px rgba(192,132,252,0.5);
 }
-/* Currently active char — bright white glow */
+/* Currently active char — bright white with pulsing glow */
 .lyr-char.lyr-now {
   color: #ffffff;
   text-shadow: 0 0 28px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.7);
   transform: scale(1.12);
+  animation: lyr-now-pulse 0.6s ease-in-out infinite alternate;
+}
+@keyframes lyr-now-pulse {
+  from { text-shadow: 0 0 18px rgba(192,132,252,0.7), 0 0 6px rgba(255,255,255,0.8); }
+  to   { text-shadow: 0 0 36px rgba(192,132,252,1.0), 0 0 14px rgba(255,255,255,0.95); }
 }
 /* Upcoming chars — dim */
 .lyr-char.lyr-ahead {
@@ -1294,18 +1332,18 @@ html, body {
 /* Pitch accuracy tints the past+active chars in real time */
 .lyr-line.lyr-current.acc-good .lyr-char.lyr-past,
 .lyr-line.lyr-current.acc-good .lyr-char.lyr-now {
-  color: #00ff88;
-  text-shadow: 0 0 22px rgba(0,255,136,0.65);
+  color: #4ade80;
+  text-shadow: 0 0 22px rgba(74,222,128,0.65);
 }
 .lyr-line.lyr-current.acc-ok .lyr-char.lyr-past,
 .lyr-line.lyr-current.acc-ok .lyr-char.lyr-now {
-  color: #ffd75a;
-  text-shadow: 0 0 22px rgba(255,215,0,0.55);
+  color: #c084fc;
+  text-shadow: 0 0 22px rgba(192,132,252,0.6);
 }
 .lyr-line.lyr-current.acc-bad .lyr-char.lyr-past,
 .lyr-line.lyr-current.acc-bad .lyr-char.lyr-now {
-  color: #ff6b6b;
-  text-shadow: 0 0 22px rgba(255,75,75,0.55);
+  color: #f87171;
+  text-shadow: 0 0 22px rgba(248,113,113,0.6);
 }
 
 /* Karaoke-style lyrics for lyricsMode songs */
@@ -1341,11 +1379,32 @@ html, body {
   letter-spacing: 0.05em;
 }
 
+/* Combo-level lyric bar accent — border-top shifts color as streak climbs */
+.lyrics-bar {
+  transition: border-top-color 0.4s ease, box-shadow 0.4s ease;
+}
+.lyrics-bar.combo-1 {
+  border-top-color: rgba(0,255,136,0.35);
+  box-shadow: 0 -2px 16px rgba(0,255,136,0.1);
+}
+.lyrics-bar.combo-2 {
+  border-top-color: rgba(255,215,0,0.45);
+  box-shadow: 0 -2px 20px rgba(255,215,0,0.18);
+}
+.lyrics-bar.combo-3 {
+  border-top-color: rgba(180,60,255,0.55);
+  box-shadow: 0 -3px 28px rgba(180,60,255,0.25);
+}
+
 .karaoke-wait {
   font-size: 24px;
-  color: var(--text-muted);
+  color: rgba(192,132,252,0.5);
   letter-spacing: 0.3em;
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: karaoke-wait-pulse 1.2s ease-in-out infinite;
+}
+@keyframes karaoke-wait-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50%       { opacity: 0.85; transform: scale(1.08); color: rgba(192,132,252,0.9); }
 }
 
 /* ==========================================
