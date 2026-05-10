@@ -1201,16 +1201,20 @@ html, body {
 }
 
 .lyrics-bar {
-  padding: 20px 20px;
+  padding: 16px 20px 20px;
   text-align: center;
   background: rgba(6,6,15,0.95);
   backdrop-filter: blur(10px);
   border-top: 1px solid rgba(255,255,255,0.06);
-  min-height: 120px;
+  min-height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+#game-lyrics {
+  width: 100%;
 }
 
 .lyrics-text {
@@ -1231,6 +1235,63 @@ html, body {
 
 .lyrics-text .lyric-future {
   color: var(--text-dim);
+}
+
+/* ==========================================
+   CHARACTER-LEVEL TIMED LYRICS (karaoke highlight)
+   Renders one char per span, highlights as song plays.
+   ========================================== */
+.lyr-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px 3px;
+  justify-content: center;
+  line-height: 1.2;
+}
+.lyr-line.lyr-next {
+  margin-top: 10px;
+  transform: scale(0.85);
+  transform-origin: center top;
+  opacity: 0.35;
+  transition: opacity 0.3s ease;
+}
+.lyr-char {
+  font-size: clamp(26px, 6.5vw, 36px);
+  font-weight: 700;
+  font-family: var(--font-display);
+  transition: color 0.08s ease, text-shadow 0.08s ease, transform 0.06s ease;
+  display: inline-block;
+}
+/* Already sung — lit warm gold */
+.lyr-char.lyr-past {
+  color: #FFD700;
+  text-shadow: 0 0 12px rgba(255,215,0,0.4);
+}
+/* Currently active char — bright white glow */
+.lyr-char.lyr-now {
+  color: #ffffff;
+  text-shadow: 0 0 28px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.7);
+  transform: scale(1.12);
+}
+/* Upcoming chars — dim */
+.lyr-char.lyr-ahead {
+  color: rgba(255,255,255,0.22);
+}
+/* Pitch accuracy tints the past+active chars in real time */
+.lyr-line.lyr-current.acc-good .lyr-char.lyr-past,
+.lyr-line.lyr-current.acc-good .lyr-char.lyr-now {
+  color: #00ff88;
+  text-shadow: 0 0 22px rgba(0,255,136,0.65);
+}
+.lyr-line.lyr-current.acc-ok .lyr-char.lyr-past,
+.lyr-line.lyr-current.acc-ok .lyr-char.lyr-now {
+  color: #ffd75a;
+  text-shadow: 0 0 22px rgba(255,215,0,0.55);
+}
+.lyr-line.lyr-current.acc-bad .lyr-char.lyr-past,
+.lyr-line.lyr-current.acc-bad .lyr-char.lyr-now {
+  color: #ff6b6b;
+  text-shadow: 0 0 22px rgba(255,75,75,0.55);
 }
 
 /* Karaoke-style lyrics for lyricsMode songs */

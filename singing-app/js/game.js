@@ -165,6 +165,9 @@ const Game = {
     this._countdownDone = false;
     this._countdownLast = '';
     this._rollingAcc = [];
+    // Lyric cursor — reset so char-level display starts fresh on replay
+    this._lyricLineIdx = -1;
+    this._lyricPosInLine = -1;
     // Melody-cursor pitch scoring accumulators (renamed from _mvVoicedFrames/_mvTotalFrames).
     // _mvWeightedAcc: sum of per-frame accuracy scores (0–1 each).
     // _mvScoredFrames: count of frames inside an active melody segment.
@@ -1288,27 +1291,105 @@ const Game = {
     if (!el) return;
 
     const time = this.currentTime;
-    const isLyricsMode = this.song && this.song.lyricsMode;
+    const song = this.song;
+    if (!song) return;
 
+    // \u2500\u2500 NEW: character-level timed lyrics (WhisperX-aligned) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    // Songs with lyrics[] + lyricTimes[] get char-by-char karaoke highlighting.
+    // Each char lights up as playback time passes its timestamp.
+    if (song.lyrics && song.lyrics.length && song.lyricTimes && song.lyricTimes.length) {
+      const lyrics = song.lyrics;       // [[char,...], [char,...], ...]
+      const times  = song.lyricTimes;   // flat: [t0, t1, t2, ...]
+
+      // Binary search: find index of last char whose time \u2264 currentTime
+      let lo = 0, hi = times.length - 1, charIdx = -1;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (times[mid] <= time) { charIdx = mid; lo = mid + 1; }
+        else hi = mid - 1;
+      }
+
+      // Map flat charIdx \u2192 lineIdx + posInLine
+      let lineIdx = 0, posInLine = -1, offset = 0;
+      if (charIdx >= 0) {
+        for (let l = 0; l < lyrics.length; l++) {
+          const ll = lyrics[l].length;
+          if (offset + ll > charIdx) {
+            lineIdx = l;
+            posInLine = charIdx - offset;
+            break;
+          }
+          offset += ll;
+        }
+      }
+
+      // Skip re-render if line + position haven't changed (perf: avoid
+      // rebuilding 20-char innerHTML at 60fps when nothing visual changed)
+      if (this._lyricLineIdx === lineIdx && this._lyricPosInLine === posInLine) return;
+      this._lyricLineIdx = lineIdx;
+      this._lyricPosInLine = posInLine;
+
+      // Pitch-accuracy tint on past/active chars \u2014 same rolling window as
+      // the existing karaoke-current acc-good/ok/bad colour system.
+      let accClass = '';
+      if (posInLine >= 0 && this._rollingAcc && this._rollingAcc.length >= 3) {
+        let sum = 0;
+        for (const r of this._rollingAcc) sum += r.acc;
+        const avg = sum / this._rollingAcc.length;
+        if (avg >= 0.8) accClass = ' acc-good';
+        else if (avg >= 0.5) accClass = ' acc-ok';
+        else accClass = ' acc-bad';
+      }
+
+      const currentLine = lyrics[lineIdx] || [];
+      const nextLine    = lyrics[lineIdx + 1] || [];
+
+      // Before first lyric (intro): show musical-note placeholder
+      if (charIdx < 0) {
+        el.innerHTML = '<div class="karaoke-wait">\u266A \u266A \u266A</div>';
+        return;
+      }
+
+      // Build current line: past | now | ahead chars
+      let html = `<div class="lyr-line lyr-current${accClass}">`;
+      for (let i = 0; i < currentLine.length; i++) {
+        const cls = i < posInLine ? 'lyr-past'
+                  : i === posInLine ? 'lyr-now'
+                  : 'lyr-ahead';
+        html += `<span class="lyr-char ${cls}">${currentLine[i]}</span>`;
+      }
+      html += '</div>';
+
+      // Preview the next line dim below
+      if (nextLine.length) {
+        html += '<div class="lyr-line lyr-next">';
+        for (const ch of nextLine) {
+          html += `<span class="lyr-char lyr-ahead">${ch}</span>`;
+        }
+        html += '</div>';
+      }
+
+      el.innerHTML = html;
+      return;
+    }
+
+    // \u2500\u2500 LEGACY: line-level lyricsMode display (notes[] with .lyric field) \u2500\u2500\u2500\u2500
+    const isLyricsMode = song.lyricsMode;
     if (isLyricsMode) {
-      // Karaoke mode: show current line big, next line smaller
       let currentLine = null;
       let nextLine = null;
-      let currentIdx = -1;
 
       for (let i = 0; i < this.notes.length; i++) {
         const note = this.notes[i];
         if (!note.lyric) continue;
         if (time >= note.start && time <= note.start + note.dur) {
           currentLine = note;
-          currentIdx = i;
         } else if (time < note.start && !nextLine) {
           nextLine = note;
           if (currentLine) break;
         }
       }
 
-      // If between lines, show the upcoming one as current
       if (!currentLine && nextLine && nextLine.start - time < 3) {
         currentLine = nextLine;
         nextLine = null;
@@ -1317,9 +1398,6 @@ const Game = {
         }
       }
 
-      // Pick a color class for the active line based on how the user's
-      // been doing in the last ~1s. Only applies once we have real data
-      // in the window (avoids flashing red before the first frame scores).
       let accClass = '';
       if (currentLine && this._rollingAcc && this._rollingAcc.length >= 3) {
         let sum = 0;
@@ -1331,16 +1409,9 @@ const Game = {
       }
 
       let html = '';
-      if (currentLine) {
-        html += `<div class="karaoke-current${accClass}">${currentLine.lyric}</div>`;
-      }
-      if (nextLine) {
-        html += `<div class="karaoke-next">${nextLine.lyric}</div>`;
-      }
-      if (!currentLine && !nextLine) {
-        // Intro or interlude
-        html += `<div class="karaoke-wait">\u266A \u266A \u266A</div>`;
-      }
+      if (currentLine) html += `<div class="karaoke-current${accClass}">${currentLine.lyric}</div>`;
+      if (nextLine)    html += `<div class="karaoke-next">${nextLine.lyric}</div>`;
+      if (!currentLine && !nextLine) html += '<div class="karaoke-wait">\u266A \u266A \u266A</div>';
 
       el.innerHTML = html;
     }
