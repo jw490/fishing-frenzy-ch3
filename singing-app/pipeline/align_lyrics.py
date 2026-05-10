@@ -107,6 +107,29 @@ def build_output(result, lines):
 
     return lyrics_out, times_out
 
+def detect_vocal_onset(y, sr, threshold_frac=0.04):
+    """
+    Scan the vocals stem for the first window with significant energy.
+    Returns the onset time in seconds.
+    This is the ground truth for when singing actually starts in THIS file —
+    it catches label intros, video pre-rolls, or any offset vs the album version.
+    """
+    import numpy as np
+    hop = int(sr * 0.25)
+    rms_vals = []
+    for i in range(0, len(y) - hop, hop):
+        e = float(np.sqrt(np.mean(y[i:i+hop]**2)))
+        rms_vals.append((i / sr, e))
+    if not rms_vals:
+        return 0.0
+    max_e = max(e for _, e in rms_vals)
+    threshold = max_e * threshold_frac
+    for t, e in rms_vals:
+        if e > threshold:
+            return t
+    return 0.0
+
+
 def main():
     if len(sys.argv) < 4:
         print(__doc__)
@@ -115,7 +138,7 @@ def main():
     song_id   = sys.argv[1]
     audio_path = sys.argv[2]
     lyrics_path = sys.argv[3]
-    first_vocal = float(sys.argv[4]) if len(sys.argv) > 4 else 0
+    first_vocal_hint = float(sys.argv[4]) if len(sys.argv) > 4 else None
 
     print(f'[align_lyrics] {song_id}', file=sys.stderr)
     print(f'  audio:  {audio_path}', file=sys.stderr)
@@ -124,11 +147,28 @@ def main():
     lines = load_lyrics(lyrics_path)
     print(f'  lines: {len(lines)}, total chars: {sum(len(l) for l in lines)}', file=sys.stderr)
 
-    # Get audio duration
+    # Load audio and measure actual vocal onset from the stems
     import librosa
     y, sr = librosa.load(audio_path, sr=None, mono=True)
     total_duration = len(y) / sr
     print(f'  duration: {total_duration:.1f}s', file=sys.stderr)
+
+    detected_onset = detect_vocal_onset(y, sr)
+    print(f'  detected vocal onset: {detected_onset:.2f}s', file=sys.stderr)
+
+    if first_vocal_hint is not None:
+        diff = abs(detected_onset - first_vocal_hint)
+        if diff > 5.0:
+            print(f'', file=sys.stderr)
+            print(f'  ⚠️  WARNING: first_vocal_sec hint ({first_vocal_hint}s) is {diff:.1f}s away', file=sys.stderr)
+            print(f'     from detected onset ({detected_onset:.2f}s).', file=sys.stderr)
+            print(f'     This often means the video file has a label/pre-roll intro', file=sys.stderr)
+            print(f'     not present in the album version. Using detected onset.', file=sys.stderr)
+            print(f'', file=sys.stderr)
+        first_vocal = detected_onset
+    else:
+        first_vocal = detected_onset
+        print(f'  using auto-detected onset: {first_vocal:.2f}s', file=sys.stderr)
 
     segments = estimate_segments(lines, total_duration, first_vocal)
     print(f'  running alignment...', file=sys.stderr)
@@ -143,10 +183,12 @@ def main():
         'lyricTimes': times_out,
         'lineCount': len(lyrics_out),
         'charCount': len(times_out),
+        'detectedFirstVocalSec': round(first_vocal),  # use this value for firstVocalSec in songs.js
     }
 
     print(json.dumps(output, ensure_ascii=False, indent=2))
     print(f'  done: {len(lyrics_out)} lines, {len(times_out)} chars', file=sys.stderr)
+    print(f'  → set firstVocalSec: {round(first_vocal)} in songs.js', file=sys.stderr)
 
 if __name__ == '__main__':
     main()
