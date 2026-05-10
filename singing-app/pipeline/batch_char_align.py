@@ -168,9 +168,15 @@ def main():
             continue
 
         try:
-            data = json.loads(r.stdout)
+            # Some library versions print stray text to stdout before the JSON.
+            # Find the first '{' and parse from there.
+            raw = r.stdout
+            brace = raw.find('{')
+            if brace > 0:
+                raw = raw[brace:]
+            data = json.loads(raw)
         except Exception as e:
-            print(f'  FAIL: JSON parse error: {e}')
+            print(f'  FAIL: JSON parse error: {e}\n  stdout: {r.stdout[:200]!r}')
             fail_list.append((sid, 'json parse'))
             continue
 

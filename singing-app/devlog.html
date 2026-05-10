@@ -120,6 +120,18 @@
   <div class="timeline">
 
     <div class="entry">
+      <div class="entry-date">May 10, 2026 (continued)</div>
+      <ul>
+        <li><span class="tag tag-fix">Fix</span> <strong>WhisperX char alignment deployed — all 36 songs</strong> — per-character timestamps now live in production. 35/36 songs upgraded (xiao-xin-yi-yi skipped: no LRC available). Average coverage 97–100% per line; 0 fallbacks on most songs</li>
+        <li><span class="tag tag-fix">Fix</span> <strong>丟了你 (井朧) timing corrected</strong> — the original /tmp audio was a truncated 65 s clip from a different YouTube source, causing lyricTimes to be calibrated 12 s late. Replaced with the full R2 audio (272 s), re-detected offset +0.25 s, re-ran char_align. Song now in sync</li>
+        <li><span class="tag tag-fix">Fix</span> <strong>batch_char_align.py stray-stdout fix</strong> — a transformers model-load log line (datetime-prefixed) was printing to stdout before the JSON output, causing json.parse to fail on 4 songs. Fixed by stripping everything before the first '{' before parsing</li>
+        <li><span class="tag tag-feature">Feature</span> <strong>Song of the Day</strong> — deterministic daily featured song (purple card at top of All filter). Seed: year×10000 + month×100 + day mod library length. No manual curation needed</li>
+        <li><span class="tag tag-feature">Feature</span> <strong>Language filter</strong> — 中文 / English / difficulty pill filters on song list. Chinese detection via Unicode CJK range, no songs.js changes needed</li>
+        <li><span class="tag tag-feature">Feature</span> <strong>Continue shortcut</strong> — home screen shows last-played song as a quick-resume button. Persisted in localStorage stats.lastSong</li>
+      </ul>
+    </div>
+
+    <div class="entry">
       <div class="entry-date">May 10, 2026</div>
       <ul>
         <li><span class="tag tag-feature">Feature</span> <strong>Timed lyrics display</strong> — synchronized karaoke wipe with per-character highlighting. Characters light up as you sing them: past chars turn accent-purple with glow, the active char pulses, upcoming lines are faded. Color shifts to green when pitching well, red when off — visual accuracy feedback at the character level</li>
