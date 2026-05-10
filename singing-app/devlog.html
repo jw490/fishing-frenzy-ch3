@@ -120,6 +120,14 @@
   <div class="timeline">
 
     <div class="entry">
+      <div class="entry-date">May 10, 2026 (night)</div>
+      <ul>
+        <li><span class="tag tag-fix">Fix</span> <strong>跳樓機 + 開始懂了 — negative lyricTimes corrected</strong> — both songs had production credits embedded in their LRC files in non-standard format (吉他:, 词：) bypassing the credit filter. batch_char_align ran against the wrong reference timing, producing lyricTimes starting at −2 s and −11 s. Fixed by cleaning LRC files, re-running auto_offset against R2 audio (offsets +4.17 s / +5.49 s), and re-running char_align. 开始懂了: 51 lines, 331 chars, 1 fallback; 跳樓機: 53 lines, 468 chars, 0 fallbacks</li>
+        <li><span class="tag tag-fix">Fix</span> <strong>Countdown timer aligned to lyrics for all 36 songs</strong> — 24 songs had firstVocalSec set too early or late vs the actual lyricTimes[0]. Batch-updated all to firstVocalSec = max(0, lyricTimes[0]−6) so the countdown fires exactly 6 s before the first highlighted character. Biggest fixes: 七里香 16→34, 戒煙 21→7, 忘記擁抱 25→11, Make You Feel My Love 26→12, 身後 19→25</li>
+      </ul>
+    </div>
+
+    <div class="entry">
       <div class="entry-date">May 10, 2026 (evening)</div>
       <ul>
         <li><span class="tag tag-fix">Fix</span> <strong>我對緣分小心翼翼 (JJ Lin) — lyrics &amp; WhisperX alignment completed</strong> — last song missing char-level timing. No LRC existed anywhere; sourced lyrics from NetEase Music API, converted Simplified→Traditional (OpenCC), verified offset +0.19 s vs R2 audio (confidence 0.97). char_align: 31 lines, 358 chars, 0 fallbacks. firstVocalSec updated to 28 s. All 36 songs now have per-character timestamps</li>
