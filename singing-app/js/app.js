@@ -275,7 +275,44 @@ const App = {
       return;
     }
 
-    grid.innerHTML = songs.map(song => {
+    // Song of the Day: deterministic daily pick from full library (not filtered).
+    // Uses the date as a seed so it changes each day but is consistent per session.
+    const todayPick = (() => {
+      if (filter !== 'all' || this._searchQuery) return null; // only show on unfiltered All view
+      const d = new Date();
+      const seed = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+      const lib = Songs.library;
+      return lib[seed % lib.length] || null;
+    })();
+
+    const sotdHtml = todayPick ? `
+      <div class="song-card sotd-card" onclick="App.selectSong('${todayPick.id}')">
+        <div class="sotd-badge">✦ Song of the Day</div>
+        <div class="song-card-main">
+          <div class="song-art" style="--song-color: ${todayPick.color}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 18V6l11-2v12"/>
+              <circle cx="6" cy="18" r="3"/>
+              <circle cx="17" cy="16" r="3"/>
+            </svg>
+          </div>
+          <div class="song-info">
+            <div class="song-title">${todayPick.title}</div>
+            <div class="song-artist">${todayPick.artist}</div>
+            <div class="song-meta">
+              <span class="song-tag tag-${todayPick.difficulty}">${todayPick.difficulty}</span>
+              <span class="song-tag-key">${todayPick.key}</span>
+            </div>
+          </div>
+          <div class="song-best">
+            ${this.stats.songBests[todayPick.id]
+              ? `<div class="song-best-score">${this.stats.songBests[todayPick.id]}</div><div class="song-best-label">BEST</div>`
+              : '<div class="song-play-hint">&#9654;</div>'}
+          </div>
+        </div>
+      </div>` : '';
+
+    grid.innerHTML = sotdHtml + songs.map(song => {
       const best = this.stats.songBests[song.id];
       const dur = Songs.getDuration(song);
       const mins = Math.floor(dur / 60);
