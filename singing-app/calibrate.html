@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocalStar — Lyric Offset Calibration</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #06060f;
+      color: #e0e0f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 24px 32px 16px;
+      border-bottom: 1px solid #1a1a2e;
+    }
+    header h1 { font-size: 18px; font-weight: 600; color: #c084fc; letter-spacing: 0.05em; }
+    header p { font-size: 13px; color: #666; margin-top: 4px; }
+
+    /* ── Song list ── */
+    #song-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+      padding: 24px 32px;
+    }
+
+    .song-card {
+      background: #10101e;
+      border: 1px solid #1e1e3a;
+      border-radius: 10px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+    .song-card:hover { border-color: #7c3aed; background: #14142a; }
+    .song-card .title { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+    .song-card .artist { font-size: 12px; color: #888; margin-bottom: 8px; }
+    .song-card .meta { font-size: 11px; color: #555; }
+    .song-card .meta span { margin-right: 12px; }
+
+    .status-badge {
+      position: absolute;
+      top: 12px; right: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .status-badge.good   { background: #14532d; color: #4ade80; }
+    .status-badge.warn   { background: #451a03; color: #fb923c; }
+    .status-badge.bad    { background: #450a0a; color: #f87171; }
+    .status-badge.uncal  { background: #1e1e3a; color: #6b7280; }
+    .no-lyrics { opacity: 0.4; cursor: default; }
+
+    /* ── Calibration panel ── */
+    #cal-panel {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #06060f;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    #cal-panel.active { display: flex; }
+
+    #cal-close {
+      position: absolute;
+      top: 20px; left: 24px;
+      background: none;
+      border: none;
+      color: #666;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 6px;
+    }
+    #cal-close:hover { color: #ccc; background: #1a1a2e; }
+
+    #cal-song-name { font-size: 13px; color: #888; margin-bottom: 6px; }
+    #cal-first-lyric {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #e2e8f0;
+      margin-bottom: 12px;
+      min-height: 52px;
+      text-align: center;
+    }
+    #cal-expected { font-size: 12px; color: #555; margin-bottom: 48px; }
+
+    #cal-countdown {
+      font-size: 80px;
+      font-weight: 800;
+      color: #7c3aed;
+      min-height: 100px;
+      text-align: center;
+      transition: opacity 0.1s;
+    }
+
+    #cal-tap-btn {
+      width: 180px; height: 180px;
+      border-radius: 50%;
+      background: #7c3aed;
+      border: none;
+      color: white;
+      font-size: 22px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.08s, background 0.08s;
+      box-shadow: 0 0 40px rgba(124,58,237,0.4);
+      display: none;
+    }
+    #cal-tap-btn:active, #cal-tap-btn.pressed { transform: scale(0.92); background: #6d28d9; }
+    #cal-tap-btn.visible { display: flex; align-items: center; justify-content: center; }
+
+    #cal-result {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #cal-result.visible { display: flex; }
+
+    #cal-offset-display {
+      font-size: 48px;
+      font-weight: 800;
+    }
+    #cal-offset-label { font-size: 14px; color: #888; }
+
+    #cal-fix-cmd {
+      background: #0d0d1a;
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: #a5b4fc;
+      max-width: 600px;
+      word-break: break-all;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    #cal-fix-cmd:hover { border-color: #7c3aed; }
+    #cal-fix-cmd.copied { border-color: #22c55e; color: #4ade80; }
+
+    .cal-actions { display: flex; gap: 12px; margin-top: 8px; }
+    .cal-btn {
+      padding: 10px 24px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .cal-btn:hover { opacity: 0.85; }
+    .cal-btn.primary { background: #7c3aed; color: white; }
+    .cal-btn.ghost { background: #1a1a2e; color: #aaa; }
+
+    #cal-progress-bar {
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 3px;
+      background: #7c3aed;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    #cal-playhead {
+      position: absolute;
+      bottom: 16px;
+      font-size: 12px;
+      color: #555;
+      font-family: monospace;
+    }
+
+    .hint { font-size: 12px; color: #555; margin-top: 8px; }
+
+    /* Summary table */
+    #summary { padding: 0 32px 32px; display: none; }
+    #summary h2 { font-size: 15px; color: #888; margin-bottom: 16px; font-weight: 500; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 12px; color: #555; font-weight: 500; border-bottom: 1px solid #1a1a2e; }
+    td { padding: 8px 12px; border-bottom: 1px solid #111; }
+    tr:hover td { background: #10101e; }
+    .offset-good { color: #4ade80; }
+    .offset-warn { color: #fb923c; }
+    .offset-bad { color: #f87171; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>VocalStar — Lyric Offset Calibration</h1>
+  <p>For each song, tap SPACE (or the circle) the moment you <em>hear</em> the first lyric word. We calculate the drift from the LRC timestamp.</p>
+</header>
+
+<div id="song-list"></div>
+<div id="summary">
+  <h2>Results</h2>
+  <table id="results-table">
+    <thead><tr><th>Song</th><th>LRC first lyric</th><th>Expected t</th><th>Measured t</th><th>Offset</th><th>Fix command</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<!-- Calibration overlay -->
+<div id="cal-panel">
+  <button id="cal-close">← Back</button>
+  <div id="cal-song-name"></div>
+  <div id="cal-first-lyric"></div>
+  <div id="cal-expected"></div>
+  <div id="cal-countdown"></div>
+  <button id="cal-tap-btn">TAP</button>
+  <div class="hint" id="cal-hint" style="display:none">or press SPACE</div>
+  <div id="cal-result">
+    <div id="cal-offset-display"></div>
+    <div id="cal-offset-label">seconds offset (positive = LRC too early)</div>
+    <div id="cal-fix-cmd" title="Click to copy"></div>
+    <div class="cal-actions">
+      <button class="cal-btn ghost" id="cal-retry-btn">Retry</button>
+      <button class="cal-btn primary" id="cal-next-btn">Next song →</button>
+    </div>
+  </div>
+  <div id="cal-progress-bar"></div>
+  <div id="cal-playhead"></div>
+</div>
+
+<script src="js/songs.js?v=55"></script>
+<script>
+// ── State ──────────────────────────────────────────────────────────
+const RESULTS_KEY = 'vocalstar_cal_results';
+const results = JSON.parse(localStorage.getItem(RESULTS_KEY) || '{}');
+
+let audio = null;
+let currentSong = null;
+let calPhase = 'idle'; // idle | countdown | tapping | result
+let tapTime = null;
+let playStartTime = null;
+let playOffset = 0;
+let countdownInterval = null;
+let progressInterval = null;
+let songIndex = 0;
+
+// ── Helpers ────────────────────────────────────────────────────────
+function fmt(s) {
+  if (s == null) return '—';
+  const sign = s >= 0 ? '+' : '';
+  return sign + s.toFixed(2) + 's';
+}
+function offsetClass(s) {
+  const a = Math.abs(s);
+  if (a < 0.4) return 'offset-good';
+  if (a < 1.5) return 'offset-warn';
+  return 'offset-bad';
+}
+function badgeFor(sid) {
+  const r = results[sid];
+  if (!r) return { cls: 'uncal', label: '—' };
+  const a = Math.abs(r.offset);
+  if (a < 0.4) return { cls: 'good', label: '✓ ' + fmt(r.offset) };
+  if (a < 1.5) return { cls: 'warn', label: fmt(r.offset) };
+  return { cls: 'bad', label: fmt(r.offset) };
+}
+
+// ── Build song list ────────────────────────────────────────────────
+const list = document.getElementById('song-list');
+const songs = Songs.library.filter(s => s.lyricsMode && s.lyricTimes && s.lyricTimes.length > 0);
+const noLyrics = Songs.library.filter(s => !s.lyricsMode || !s.lyricTimes || s.lyricTimes.length === 0);
+
+function renderList() {
+  list.innerHTML = '';
+  songs.forEach((song, i) => {
+    const badge = badgeFor(song.id);
+    const firstT = song.lyricTimes[0];
+    const firstLine = song.lyrics[0] ? song.lyrics[0].join('') : '';
+    const card = document.createElement('div');
+    card.className = 'song-card';
+    card.innerHTML = `
+      <span class="status-badge ${badge.cls}">${badge.label}</span>
+      <div class="title">${song.title}</div>
+      <div class="artist">${song.artist}</div>
+      <div class="meta">
+        <span>t₀ = ${firstT.toFixed(2)}s</span>
+        <span style="color:#444">${firstLine.slice(0,10)}${firstLine.length>10?'…':''}</span>
+      </div>
+    `;
+    card.onclick = () => startCal(i);
+    list.appendChild(card);
+  });
+
+  // Songs without lyrics
+  noLyrics.forEach(song => {
+    const card = document.createElement('div');
+    card.className = 'song-card no-lyrics';
+    card.innerHTML = `
+      <span class="status-badge uncal">no LRC</span>
+      <div class="title">${song.title}</div>
+      <div class="artist">${song.artist}</div>
+      <div class="meta"><span>—</span></div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+renderList();
+renderSummary();
+
+// ── Calibration flow ───────────────────────────────────────────────
+function startCal(idx) {
+  songIndex = idx;
+  currentSong = songs[idx];
+  calPhase = 'idle';
+  tapTime = null;
+
+  document.getElementById('cal-song-name').textContent = currentSong.artist + ' — ' + currentSong.title;
+  const firstLine = currentSong.lyrics[0] ? currentSong.lyrics[0].join('') : '?';
+  document.getElementById('cal-first-lyric').textContent = firstLine;
+  document.getElementById('cal-expected').textContent =
+    'Expected at ' + currentSong.lyricTimes[0].toFixed(2) + 's in file';
+
+  document.getElementById('cal-countdown').textContent = '';
+  document.getElementById('cal-tap-btn').classList.remove('visible');
+  document.getElementById('cal-hint').style.display = 'none';
+  document.getElementById('cal-result').classList.remove('visible');
+  document.getElementById('cal-progress-bar').style.width = '0%';
+  document.getElementById('cal-playhead').textContent = '';
+
+  document.getElementById('cal-panel').classList.add('active');
+
+  // Load & play audio
+  if (audio) { audio.pause(); audio = null; }
+  audio = new Audio(currentSong.audioSrc);
+  audio.preload = 'auto';
+
+  const firstLyricT = currentSong.lyricTimes[0];
+  const seekTo = Math.max(0, firstLyricT - 6); // start 6s before first lyric
+  playOffset = seekTo;
+
+  audio.addEventListener('canplay', () => {
+    audio.currentTime = seekTo;
+    audio.play();
+    playStartTime = performance.now();
+    beginCountdown(firstLyricT - seekTo);
+    startProgress();
+  }, { once: true });
+
+  audio.load();
+}
+
+function beginCountdown(secondsUntilLyric) {
+  calPhase = 'countdown';
+  const cdEl = document.getElementById('cal-countdown');
+  let remaining = Math.ceil(secondsUntilLyric);
+
+  function tick() {
+    const elapsed = (performance.now() - playStartTime) / 1000;
+    const left = secondsUntilLyric - elapsed;
+    if (left > 0.5) {
+      cdEl.textContent = Math.ceil(left);
+      cdEl.style.opacity = '1';
+    } else {
+      // Lyric moment — show tap button
+      cdEl.textContent = '';
+      showTapButton();
+      clearInterval(countdownInterval);
+    }
+  }
+
+  clearInterval(countdownInterval);
+  countdownInterval = setInterval(tick, 100);
+}
+
+function showTapButton() {
+  calPhase = 'tapping';
+  document.getElementById('cal-tap-btn').classList.add('visible');
+  document.getElementById('cal-hint').style.display = 'block';
+}
+
+function startProgress() {
+  const bar = document.getElementById('cal-progress-bar');
+  const ph = document.getElementById('cal-playhead');
+  const dur = currentSong.durationSec;
+  clearInterval(progressInterval);
+  progressInterval = setInterval(() => {
+    if (!audio) { clearInterval(progressInterval); return; }
+    const t = audio.currentTime;
+    bar.style.width = (t / dur * 100) + '%';
+    ph.textContent = t.toFixed(1) + 's / ' + dur + 's';
+    // Auto-stop 8s after first lyric if not yet tapped
+    if (calPhase === 'tapping' && t > currentSong.lyricTimes[0] + 8) {
+      recordTap(); // record late
+    }
+  }, 100);
+}
+
+function recordTap() {
+  if (calPhase !== 'tapping') return;
+  calPhase = 'result';
+  document.getElementById('cal-tap-btn').classList.add('pressed');
+  setTimeout(() => document.getElementById('cal-tap-btn').classList.remove('pressed'), 120);
+
+  const elapsed = (performance.now() - playStartTime) / 1000;
+  const tapAudioTime = playOffset + elapsed;
+  const expected = currentSong.lyricTimes[0];
+  const offset = tapAudioTime - expected; // positive = LRC is early (lyric is actually later)
+
+  tapTime = tapAudioTime;
+  showResult(offset, expected, tapAudioTime);
+
+  // Save
+  results[currentSong.id] = {
+    offset: parseFloat(offset.toFixed(3)),
+    measured: parseFloat(tapAudioTime.toFixed(3)),
+    expected: parseFloat(expected.toFixed(3)),
+    ts: Date.now()
+  };
+  localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+  renderList();
+  renderSummary();
+}
+
+function showResult(offset, expected, measured) {
+  document.getElementById('cal-tap-btn').classList.remove('visible');
+  document.getElementById('cal-hint').style.display = 'none';
+
+  const cls = offsetClass(offset);
+  const odEl = document.getElementById('cal-offset-display');
+  odEl.textContent = fmt(offset);
+  odEl.className = cls;
+
+  // Generate fix command
+  const lrcOffset = -offset; // if offset +2 (lyric is 2s later than LRC says), pass -2 to shift LRC times forward
+  const cmdEl = document.getElementById('cal-fix-cmd');
+  const a = Math.abs(offset);
+  if (a < 0.4) {
+    cmdEl.textContent = '✓ Offset within tolerance — no fix needed';
+    cmdEl.style.color = '#4ade80';
+  } else {
+    const sid = currentSong.id;
+    const dur = currentSong.durationSec;
+    cmdEl.textContent =
+      `python3 pipeline/lrc_to_times.py /tmp/lrc/${sid}.lrc ${lrcOffset.toFixed(2)} ${dur} > /tmp/${sid}.lyrics.json`;
+    cmdEl.style.color = '';
+    cmdEl.onclick = () => {
+      navigator.clipboard.writeText(cmdEl.textContent).then(() => {
+        cmdEl.classList.add('copied');
+        setTimeout(() => cmdEl.classList.remove('copied'), 1500);
+      });
+    };
+  }
+
+  document.getElementById('cal-result').classList.add('visible');
+}
+
+// ── Button handlers ────────────────────────────────────────────────
+document.getElementById('cal-tap-btn').addEventListener('click', recordTap);
+document.getElementById('cal-close').addEventListener('click', closePanel);
+document.getElementById('cal-retry-btn').addEventListener('click', () => startCal(songIndex));
+document.getElementById('cal-next-btn').addEventListener('click', () => {
+  const next = (songIndex + 1) % songs.length;
+  startCal(next);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && calPhase === 'tapping') {
+    e.preventDefault();
+    recordTap();
+  }
+  if (e.code === 'Escape') closePanel();
+  if (e.code === 'KeyR' && calPhase === 'result') startCal(songIndex);
+  if (e.code === 'ArrowRight' && calPhase === 'result') {
+    const next = (songIndex + 1) % songs.length;
+    startCal(next);
+  }
+});
+
+function closePanel() {
+  clearInterval(countdownInterval);
+  clearInterval(progressInterval);
+  if (audio) { audio.pause(); audio = null; }
+  document.getElementById('cal-panel').classList.remove('active');
+  calPhase = 'idle';
+}
+
+// ── Summary table ──────────────────────────────────────────────────
+function renderSummary() {
+  const keys = Object.keys(results);
+  const summaryEl = document.getElementById('summary');
+  if (keys.length === 0) { summaryEl.style.display = 'none'; return; }
+  summaryEl.style.display = 'block';
+
+  const tbody = document.querySelector('#results-table tbody');
+  tbody.innerHTML = '';
+
+  keys.forEach(sid => {
+    const r = results[sid];
+    const song = songs.find(s => s.id === sid) || { title: sid, id: sid, durationSec: 0 };
+    const a = Math.abs(r.offset);
+    const cls = offsetClass(r.offset);
+    const lrcOffset = -r.offset;
+    const cmdText = a < 0.4
+      ? '— within tolerance —'
+      : `python3 pipeline/lrc_to_times.py /tmp/lrc/${sid}.lrc ${lrcOffset.toFixed(2)} ${song.durationSec}`;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${song.title || sid}<br><span style="color:#555;font-size:11px">${sid}</span></td>
+      <td style="font-family:monospace;font-size:11px">${(songs.find(s=>s.id===sid)||{}).lyrics?.[0]?.join('').slice(0,8)||'?'}…</td>
+      <td style="font-family:monospace">${r.expected.toFixed(2)}s</td>
+      <td style="font-family:monospace">${r.measured.toFixed(2)}s</td>
+      <td class="${cls}" style="font-family:monospace;font-weight:600">${fmt(r.offset)}</td>
+      <td style="font-family:monospace;font-size:11px;color:#6b7280;cursor:pointer"
+          onclick="navigator.clipboard.writeText(this.dataset.cmd);this.style.color='#4ade80';setTimeout(()=>this.style.color='',1200)"
+          data-cmd="${cmdText}"
+          title="Click to copy">${cmdText.slice(0, 55)}${cmdText.length>55?'…':''}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Export ─────────────────────────────────────────────────────────
+// Expose for console use
+window.calResults = results;
+window.exportCmds = () => {
+  const lines = [];
+  Object.entries(results).forEach(([sid, r]) => {
+    const a = Math.abs(r.offset);
+    if (a >= 0.4) {
+      const song = songs.find(s => s.id === sid);
+      const dur = song ? song.durationSec : 0;
+      lines.push(`python3 pipeline/lrc_to_times.py /tmp/lrc/${sid}.lrc ${(-r.offset).toFixed(2)} ${dur} > /tmp/${sid}.lyrics.json`);
+    }
+  });
+  if (lines.length === 0) return 'All songs within tolerance.';
+  return lines.join('\n');
+};
+</script>
+</body>
+</html>
