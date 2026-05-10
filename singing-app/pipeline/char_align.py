@@ -46,7 +46,16 @@ def parse_lrc(path):
         # Skip meta / blank / duplicate-timestamp lines
         if not text:
             continue
-        if any(kw in text for kw in ['作词', '作曲', '编曲', '本站', '来自', ' - ']):
+        # Expanded credit/meta filter — covers standard and non-standard formats
+        _credit_kws = [
+            '作词', '作曲', '编曲', '本站', '来自', ' - ',
+            '制作人', '制作公司', '混音', '母带', '和声', '录音', '策划', '监制',
+            '总监制', '出品', '发行', '版权',
+            '吉他', '贝斯', '鼓手', '钢琴', '键盘', '弦乐', '大提琴', '古筝', '竹笛',
+            'PRODUCER', 'COMPOSER', 'LYRICIST', 'GUITAR', 'MIXING', 'MASTERING',
+            '词：', '曲：', '词 :', '曲 :', '编：',
+        ]
+        if any(kw in text for kw in _credit_kws):
             continue
         if re.search(r'\[\d+:\d+\.\d+\]', text):
             continue

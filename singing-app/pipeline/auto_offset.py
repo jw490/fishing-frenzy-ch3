@@ -45,7 +45,12 @@ def parse_lrc(path):
             continue
         mins, secs, text = int(m.group(1)), float(m.group(2)), m.group(3).strip()
         # Skip blank lines and metadata
-        if not text or any(kw in text for kw in ['作词','作曲','编曲','制作','来自','本站',' - ']):
+        _skip = ['作词','作曲','编曲','制作','来自','本站',' - ',
+                  '制作人','制作公司','混音','母带','和声','录音','策划','监制','总监制','出品','发行',
+                  '吉他','贝斯','钢琴','键盘','弦乐','大提琴','古筝','竹笛',
+                  'PRODUCER','COMPOSER','LYRICIST','GUITAR','MIXING','MASTERING',
+                  '词：','曲：','词 :','曲 :','编：']
+        if not text or any(kw in text for kw in _skip):
             continue
         # Skip lines that look like duplicate LRC timestamps embedded in text
         if re.search(r'\[\d+:\d+\.\d+\]', text):
