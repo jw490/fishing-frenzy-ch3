@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>VocalStar - Sing. Score. Improve.</title>
-  <link rel="stylesheet" href="css/styles.css?v=37">
+  <link rel="stylesheet" href="css/styles.css?v=38">
   <meta http-equiv="Cache-Control" content="no-cache">
   <meta name="theme-color" content="#06060f">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -228,6 +228,10 @@
         <button class="btn btn-primary btn-glow" onclick="App.showScreen('songs')">
           <span class="btn-icon">&#9835;</span>
           Start Singing
+        </button>
+        <button id="btn-home-continue" class="btn btn-continue" hidden>
+          <span class="btn-icon">&#9654;</span>
+          Continue: <span class="continue-song-title"></span>
         </button>
         <button class="btn btn-secondary" onclick="App.showScreen('leaderboard')">
           <span class="btn-icon">&#9733;</span>

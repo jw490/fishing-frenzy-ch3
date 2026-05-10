@@ -718,6 +718,9 @@ const App = {
       this.stats.songBests[this.currentSong] = results.score;
     }
 
+    // Track last played for home screen "Continue" shortcut
+    this.stats.lastSong = this.currentSong;
+
     this._saveStats();
     // Record this session for usage limit tracking
     Auth.recordSession().catch(e => console.warn('Session record failed:', e));
@@ -1182,6 +1185,21 @@ const App = {
     document.getElementById('stat-sessions').textContent = this.stats.sessions;
     document.getElementById('stat-best').textContent = this.stats.bestScore || '--';
     document.getElementById('stat-streak').textContent = this.stats.streak;
+
+    // "Continue" shortcut: returning users get a quick-replay button for their
+    // last played song, so they don't have to navigate back to the song list.
+    const continueBtn = document.getElementById('btn-home-continue');
+    if (continueBtn) {
+      const lastSong = this.stats.lastSong ? Songs.get(this.stats.lastSong) : null;
+      if (lastSong && isReturning) {
+        continueBtn.hidden = false;
+        const label = continueBtn.querySelector('.continue-song-title');
+        if (label) label.textContent = lastSong.title;
+        continueBtn.onclick = () => this.selectSong(lastSong.id);
+      } else {
+        continueBtn.hidden = true;
+      }
+    }
 
     // Show the Loom guide to first-time users; returning users see the devlog link instead.
     const guideVideo = document.getElementById('home-guide-video');

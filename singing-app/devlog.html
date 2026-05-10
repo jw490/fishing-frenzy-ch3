@@ -120,6 +120,20 @@
   <div class="timeline">
 
     <div class="entry">
+      <div class="entry-date">May 10, 2026</div>
+      <ul>
+        <li><span class="tag tag-feature">Feature</span> <strong>Timed lyrics display</strong> — synchronized karaoke wipe with per-character highlighting. Characters light up as you sing them: past chars turn accent-purple with glow, the active char pulses, upcoming lines are faded. Color shifts to green when pitching well, red when off — visual accuracy feedback at the character level</li>
+        <li><span class="tag tag-feature">Feature</span> <strong>Pitch direction indicator</strong> — real-time ↑/↓/✓ arrow (right edge of canvas) showing whether your current pitch is too high, too low, or on target vs the melody segment. Folds to nearest octave so it reads correctly regardless of register</li>
+        <li><span class="tag tag-feature">Feature</span> <strong>Grade bombs + combo system</strong> — line-completion triggers a score bomb (PERFECT / GREAT / GOOD / MISS) with a punch animation. Consecutive good lines build a combo counter (levels 0–3) that shifts the trail color from cyan → green/gold → gold/orange → purple/hot-orange and adds a glow border to the lyrics bar</li>
+        <li><span class="tag tag-feature">Feature</span> <strong>Varied feedback messages</strong> — pool of 30+ contextual compliments (mixed English/Chinese) for perfect hits, good hits, 5/10/20 streaks, drawn at random so they never feel repetitive</li>
+        <li><span class="tag tag-fix">Fix</span> <strong>Auto-calibrated LRC timing for all 36 songs</strong> — WhisperX forced alignment on a ±15 s audio slice around the first lyric automatically detects how far off the LRC timestamps are from the actual video file. 26 songs had significant drift; largest corrections: Espresso +13.4 s, 節煙 +12.9 s, 丟了你 −12 s, 可在我心底的名字 −11.7 s, 深喉 +12 s. All corrections high confidence (score ≥ 0.84)</li>
+        <li><span class="tag tag-fix">Fix</span> <strong>Video layer stripped from lyrics-mode songs</strong> — lyricsMode songs no longer load or display the MV video background. The full canvas shows the pitch visualizer instead; game clock uses the Web Audio clock directly (more accurate). Saves ~23 MB bandwidth per play</li>
+        <li><span class="tag tag-feature">Feature</span> <strong>七里香 (Jay Chou) lyrics added</strong> — fetched synced LRC, detected −11.56 s offset, corrected. firstVocalSec now 16 s</li>
+        <li><span class="tag tag-feature">Feature</span> <strong>Per-character WhisperX alignment</strong> — replacing linear interpolation within lyric lines with actual forced alignment timestamps so each character lights up precisely when sung. Running overnight across all 36 songs</li>
+      </ul>
+    </div>
+
+    <div class="entry">
       <div class="entry-date">Apr 30, 2026 (evening)</div>
       <ul>
         <li><span class="tag tag-feature">Feature</span> Added 3 new songs: 倒帶 (蔡依林 Jolin Tsai), 至少還有你 (林憶蓮 Sandy Lam), 跳樓機 (LBI 利比) — all karaoke-source videos, no Demucs needed</li>

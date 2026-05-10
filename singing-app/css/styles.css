@@ -121,6 +121,28 @@ html, body {
   transform: translateY(-2px);
 }
 
+/* Continue button: last-played shortcut on home screen */
+.btn-continue {
+  background: rgba(0, 212, 255, 0.08);
+  color: var(--cyan);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  justify-content: flex-start;
+  gap: 8px;
+}
+.btn-continue:hover {
+  background: rgba(0, 212, 255, 0.14);
+  border-color: rgba(0, 212, 255, 0.5);
+  transform: translateY(-2px);
+}
+.continue-song-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font-weight: 600;
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--text-dim);
