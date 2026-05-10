@@ -237,9 +237,20 @@ const App = {
     const grid = document.getElementById('song-grid');
     if (!grid) return;
 
-    let songs = filter === 'all'
-      ? Songs.library
-      : Songs.library.filter(s => s.difficulty === filter);
+    // Language detection: songs with CJK characters in the title are 'zh',
+    // otherwise 'en'. No songs.js change needed — detected at render time.
+    const isChinese = s => /[一-鿿㐀-䶿＀-￯]/.test(s.title);
+
+    let songs;
+    if (filter === 'all') {
+      songs = Songs.library;
+    } else if (filter === 'zh') {
+      songs = Songs.library.filter(isChinese);
+    } else if (filter === 'en') {
+      songs = Songs.library.filter(s => !isChinese(s));
+    } else {
+      songs = Songs.library.filter(s => s.difficulty === filter);
+    }
 
     // Search filter — match on title, artist, and song ID (pinyin romanisation).
     // Song IDs like 'gu-dan-bei-ban-qiu' are already the pinyin for most
