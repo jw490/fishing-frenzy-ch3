@@ -425,7 +425,9 @@ const App = {
       // the game starts. Without this the video loads cold after Game.start(),
       // arriving 60-90 seconds late on typical connections (23 MB file).
       // We set src + load() here, then _startGame() just seeks to 0 + plays.
-      if (song.mvSrc) {
+      // lyricsMode songs strip the video layer — audio comes from Synth directly,
+      // so we skip video preloading entirely and save the bandwidth.
+      if (song.mvSrc && !song.lyricsMode) {
         const mvPreloadEl = document.getElementById('game-mv');
         if (mvPreloadEl) {
           mvPreloadEl.preload = 'auto';
@@ -496,12 +498,14 @@ const App = {
     // MV mode: swap canvas for video. Audio routing depends on karaoke state:
     //   Karaoke ON  → video muted (visual only),  Synth plays instrumental
     //   Karaoke OFF → video unmuted (audio source), Synth silent
+    //
+    // lyricsMode songs skip the video entirely — Synth handles audio and the
+    // full canvas is used for pitch visualization. This removes the bandwidth
+    // cost, reduces CPU, and keeps the UI focused on lyrics + pitch feedback.
     const gameScreen = document.getElementById('screen-game');
     const mvEl = document.getElementById('game-mv');
-    if (song.mvSrc && mvEl && gameScreen) {
+    if (song.mvSrc && !song.lyricsMode && mvEl && gameScreen) {
       gameScreen.classList.add('has-mv');
-      // lyricsMode MV: show pitch canvas stacked below video for vocal feedback
-      if (song.lyricsMode) gameScreen.classList.add('has-mv-lyrics');
       mvEl.muted = this.isKaraokeOn(song); // muted when karaoke ON (Synth handles audio)
       // Only restart loading if src changed — if selectSong() already started
       // buffering (preload during countdown), don't call load() again or we'd
@@ -514,6 +518,7 @@ const App = {
       mvEl.currentTime = 0;
     } else if (gameScreen) {
       gameScreen.classList.remove('has-mv');
+      gameScreen.classList.remove('has-mv-lyrics');
       if (mvEl) { mvEl.pause(); mvEl.muted = true; mvEl.removeAttribute('src'); }
     }
 
@@ -521,8 +526,8 @@ const App = {
     setTimeout(() => {
       Game._resize();
       Game.start();
-      // Start MV in sync with audio
-      if (song.mvSrc && mvEl && gameScreen.classList.contains('has-mv')) {
+      // Start MV in sync with audio (only for non-lyricsMode songs that use video)
+      if (song.mvSrc && !song.lyricsMode && mvEl && gameScreen.classList.contains('has-mv')) {
         mvEl.currentTime = 0;
         mvEl.play().catch(() => {/* autoplay may be blocked — video is muted so usually fine */});
       }
@@ -569,8 +574,8 @@ const App = {
     const currentlyOff = Game._isKaraokeOff;
     const wantKaraoke = currentlyOff; // flip
 
-    if (song.mvSrc) {
-      // MV song: toggle between Synth instrumental and video audio
+    if (song.mvSrc && !song.lyricsMode) {
+      // Non-lyrics MV song: toggle between Synth instrumental and video audio
       const mvEl = document.getElementById('game-mv');
       if (!mvEl) return;
 
@@ -1423,11 +1428,12 @@ const App = {
   skipForward() {
     if (this.currentScreen !== 'game') return;
 
-    // For MV songs the game clock is slaved to the video element, so we
-    // must seek the video. Also seek the instrumental audio in sync.
+    // For non-lyricsMode MV songs the game clock is slaved to the video element,
+    // so we must seek the video. Also seek the instrumental audio in sync.
+    // lyricsMode songs use Synth clock directly — fall through to Synth.seekBy below.
     const song = this.currentSong ? Songs.get(this.currentSong) : null;
     const mvEl = document.getElementById('game-mv');
-    if (song && song.mvSrc && mvEl) {
+    if (song && song.mvSrc && !song.lyricsMode && mvEl) {
       const newPos = Math.min(mvEl.currentTime + 5, mvEl.duration || Infinity);
       mvEl.currentTime = newPos;
       // Seek the instrumental audio to match

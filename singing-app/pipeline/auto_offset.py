@@ -158,6 +158,12 @@ def detect_offset(audio_path, lrc_path, first_lyric_t_hint=None):
         print(f'[auto_offset] detected_t={detected_t:.2f}s  lrc_first_t={lrc_first_t:.2f}s', file=sys.stderr)
         print(f'[auto_offset] offset={offset:+.2f}s  confidence={confidence} (score={mean_score:.2f})', file=sys.stderr)
 
+        # firstVocalSec: the actual detected lyric onset, rounded to nearest second.
+        # This is the value to use for the countdown timer in songs.js.
+        first_vocal_sec = round(detected_t)
+
+        print(f'[auto_offset] firstVocalSec = {first_vocal_sec}s  (use this in songs.js)', file=sys.stderr)
+
         return {
             'offset': round(offset, 3),
             'lrc_first_t': lrc_first_t,
@@ -165,6 +171,7 @@ def detect_offset(audio_path, lrc_path, first_lyric_t_hint=None):
             'confidence': confidence,
             'mean_score': round(mean_score, 3),
             'first_line': first_line_text,
+            'firstVocalSec': first_vocal_sec,
         }
 
     finally:

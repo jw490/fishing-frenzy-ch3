@@ -31,6 +31,10 @@ CONFIDENCE_THRESHOLD = 0.5   # below this → skip auto-apply
 OFFSET_THRESHOLD     = 0.25  # offsets smaller than this → no fix needed
 
 
+def _decode_js_str(s):
+    r"""Decode JavaScript \uXXXX unicode escapes to actual characters."""
+    return re.sub(r'\\u([0-9a-fA-F]{4})', lambda m: chr(int(m.group(1), 16)), s)
+
 def parse_songs_js():
     src = open(SONGS_JS).read()
     songs = []
@@ -47,8 +51,8 @@ def parse_songs_js():
         songs.append({
             'id':     sid,
             'dur':    int(dur_m.group(1)) if dur_m else 0,
-            'title':  title_m.group(1) if title_m else sid,
-            'artist': artist_m.group(1) if artist_m else '',
+            'title':  _decode_js_str(title_m.group(1)) if title_m else sid,
+            'artist': _decode_js_str(artist_m.group(1)) if artist_m else '',
         })
     return songs
 
@@ -116,15 +120,15 @@ def patch_songs_js(sid, lyrics, times):
     lyrics_json = json.dumps(lyrics, ensure_ascii=False, separators=(',', ':'))
     times_json  = json.dumps(times, separators=(',', ':'))
 
-    # Replace lyricTimes
+    # Replace lyricTimes — use lambda to avoid backslash interpretation in replacement
     pat_times = re.compile(
         r"(id:\s*'" + re.escape(sid) + r"'.*?lyricTimes:\s*)(\[.*?\])", re.DOTALL)
-    new_src = pat_times.sub(r'\g<1>' + times_json, src)
+    new_src = pat_times.sub(lambda m: m.group(1) + times_json, src)
 
     # Replace lyrics
     pat_lyrics = re.compile(
         r"(id:\s*'" + re.escape(sid) + r"'.*?lyrics:\s*)(\[.*?\])", re.DOTALL)
-    new_src = pat_lyrics.sub(r'\g<1>' + lyrics_json, new_src)
+    new_src = pat_lyrics.sub(lambda m: m.group(1) + lyrics_json, new_src)
 
     if new_src == src:
         return False, 'No change — lyrics/lyricTimes fields not found'
