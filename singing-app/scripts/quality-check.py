@@ -1,139 +1,128 @@
 #!/usr/bin/env python3
 """
-VocalStar song quality gate.
+VocalStar song quality checklist — checks every song against 4 hard criteria.
 
-Checks every song in songs.js against three auto-fail rules:
-  1. Density > 100%  — voiced duration exceeds track length (wrong/shorter source)
-  2. Segments < 300  — too few melody segments (no real vocals)
-  3. firstVocalSec > 60% of durationSec — countdown timer is probably wrong
-
-Also checks per-song structure:
-  4. instrumentalSrc exists and differs from audioSrc
-
-Usage:
-  python3 scripts/quality-check.py              # check all songs
-  python3 scripts/quality-check.py qi-li-xiang  # check one song
-
-Exits 0 if all pass, 1 if any fail (blocks deploy).
+PASS criteria:
+  [1] HAS VOCAL AUDIO  – audioSrc exists on R2, file size > 2MB
+  [2] HAS KARAOKE      – instrumentalSrc exists on R2, file size differs from
+                          audio by > 10% (proves Demucs actually ran)
+  [3] COUNTDOWN OK     – firstVocalSec is within ±4s of round(lyricTimes[0])-6
+  [4] HAS BARS         – lyrics and lyricTimes both non-empty, timestamps
+                          monotonically non-decreasing
 """
+import re, json, sys, subprocess
+from pathlib import Path
 
-import json, os, re, sys
+CDN = "https://pub-7b37e1a1b08244c98f1735f2f95ab5f6.r2.dev"
+SONGS_PATH = Path(__file__).parent.parent / "js" / "songs.js"
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SONGS_JS  = os.path.join(BASE, 'js', 'songs.js')
-DATA_DIR  = os.path.join(BASE, 'data', 'songs')
+def r2_size(filename):
+    """Return Content-Length from R2 HEAD request, or 0 on error."""
+    r = subprocess.run(
+        ["curl", "-sI", f"{CDN}/{filename}"],
+        capture_output=True, text=True, timeout=10
+    )
+    for line in r.stdout.splitlines():
+        if line.lower().startswith("content-length"):
+            try: return int(line.split(":", 1)[1].strip())
+            except: pass
+    return 0
 
-# ── parse songs.js ────────────────────────────────────────────────────────────
+def check_timestamps(lyrics, times):
+    """Return (ok, issue_desc). Checks monotonicity and coverage."""
+    if not lyrics or not times:
+        return False, "empty"
+    total_chars = sum(len(l) for l in lyrics)
+    if len(times) != total_chars:
+        return False, f"times len {len(times)} != chars {total_chars}"
+    ti = 0
+    for li, line in enumerate(lyrics):
+        for ci in range(1, len(line)):
+            if times[ti+ci] < times[ti+ci-1] - 0.005:
+                return False, f"backward at line {li+1} char {ci}"
+        if li + 1 < len(lyrics):
+            last_t = times[ti+len(line)-1]
+            next_t  = times[ti+len(line)]
+            if last_t >= next_t:
+                return False, f"overlap line {li+1}→{li+2}"
+        ti += len(line)
+    return True, ""
 
-def parse_songs(src):
-    ids          = re.findall(r"id:\s*'([^']+)'", src)
-    durations    = {}
-    first_vocals = {}
-    audio_srcs   = {}
-    instr_srcs   = {}
+src = SONGS_PATH.read_text()
+ids = re.findall(r"id: '([^']+)'", src)
 
-    for sid in ids:
-        m = re.search(r"id:\s*'" + re.escape(sid) + r"'.*?durationSec:\s*(\d+)", src, re.DOTALL)
-        durations[sid] = int(m.group(1)) if m else 0
+target = sys.argv[1] if len(sys.argv) > 1 else None
+if target:
+    ids = [i for i in ids if i == target]
 
-        m = re.search(r"id:\s*'" + re.escape(sid) + r"'.*?firstVocalSec:\s*(\d+)", src, re.DOTALL)
-        first_vocals[sid] = int(m.group(1)) if m else None
+HDR = f"{'ID':<32} {'[1]':>4} {'[2]':>4} {'[3]':>4} {'[4]':>4}  STATUS"
+print(HDR)
+print("─" * len(HDR))
 
-        m = re.search(r"id:\s*'" + re.escape(sid) + r"'.*?audioSrc:\s*'([^']*)'", src, re.DOTALL)
-        audio_srcs[sid] = m.group(1) if m else ''
+failures = 0
+for sid in ids:
+    idx = src.find(f"id: '{sid}'")
+    next_idx = src.find("id: '", idx+10)
+    chunk = src[idx:] if next_idx == -1 else src[idx:next_idx]
 
-        m = re.search(r"id:\s*'" + re.escape(sid) + r"'.*?instrumentalSrc:\s*'([^']*)'", src, re.DOTALL)
-        instr_srcs[sid] = m.group(1) if m else ''
+    # Extract fields
+    def field(pat):
+        m = re.search(pat, chunk)
+        return m.group(1) if m else None
 
-    return ids, durations, first_vocals, audio_srcs, instr_srcs
+    audio_path   = field(r"audioSrc:\s*'(/[^']+)'")
+    instr_path   = field(r"instrumentalSrc:\s*'(/[^']+)'")
+    fvs_str      = field(r"firstVocalSec:\s*(\d+)")
+    lyr_m        = re.search(r'lyrics:\s*(\[\[.*?\]\])', chunk, re.DOTALL)
+    times_m      = re.search(r'lyricTimes:\s*(\[[\d.,\s-]+\])', chunk, re.DOTALL)
 
+    fvs    = int(fvs_str) if fvs_str else None
+    lyrics = json.loads(lyr_m.group(1)) if lyr_m else []
+    times  = json.loads(times_m.group(1)) if times_m else []
 
-def load_melody(sid):
-    path = os.path.join(DATA_DIR, f'{sid}.json')
-    if not os.path.exists(path):
-        return []
-    d = json.load(open(path))
-    segs = d.get('melody', d) if isinstance(d, dict) else d
-    return segs if isinstance(segs, list) else []
-
-
-# ── main ──────────────────────────────────────────────────────────────────────
-
-def main():
-    with open(SONGS_JS) as f:
-        src = f.read()
-
-    ids, durations, first_vocals, audio_srcs, instr_srcs = parse_songs(src)
-
-    # optional: filter to a single song
-    filter_id = sys.argv[1] if len(sys.argv) > 1 else None
-    if filter_id and filter_id not in ids:
-        print(f'ERROR: song id "{filter_id}" not found in songs.js')
-        sys.exit(1)
-    targets = [filter_id] if filter_id else ids
-
-    PASS = '✅'
-    FAIL = '❌'
-
-    failures = []
-    warnings = []
-
-    header = f"{'ID':<30} {'Dur':>4}  {'fVoc':>5}  {'Segs':>5}  {'Density':>8}  {'Instr':>5}  Status"
-    print(header)
-    print('─' * len(header))
-
-    for sid in targets:
-        dur   = durations.get(sid, 0)
-        fvoc  = first_vocals.get(sid)
-        audio = audio_srcs.get(sid, '')
-        instr = instr_srcs.get(sid, '')
-        segs  = load_melody(sid)
-
-        n = len(segs)
-        voiced_dur = sum(s.get('dur', 0) for s in segs) if segs else 0
-        density = voiced_dur / dur if dur else 0
-
-        issues = []
-
-        # Rule 1: density > 100%
-        if density > 1.0:
-            issues.append(f'density {density:.0%} > 100% — wrong/shorter source?')
-
-        # Rule 2: segments < 300
-        if n < 300:
-            issues.append(f'only {n} segments — no real vocals?')
-
-        # Rule 3: firstVocalSec > 60% of duration
-        if fvoc is not None and dur > 0 and fvoc > dur * 0.6:
-            issues.append(f'firstVocalSec {fvoc}s is {fvoc/dur:.0%} into a {dur}s track')
-
-        # Rule 4: instrumental separate from audio
-        instr_ok = instr and audio and instr != audio and 'instrumental' in instr
-        if not instr_ok:
-            issues.append('instrumentalSrc missing or same as audioSrc')
-
-        status = FAIL if issues else PASS
-        density_str = f'{density:.0%}' if dur else '?'
-        fvoc_str    = str(fvoc) if fvoc is not None else '?'
-        instr_flag  = PASS if instr_ok else FAIL
-
-        print(f'{sid:<30} {dur:>4}s  {fvoc_str:>4}s  {n:>5}  {density_str:>8}  {instr_flag:>5}  {status}')
-
-        if issues:
-            for issue in issues:
-                print(f'   └─ {issue}')
-            failures.append((sid, issues))
-
-    print()
-    if failures:
-        print(f'FAILED: {len(failures)} song(s) — fix before deploying')
-        for sid, issues in failures:
-            print(f'  {sid}: {"; ".join(issues)}')
-        sys.exit(1)
+    # [1] Has vocal audio
+    if audio_path:
+        audio_fn = audio_path.split("/")[-1]
+        a_size   = r2_size(audio_fn)
+        chk1_ok  = a_size > 2_000_000
+        chk1_lbl = "✅" if chk1_ok else f"❌{a_size//1024}KB"
     else:
-        print(f'All {len(targets)} song(s) passed ✅')
-        sys.exit(0)
+        chk1_ok, chk1_lbl = False, "❌no path"
 
+    # [2] Has karaoke (instrumental differs from audio by > 10%)
+    if instr_path and instr_path != audio_path:
+        instr_fn = instr_path.split("/")[-1]
+        i_size   = r2_size(instr_fn)
+        if a_size > 0 and i_size > 0:
+            diff = abs(a_size - i_size) / max(a_size, i_size)
+            chk2_ok  = diff > 0.10
+            chk2_lbl = "✅" if chk2_ok else f"❌{diff:.0%}"
+        else:
+            chk2_ok, chk2_lbl = False, "❌404"
+    else:
+        chk2_ok, chk2_lbl = False, "❌same"
 
-if __name__ == '__main__':
-    main()
+    # [3] Countdown OK
+    if times and fvs is not None:
+        expected = max(0, round(times[0]) - 6)
+        chk3_ok  = abs(fvs - expected) <= 4
+        chk3_lbl = "✅" if chk3_ok else f"❌fvs={fvs}≠{expected}"
+    else:
+        chk3_ok, chk3_lbl = False, "❌no times"
+
+    # [4] Has bars (lyrics+times populated, timestamps monotonic)
+    ts_ok, ts_issue = check_timestamps(lyrics, times)
+    chk4_ok  = ts_ok and len(lyrics) >= 10
+    chk4_lbl = "✅" if chk4_ok else f"❌{ts_issue if not ts_ok else f'{len(lyrics)}lines'}"
+
+    all_ok = chk1_ok and chk2_ok and chk3_ok and chk4_ok
+    if not all_ok:
+        failures += 1
+    status = "✅ PASS" if all_ok else "❌ FAIL"
+
+    print(f"{sid:<32} {chk1_lbl:>6} {chk2_lbl:>6} {chk3_lbl:>12} {chk4_lbl:>6}  {status}")
+
+print()
+print(f"{'All passed ✅' if failures == 0 else f'{failures} song(s) FAILED ❌'}")
+if failures > 0:
+    sys.exit(1)

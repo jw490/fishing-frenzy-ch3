@@ -195,7 +195,14 @@ const App = {
   showScreen(id) {
     // Cleanup previous screen
     if (this.currentScreen === 'warmup') this._stopWarmup();
-    if (this.currentScreen === 'game') Game.stop();
+    if (this.currentScreen === 'game') { Game.stop(); this._stopMv(); }
+    // Cancel any in-flight song selection (e.g. user navigates away during countdown)
+    if (this.currentScreen === 'countdown' || this.currentScreen === 'game') {
+      this._abortSelect = true;
+      this._selectingSong = false;
+      try { Synth.stop(); } catch (e) {}
+      this._stopMv();
+    }
 
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const screen = document.getElementById('screen-' + id);
@@ -389,6 +396,12 @@ const App = {
     // producing two simultaneous Game instances and corrupted scoring.
     if (this._selectingSong) return;
     this._selectingSong = true;
+    this._abortSelect = false;
+
+    // Kill any previously-playing audio so it doesn't bleed into the new song.
+    try { if (Game.isPlaying) Game.stop(); } catch (e) {}
+    try { Synth.stop(); } catch (e) {}
+    try { this._stopMv(); } catch (e) {}
 
     try {
       this.currentSong = songId;
@@ -496,6 +509,7 @@ const App = {
       // Countdown 3-2-1
       const numEl = document.getElementById('countdown-num');
       for (let i = 3; i >= 1; i--) {
+        if (this._abortSelect) return; // user navigated away during countdown
         numEl.textContent = i;
         numEl.style.animation = 'none';
         void numEl.offsetHeight; // force reflow
@@ -504,9 +518,11 @@ const App = {
         await this._wait(1000);
       }
 
+      if (this._abortSelect) return; // aborted during last wait
       numEl.textContent = '\u266A';
       await this._wait(400);
 
+      if (this._abortSelect) return; // aborted during last wait
       // Start game
       this._startGame(songId);
     } finally {
