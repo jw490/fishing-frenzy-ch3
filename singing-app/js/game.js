@@ -122,7 +122,15 @@ const Game = {
         this.MIDI_HIGH = 78;
       }
 
-      this.syllableBars = this._expandToSyllables(this.notes);
+      if (this.notes.length > 0) {
+        this.syllableBars = this._expandToSyllables(this.notes);
+      } else if (this.song.lyrics && this.song.lyricTimes && this.song.lyricTimes.length > 0) {
+        // Newer songs use per-char lyricTimes instead of notes[]. Build bars
+        // and synthetic scoring windows directly from that data.
+        const built = this._buildBarsFromLyricTimes();
+        this.syllableBars = built.bars;
+        this.notes = built.notes;
+      }
 
       // Now fit the visible lane to the actual bars that will be drawn.
       // This matters because hardcoded bounds (e.g. 58–78) crush songs whose
@@ -775,6 +783,74 @@ const Game = {
     if (this.particles.length > 100) {
       this.particles.splice(0, this.particles.length - 100);
     }
+  },
+
+  /**
+   * Build syllableBars and synthetic scoring notes from song.lyrics / song.lyricTimes.
+   * Used for songs that went through the char_align pipeline (notes: []) but still
+   * need the scrolling pitch bars and pitch scoring.
+   */
+  _buildBarsFromLyricTimes() {
+    const song    = this.song;
+    const lyrics  = song.lyrics;     // [[char, ...], ...]
+    const times   = song.lyricTimes; // flat array of char timestamps
+    const melody  = song.melody;
+    const hasMelody = !!(melody && melody.length > 0);
+    const laneMidi  = Math.round((this.MIDI_LOW + this.MIDI_HIGH) / 2);
+
+    // Pick dominant MIDI from melody over [start, end).
+    const pickMidi = (start, end) => {
+      if (!hasMelody) return null;
+      let best = null, bestOv = 0;
+      for (const m of melody) {
+        if (m.start >= end) break;
+        const ov = Math.min(m.start + m.dur, end) - Math.max(m.start, start);
+        if (ov > bestOv) { bestOv = ov; best = m.midi; }
+      }
+      return best;
+    };
+
+    const bars  = [];
+    const notes = [];   // line-level scoring windows
+    let ti = 0;
+    let lastMidi = null;
+
+    for (let lineIdx = 0; lineIdx < lyrics.length; lineIdx++) {
+      const line = lyrics[lineIdx];
+      if (!line.length) continue;
+
+      const lineStartT = times[ti];
+      const lineEndIdx = ti + line.length - 1;
+      const lineEndT   = lineEndIdx + 1 < times.length
+        ? times[lineEndIdx + 1]
+        : times[lineEndIdx] + 0.35;
+
+      // One scoring note per line
+      const lineMidi = pickMidi(lineStartT, lineEndT) ?? lastMidi ?? laneMidi;
+      notes.push({
+        midi:  lineMidi,
+        start: lineStartT,
+        dur:   lineEndT - lineStartT,
+        lyric: line.join(''),
+        freq:  Songs.midiToFreq(lineMidi),
+        name:  Songs.midiToName(lineMidi),
+      });
+
+      for (let ci = 0; ci < line.length; ci++) {
+        const start = times[ti];
+        const end   = ti + 1 < times.length ? times[ti + 1] : start + 0.3;
+        const dur   = Math.max(0.04, end - start);
+
+        let midi = pickMidi(start, end);
+        if (midi === null) midi = lastMidi !== null ? lastMidi : laneMidi;
+        lastMidi = midi;
+
+        bars.push({ midi, start, dur, lyric: line[ci], lineIdx, hit: false, timingOnly: !hasMelody });
+        ti++;
+      }
+    }
+
+    return { bars, notes };
   },
 
   /**
