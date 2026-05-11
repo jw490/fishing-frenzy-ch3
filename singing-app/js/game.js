@@ -229,7 +229,9 @@ const Game = {
     // Start backing music.
     // MV songs: video provides audio only when karaoke is OFF (_isKaraokeOff=true).
     // When karaoke is ON, Synth still plays the instrumental stem normally.
-    const mvAudioActive = !!(this.song.mvSrc && this._isKaraokeOff);
+    // lyricsMode songs strip the video entirely — Synth always handles audio regardless
+    // of karaoke state, so they must never be treated as mvAudioActive.
+    const mvAudioActive = !!(this.song.mvSrc && !this.song.lyricsMode && this._isKaraokeOff);
     if (!mvAudioActive) {
       Synth.playSong(this.song.id, this.song.bpm);
     }
@@ -244,8 +246,9 @@ const Game = {
     if (this._gradeBombTimer) { clearTimeout(this._gradeBombTimer); this._gradeBombTimer = null; }
     const _bombEl = document.getElementById('grade-bomb');
     if (_bombEl) _bombEl.classList.remove('bomb-show');
-    // MV karaoke-OFF: audio came from the video element, not Synth — don't stop what wasn't started
-    const wasMvAudio = !!(this.song && this.song.mvSrc && this._isKaraokeOff);
+    // MV karaoke-OFF: audio came from the video element, not Synth — don't stop what wasn't started.
+    // lyricsMode songs always use Synth (no video), so they are never wasMvAudio.
+    const wasMvAudio = !!(this.song && this.song.mvSrc && !this.song.lyricsMode && this._isKaraokeOff);
     if (!wasMvAudio) Synth.stop();
   },
 
