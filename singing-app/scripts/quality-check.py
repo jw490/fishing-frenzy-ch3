@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VocalStar song quality checklist — checks every song against 4 hard criteria.
+VocalStar song quality checklist — checks every song against hard criteria.
 
 PASS criteria:
   [1] HAS VOCAL AUDIO  – audioSrc exists on R2, file size > 2MB
@@ -8,7 +8,11 @@ PASS criteria:
                           audio by > 10% (proves Demucs actually ran)
   [3] COUNTDOWN OK     – firstVocalSec is within ±4s of round(lyricTimes[0])-6
   [4] HAS BARS         – lyrics and lyricTimes both non-empty, timestamps
-                          monotonically non-decreasing
+                          monotonically non-decreasing, char count matches
+  [5] CLEAN NOTES      – notes[] must be empty for lyricsMode songs (non-empty
+                          notes force _expandToSyllables() → BPM branch → flat bars)
+  [6] HAS MELODY       – melody[] has ≥ 300 segments (needed for pitch scoring)
+  [7] PITCH READY      – pitchGradingReady is not explicitly false
 """
 import re, json, sys, subprocess
 from pathlib import Path
@@ -55,7 +59,7 @@ target = sys.argv[1] if len(sys.argv) > 1 else None
 if target:
     ids = [i for i in ids if i == target]
 
-HDR = f"{'ID':<32} {'[1]':>4} {'[2]':>4} {'[3]':>4} {'[4]':>4}  STATUS"
+HDR = f"{'ID':<32} {'[1]':>4} {'[2]':>4} {'[3]':>4} {'[4]':>4} {'[5]':>4} {'[6]':>4} {'[7]':>4}  STATUS"
 print(HDR)
 print("─" * len(HDR))
 
@@ -75,10 +79,18 @@ for sid in ids:
     fvs_str      = field(r"firstVocalSec:\s*(\d+)")
     lyr_m        = re.search(r'lyrics:\s*(\[\[.*?\]\])', chunk, re.DOTALL)
     times_m      = re.search(r'lyricTimes:\s*(\[[\d.,\s-]+\])', chunk, re.DOTALL)
+    notes_m      = re.search(r'notes:\s*(\[.*?\])', chunk, re.DOTALL)
+    melody_m     = re.search(r'melody:\s*(\[.*?\])', chunk, re.DOTALL)
+    lyrics_mode  = bool(re.search(r'lyricsMode:\s*true', chunk))
+    pitch_false  = bool(re.search(r'pitchGradingReady:\s*false', chunk))
 
     fvs    = int(fvs_str) if fvs_str else None
     lyrics = json.loads(lyr_m.group(1)) if lyr_m else []
     times  = json.loads(times_m.group(1)) if times_m else []
+    try:    notes = json.loads(notes_m.group(1)) if notes_m else []
+    except: notes = []
+    try:    melody_count = len(json.loads(melody_m.group(1))) if melody_m else 0
+    except: melody_count = 0
 
     # [1] Has vocal audio
     if audio_path:
@@ -87,7 +99,7 @@ for sid in ids:
         chk1_ok  = a_size > 2_000_000
         chk1_lbl = "✅" if chk1_ok else f"❌{a_size//1024}KB"
     else:
-        chk1_ok, chk1_lbl = False, "❌no path"
+        chk1_ok, chk1_lbl, a_size = False, "❌no path", 0
 
     # [2] Has karaoke (instrumental differs from audio by > 10%)
     if instr_path and instr_path != audio_path:
@@ -115,12 +127,27 @@ for sid in ids:
     chk4_ok  = ts_ok and len(lyrics) >= 10
     chk4_lbl = "✅" if chk4_ok else f"❌{ts_issue if not ts_ok else f'{len(lyrics)}lines'}"
 
-    all_ok = chk1_ok and chk2_ok and chk3_ok and chk4_ok
+    # [5] Clean notes (lyricsMode songs must have notes: [] or no notes)
+    if lyrics_mode:
+        chk5_ok  = len(notes) == 0
+        chk5_lbl = "✅" if chk5_ok else f"❌{len(notes)}notes"
+    else:
+        chk5_ok, chk5_lbl = True, "n/a"
+
+    # [6] Has melody (≥ 300 segments for pitch scoring)
+    chk6_ok  = melody_count >= 300
+    chk6_lbl = "✅" if chk6_ok else f"❌{melody_count}seg"
+
+    # [7] Pitch grading not explicitly disabled
+    chk7_ok  = not pitch_false
+    chk7_lbl = "✅" if chk7_ok else "❌disabled"
+
+    all_ok = chk1_ok and chk2_ok and chk3_ok and chk4_ok and chk5_ok and chk6_ok and chk7_ok
     if not all_ok:
         failures += 1
     status = "✅ PASS" if all_ok else "❌ FAIL"
 
-    print(f"{sid:<32} {chk1_lbl:>6} {chk2_lbl:>6} {chk3_lbl:>12} {chk4_lbl:>6}  {status}")
+    print(f"{sid:<32} {chk1_lbl:>6} {chk2_lbl:>6} {chk3_lbl:>12} {chk4_lbl:>6} {chk5_lbl:>6} {chk6_lbl:>8} {chk7_lbl:>6}  {status}")
 
 print()
 print(f"{'All passed ✅' if failures == 0 else f'{failures} song(s) FAILED ❌'}")
