@@ -1,4 +1,5 @@
 {
+  "buildCommand": "npm run check-branch",
   "rewrites": [
     {
       "source": "/media/:path*",

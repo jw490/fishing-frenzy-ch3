@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "check-branch": "node -e \"const b=process.env.VERCEL_GIT_COMMIT_REF;if(b&&b!=='claude/gallant-rhodes'){console.error('\\n🚫 BLOCKED: singing-app must be deployed from claude/gallant-rhodes, not '+b+'\\n');process.exit(1);}console.log('✅ Branch check passed:', b||'(local/no git ref)');\""
   },
   "keywords": [],
   "author": "",
