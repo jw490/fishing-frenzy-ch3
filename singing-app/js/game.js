@@ -1524,12 +1524,17 @@ const Game = {
       }
 
       // Build current line: past | now | ahead chars
+      // Space chars (' ') are rendered as non-highlighted word separators.
       let html = `<div class="lyr-line lyr-current${accClass}">`;
       for (let i = 0; i < currentLine.length; i++) {
-        const cls = i < posInLine ? 'lyr-past'
-                  : i === posInLine ? 'lyr-now'
-                  : 'lyr-ahead';
-        html += `<span class="lyr-char ${cls}">${currentLine[i]}</span>`;
+        if (currentLine[i] === ' ') {
+          html += `<span class="lyr-space"></span>`;
+        } else {
+          const cls = i < posInLine ? 'lyr-past'
+                    : i === posInLine ? 'lyr-now'
+                    : 'lyr-ahead';
+          html += `<span class="lyr-char ${cls}">${currentLine[i]}</span>`;
+        }
       }
       html += '</div>';
 
@@ -1537,7 +1542,11 @@ const Game = {
       if (nextLine.length) {
         html += '<div class="lyr-line lyr-next">';
         for (const ch of nextLine) {
-          html += `<span class="lyr-char lyr-ahead">${ch}</span>`;
+          if (ch === ' ') {
+            html += `<span class="lyr-space"></span>`;
+          } else {
+            html += `<span class="lyr-char lyr-ahead">${ch}</span>`;
+          }
         }
         html += '</div>';
       }

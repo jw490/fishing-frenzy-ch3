@@ -1338,9 +1338,15 @@ html, body {
 .lyr-line {
   display: flex;
   flex-wrap: wrap;
-  gap: 1px 6px;
+  gap: 1px 2px;
   justify-content: center;
   line-height: 1.3;
+}
+/* Word separator for English songs — invisible but creates natural word gaps */
+.lyr-space {
+  display: inline-block;
+  width: 0.28em;
+  flex-shrink: 0;
 }
 .lyr-line.lyr-next {
   margin-top: 12px;
