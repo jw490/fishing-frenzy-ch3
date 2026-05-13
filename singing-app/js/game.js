@@ -1178,9 +1178,14 @@ const Game = {
     const streakIndicator = document.getElementById('streak-indicator');
 
     if (timeEl) {
-      const mins = Math.floor(this.currentTime / 60);
-      const secs = Math.floor(this.currentTime % 60);
-      timeEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+      if (window._lyricDebug) {
+        // Debug mode: show precise time to 1dp so lyricTimes can be calibrated
+        timeEl.textContent = this.currentTime.toFixed(1) + 's';
+      } else {
+        const mins = Math.floor(this.currentTime / 60);
+        const secs = Math.floor(this.currentTime % 60);
+        timeEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
     }
 
     // Live 0-100 score. Same formula as getResults() but computed over only

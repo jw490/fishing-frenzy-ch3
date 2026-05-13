@@ -108,6 +108,11 @@ const App = {
   },
 
   async init() {
+    // Debug mode: ?debug=1 shows precise playback time in the HUD for lyric calibration
+    if (new URLSearchParams(window.location.search).get('debug') === '1') {
+      window._lyricDebug = true;
+    }
+
     // Auth (Supabase) MUST init before anything reads stats.
     await Auth.init();
     this._loadStats();
