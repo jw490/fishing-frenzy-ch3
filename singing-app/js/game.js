@@ -798,22 +798,31 @@ const Game = {
 
   /**
    * Build syllableBars and synthetic scoring notes from song.lyrics / song.lyricTimes.
-   * Used for songs that went through the char_align pipeline (notes: []) but still
-   * need the scrolling pitch bars and pitch scoring.
+   * Used for all lyricsMode songs (notes: [] / char_align pipeline).
+   *
+   * Improvements over v1:
+   *  - Melody cursor walks forward only (O(n+m) instead of O(n*m))
+   *  - Per-line median octave correction — pYIN subharmonic errors get snapped back
+   *  - Isolated-spike smoother — a single outlier bar surrounded by distant neighbours
+   *    gets averaged out, removing visual noise between adjacent chars
    */
   _buildBarsFromLyricTimes() {
-    const song    = this.song;
-    const lyrics  = song.lyrics;     // [[char, ...], ...]
-    const times   = song.lyricTimes; // flat array of char timestamps
-    const melody  = song.melody;
+    const song     = this.song;
+    const lyrics   = song.lyrics;
+    const times    = song.lyricTimes;
+    const melody   = song.melody;
     const hasMelody = !!(melody && melody.length > 0);
     const laneMidi  = Math.round((this.MIDI_LOW + this.MIDI_HIGH) / 2);
 
-    // Pick dominant MIDI from melody over [start, end).
+    // --- Melody cursor: advance-only, O(n) amortised over all calls. ---
+    let cur = 0;
     const pickMidi = (start, end) => {
       if (!hasMelody) return null;
+      // Skip past segments that ended before our window.
+      while (cur < melody.length - 1 && melody[cur].start + melody[cur].dur < start) cur++;
       let best = null, bestOv = 0;
-      for (const m of melody) {
+      for (let k = cur; k < melody.length; k++) {
+        const m = melody[k];
         if (m.start >= end) break;
         const ov = Math.min(m.start + m.dur, end) - Math.max(m.start, start);
         if (ov > bestOv) { bestOv = ov; best = m.midi; }
@@ -821,27 +830,64 @@ const Game = {
       return best;
     };
 
+    // --- Pre-compute per-line time windows from lyricTimes ---
+    const lineWindows = [];
+    let _ti = 0;
+    for (let li = 0; li < lyrics.length; li++) {
+      const ln = lyrics[li];
+      if (!ln.length) { lineWindows.push(null); continue; }
+      const lStart = times[_ti];
+      const lLastCharIdx = _ti + ln.length - 1;
+      const lEnd = lLastCharIdx + 1 < times.length
+        ? times[lLastCharIdx + 1]
+        : times[lLastCharIdx] + 0.35;
+      lineWindows.push({ start: lStart, end: lEnd });
+      _ti += ln.length;
+    }
+
+    // --- Pre-compute per-line melody medians for octave outlier correction ---
+    // pYIN occasionally tracks the subharmonic (octave too low). Snapping bars
+    // more than 7 semitones away from the line median back by an octave removes
+    // the most jarring visual artefacts.
+    let _mCur = 0; // separate cursor for this pass
+    const lineMedians = lineWindows.map(w => {
+      if (!w || !hasMelody) return null;
+      // Advance past segments ending before window
+      while (_mCur < melody.length - 1 && melody[_mCur].start + melody[_mCur].dur < w.start) _mCur++;
+      const win = [];
+      for (let k = _mCur; k < melody.length; k++) {
+        const m = melody[k];
+        if (m.start >= w.end) break;
+        win.push(m.midi);
+      }
+      if (win.length < 3) return null;
+      win.sort((a, b) => a - b);
+      return win[Math.floor(win.length / 2)];
+    });
+
+    // --- Build bars + notes ---
     const bars  = [];
-    const notes = [];   // line-level scoring windows
+    const notes = [];
     let ti = 0;
     let lastMidi = null;
 
     for (let lineIdx = 0; lineIdx < lyrics.length; lineIdx++) {
-      const line = lyrics[lineIdx];
+      const line    = lyrics[lineIdx];
       if (!line.length) continue;
 
-      const lineStartT = times[ti];
-      const lineEndIdx = ti + line.length - 1;
-      const lineEndT   = lineEndIdx + 1 < times.length
-        ? times[lineEndIdx + 1]
-        : times[lineEndIdx] + 0.35;
+      const lineMedian = lineMedians[lineIdx];
+      const w = lineWindows[lineIdx];
 
-      // One scoring note per line
-      const lineMidi = pickMidi(lineStartT, lineEndT) ?? lastMidi ?? laneMidi;
+      // Line-level scoring note (dominant pitch over whole line window)
+      let lineMidi = pickMidi(w.start, w.end) ?? lastMidi ?? laneMidi;
+      if (lineMedian != null) {
+        while (lineMedian - lineMidi >= 7) lineMidi += 12;
+        while (lineMidi - lineMedian >= 7) lineMidi -= 12;
+      }
       notes.push({
         midi:  lineMidi,
-        start: lineStartT,
-        dur:   lineEndT - lineStartT,
+        start: w.start,
+        dur:   w.end - w.start,
         lyric: line.join(''),
         freq:  Songs.midiToFreq(lineMidi),
         name:  Songs.midiToName(lineMidi),
@@ -854,10 +900,29 @@ const Game = {
 
         let midi = pickMidi(start, end);
         if (midi === null) midi = lastMidi !== null ? lastMidi : laneMidi;
+
+        // Octave outlier correction — snap notes > 7st from line median by ±12.
+        if (lineMedian != null) {
+          while (lineMedian - midi >= 7) midi += 12;
+          while (midi - lineMedian >= 7) midi -= 12;
+        }
         lastMidi = midi;
 
         bars.push({ midi, start, dur, lyric: line[ci], lineIdx, hit: false, timingOnly: !hasMelody });
         ti++;
+      }
+    }
+
+    // --- Post-process: smooth isolated spikes within each line ---
+    // If a single bar is >= 4 semitones away from BOTH its neighbours and they
+    // agree within 3 semitones of each other, it's a pYIN blip — snap to the
+    // average of the neighbours.
+    for (let i = 1; i < bars.length - 1; i++) {
+      const p = bars[i - 1], c = bars[i], n = bars[i + 1];
+      if (c.lineIdx !== p.lineIdx || c.lineIdx !== n.lineIdx) continue;
+      if (Math.abs(c.midi - p.midi) >= 4 && Math.abs(c.midi - n.midi) >= 4
+          && Math.abs(p.midi - n.midi) <= 3) {
+        c.midi = Math.round((p.midi + n.midi) / 2);
       }
     }
 
