@@ -104,7 +104,7 @@ h1 { font-size: 0.95rem; color: #444; text-align: center; margin-bottom: 10px; }
 <div id="status">Press ▶ START to load audio</div>
 
 <div id="prog-wrap">
-  <div id="prog-text">0 / 72</div>
+  <div id="prog-text">0 / 78</div>
   <div id="prog-bar-bg"><div id="prog-bar" style="width:0%"></div></div>
 </div>
 
@@ -142,13 +142,13 @@ h1 { font-size: 0.95rem; color: #444; text-align: center; margin-bottom: 10px; }
 
 <script>
 const AUDIO_SRC   = '/media/shen-hou-mv-audio.mp3';
-const STORAGE_KEY = 'shen-hou-calib-v3';
+const STORAGE_KEY = 'shen-hou-calib-v4';
 
 const LINES = [
   '我','喜欢看你','孩子般走在前头','像第一次','发现世界的探索',
   '告诉我','鲜艳的颜色好多','你','改不掉突然','停下来回过头',
   '想再一次','习惯性确认什么','像是要牵手','或是一起走',
-  '直到风景褪色','的时候','你身后','我身后','会有我',
+  '直到风景褪色','的时候','你身后','会有我',
   '守护你看见','尽头的背后','那片天空','等着另一端','新的生活',
   '能不能','答应我','临别时候','或许你就先走','徒留感伤就',
   '请你留给我','让我面对','你往后的寂寞','能不能答应我',
@@ -156,17 +156,26 @@ const LINES = [
   '松开后还能忍住','泪向你告别','挥手','记得你爱过',
   '你要记得你爱过','记得你曾经走过','记得继续向前走',
   '记得我眼中','见过你停留','你的身影','一直在我的',
-  '世界里驻守','能不能答应我','分开时候','放心回头看我',
-  '让我明白牵挂着','你的手','松开后','能拭去泪向你',
-  '告别挥手','别急着答应我','难过的话','现在不要说',
-  '呜','好好享受','安宁的温柔','能不能答应我','再见时候',
-  '就别再认出我','别让我承受','牵过的你的手','再重逢',
-  '已换作','你向我告别','挥手'
+  '世界里驻守',
+  // ── second chorus onwards — tap these ──
+  '能不能答应我',
+  '临别时你','或许就先走','徒留的感伤','都留给我',
+  '让我面对','你往后的寂寞','能不能答应我',
+  '分开时候','放心回头看我','让我明白牵挂着','你的手',
+  '松开后','能拭去泪向你','告别挥手',
+  '别急着答应我','难过的话','现在不要说',
+  '呜','好好享受','安宁的温柔',
+  '能不能答应我','再见时候','就别再认出我','别让我承受',
+  '牵过的你的手','再重逢','已换作','你向我告别','挥手'
 ];
+
+// Pre-filled: L1-L48 confirmed from previous session (L49 onwards = retap)
+const PREFILL = [58.945,60.416,61.689,64.977,66.209,69.658,71.665,77.399,78.916,80.337,83.404,84.575,88.143,90.342,92.792,95.075,97.328,99.765,102.644,104.441,106.909,109.544,111.177,113.098,114.282,116.899,118.749,121.759,123.608,126.176,128.675,132.539,135.259,137.29,140.557,141.332,145.444,148.059,148.759,156.682,159.325,161.879,164.162,165.841,168.042,169.392,170.651,172.041];
+const PREFILL_COUNT = PREFILL.length; // 48
 
 // taps[i] = number or null
 let taps    = Array(LINES.length).fill(null);
-let lineIdx = 0;
+let lineIdx = PREFILL_COUNT; // start at L49
 let audio   = null;
 let running = false;
 let rafId   = null;
@@ -179,8 +188,12 @@ function load() {
     if (d && Array.isArray(d.taps) && d.taps.length === LINES.length) {
       taps    = d.taps;
       lineIdx = d.lineIdx ?? firstNull();
+      return;
     }
   } catch(e) {}
+  // First run: seed pre-filled confirmed taps for L1-L48
+  for (let i = 0; i < PREFILL_COUNT; i++) taps[i] = PREFILL[i];
+  lineIdx = PREFILL_COUNT;
 }
 function save() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ taps, lineIdx })); } catch(e) {}
@@ -312,6 +325,8 @@ document.getElementById('start-btn').addEventListener('click', () => {
     statusEl.textContent = 'Tap when each line starts • click any line below to retap it';
     tapBtn.disabled = false;
     running = true;
+    // Seek to 5s before L49 (能不能答应我) so user is ready to tap
+    audio.currentTime = Math.max(0, (taps[PREFILL_COUNT - 1] || 168) - 2);
     audio.play();
     tick();
     refreshAll();
