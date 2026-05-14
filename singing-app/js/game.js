@@ -520,10 +520,9 @@ const Game = {
                     if (this.currentStreak > this.bestStreak) this.bestStreak = this.currentStreak;
                   }
                 } else if (acc === 0 && data.confidence >= 0.5) {
-                  // Sung but badly wrong pitch — soft-reset streak.
                   this._consecutiveGoodFrames = 0;
                   this._streakBadFrames = (this._streakBadFrames || 0) + 1;
-                  if (this._streakBadFrames >= 3) {
+                  if (this._streakBadFrames >= 12) { // raised from 3 — needs sustained miss
                     this.currentStreak = 0;
                     this._streakBadFrames = 0;
                     if (this._multiplier > 1) { this._multiplier = 1; this._screenFlash('#ff2244', 0.25, 0.22); }
@@ -591,22 +590,14 @@ const Game = {
         this._rollingAcc.shift();
       }
 
-      // Streak tracking.
+      // Streak tracking — line-based, not frame-based.
+      // Increment once when this line is first hit well. Never reset mid-line
+      // on individual bad frames (breaths/consonants would kill streaks constantly).
+      // Streak resets only at line-transition if previous line was completely missed.
       if (acc >= 0.7 && !this.noteScores[lineIdx].hit) {
         this.noteScores[lineIdx].hit = true;
         this.currentStreak++;
         if (this.currentStreak > this.bestStreak) this.bestStreak = this.currentStreak;
-        this._streakBadFrames = 0;
-      } else if (acc < 0.3) {
-        // Soft reset: require 3 consecutive bad frames.
-        this._streakBadFrames = (this._streakBadFrames || 0) + 1;
-        if (this._streakBadFrames >= 3) {
-          this.currentStreak = 0;
-          this._streakBadFrames = 0;
-          if (this._multiplier > 1) { this._multiplier = 1; this._screenFlash('#ff2244', 0.25, 0.22); }
-        }
-      } else {
-        this._streakBadFrames = 0;
       }
 
       // Particles on good pitch.
@@ -671,14 +662,21 @@ const Game = {
         }
       }
 
-      // Line-completion grade bomb: fires when we transition to a new lyric line
-      // and the just-finished line was sung well. Skipped if a streak bomb is live.
+      // Line-transition: grade bomb + streak reset on missed lines.
       if (this._lastScoredLineIdx >= 0 && lineIdx !== this._lastScoredLineIdx) {
         const _prevNs = this.noteScores[this._lastScoredLineIdx];
-        if (_prevNs && _prevNs.samples > 0 && !this._gradeBombTimer) {
+        if (_prevNs && _prevNs.samples > 0) {
           const _avgAcc = _prevNs.pitchAcc / _prevNs.samples;
-          if (_avgAcc >= 0.88) this._showGradeBomb(this._pickMsg('perfect'), '#ffd700');
-          else if (_avgAcc >= 0.70) this._showGradeBomb(this._pickMsg('good'), '#00ff88');
+          // Grade bomb
+          if (!this._gradeBombTimer) {
+            if (_avgAcc >= 0.88) this._showGradeBomb(this._pickMsg('perfect'), '#ffd700');
+            else if (_avgAcc >= 0.70) this._showGradeBomb(this._pickMsg('good'), '#00ff88');
+          }
+          // Streak reset only if the whole line was completely missed (no hit at all)
+          if (!_prevNs.hit) {
+            this.currentStreak = 0;
+            if (this._multiplier > 1) { this._multiplier = 1; this._screenFlash('#ff2244', 0.25, 0.22); }
+          }
         }
       }
       this._lastScoredLineIdx = lineIdx;
