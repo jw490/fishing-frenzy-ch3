@@ -9,142 +9,140 @@
 body {
   background: #0a0a0f; color: #fff;
   font-family: -apple-system, sans-serif;
-  min-height: 100vh; padding: 16px 12px 40px;
+  min-height: 100vh; padding: 14px 12px 60px;
   user-select: none; -webkit-user-select: none;
 }
+h1 { font-size: 0.95rem; color: #444; text-align: center; margin-bottom: 10px; }
+#status { font-size: 0.78rem; color: #555; text-align: center; margin-bottom: 10px; min-height: 16px; }
 
-h1 { font-size: 1rem; color: #555; text-align: center; margin-bottom: 12px; }
+/* progress */
+#prog-wrap { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+#prog-text  { font-size:0.75rem; color:#444; white-space:nowrap; }
+#prog-bar-bg{ flex:1; height:4px; background:#161616; border-radius:2px; }
+#prog-bar   { height:100%; background:#7b2fff; border-radius:2px; transition:width .2s; }
 
-/* ── status bar ── */
-#status { font-size: 0.8rem; color: #555; text-align: center; height: 16px; margin-bottom: 10px; }
-
-/* ── progress ── */
-#progress-wrap { display: flex; justify-content: center; gap: 8px; align-items: center; margin-bottom: 14px; }
-#prog-text { font-size: 0.8rem; color: #444; }
-#prog-bar-wrap { flex: 1; max-width: 260px; height: 4px; background: #1a1a1a; border-radius: 2px; }
-#prog-bar { height: 100%; background: #7b2fff; border-radius: 2px; transition: width 0.2s; }
-
-/* ── lyric display ── */
-#prev-line { font-size: 0.9rem; color: #333; text-align: center; min-height: 26px; margin-bottom: 4px; }
-#line-display {
-  font-size: 2.6rem; font-weight: 800; color: #00d4ff;
-  text-align: center; min-height: 76px;
-  display: flex; align-items: center; justify-content: center;
-  letter-spacing: 0.06em; margin-bottom: 4px;
+/* lyric display */
+#prev-txt  { font-size:0.85rem; color:#2a2a2a; text-align:center; min-height:22px; }
+#curr-txt  {
+  font-size: 2.8rem; font-weight:800; color:#00d4ff;
+  text-align:center; letter-spacing:.06em;
+  min-height:74px; display:flex; align-items:center; justify-content:center;
 }
-#next-line { font-size: 0.9rem; color: #333; text-align: center; min-height: 26px; margin-bottom: 18px; }
+#next-txt  { font-size:0.85rem; color:#2a2a2a; text-align:center; min-height:22px; margin-bottom:14px; }
 
-/* ── clock ── */
-#clock {
-  font-size: 2.6rem; font-weight: 800; font-variant-numeric: tabular-nums;
-  color: #ffd700; text-align: center; margin-bottom: 6px; letter-spacing: 0.04em;
-}
+/* clock + seek */
+#clock { font-size:2.4rem; font-weight:800; color:#ffd700;
+  text-align:center; font-variant-numeric:tabular-nums; margin-bottom:6px; }
+#seek-wrap { margin-bottom:4px; padding:0 4px; }
+#seek { width:100%; accent-color:#7b2fff; cursor:pointer; height:22px; }
+#seek-labels { display:flex; justify-content:space-between;
+  font-size:0.65rem; color:#333; margin-bottom:16px; padding:0 2px; }
 
-/* ── seek bar ── */
-#seek-wrap { padding: 4px 8px; margin-bottom: 20px; }
-#seek { width: 100%; accent-color: #7b2fff; cursor: pointer; }
+/* scrub buttons */
+#scrub-row { display:flex; justify-content:center; gap:8px; margin-bottom:14px; }
+.scrub-btn { padding:8px 14px; border-radius:10px; border:1px solid #222;
+  background:#111; color:#666; font-size:0.82rem; cursor:pointer;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+.scrub-btn:active { background:#1e1e1e; color:#ccc; }
 
-/* ── tap button ── */
+/* tap button */
 #tap-btn {
-  display: block; width: min(360px, 94vw); margin: 0 auto 16px;
-  height: 100px;
-  background: linear-gradient(135deg, #7b2fff, #00d4ff);
-  border: none; border-radius: 20px; cursor: pointer;
-  font-size: 1.5rem; font-weight: 800; color: #fff;
-  letter-spacing: 0.08em; touch-action: manipulation;
-  transition: transform 0.07s, opacity 0.07s;
-  -webkit-tap-highlight-color: transparent;
+  display:block; width:min(340px,94vw); height:96px; margin:0 auto 14px;
+  background:linear-gradient(135deg,#7b2fff,#00d4ff);
+  border:none; border-radius:18px; cursor:pointer;
+  font-size:1.5rem; font-weight:800; color:#fff; letter-spacing:.08em;
+  touch-action:manipulation; transition:transform .07s,opacity .07s;
+  -webkit-tap-highlight-color:transparent;
 }
-#tap-btn:active { transform: scale(0.93); opacity: 0.82; }
-#tap-btn:disabled { background: #1a1a1a; color: #444; cursor: default; }
-#tap-btn.tapped { background: linear-gradient(135deg,#ff2fa8,#ffd700) !important; }
+#tap-btn:active  { transform:scale(.93); opacity:.82; }
+#tap-btn.flash   { background:linear-gradient(135deg,#ff2fa8,#ffd700) !important; }
+#tap-btn:disabled{ background:#181818; color:#333; cursor:default; }
 
-/* ── controls ── */
-#controls {
-  display: flex; flex-wrap: wrap; gap: 8px;
-  justify-content: center; margin-bottom: 18px;
-}
-button.ctrl {
-  padding: 9px 16px; border-radius: 10px;
-  border: 1px solid #2a2a2a; background: #111; color: #888;
-  cursor: pointer; font-size: 0.82rem;
-  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-}
-button.ctrl:active { background: #1e1e1e; color: #ccc; }
-button.ctrl.danger { border-color: #500; color: #c44; }
+/* controls */
+#ctrl-row { display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin-bottom:12px; }
+.ctrl { padding:8px 14px; border-radius:10px; border:1px solid #222;
+  background:#111; color:#777; cursor:pointer; font-size:0.8rem;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+.ctrl:active { background:#1e1e1e; color:#ccc; }
+.ctrl.red { border-color:#400; color:#a33; }
 
-/* ── jump-to ── */
-#jump-wrap { display: flex; gap: 8px; justify-content: center; align-items: center; margin-bottom: 16px; }
-#jump-wrap label { font-size: 0.78rem; color: #555; }
-#jump-input { width: 56px; padding: 6px 8px; border-radius: 8px;
-  border: 1px solid #2a2a2a; background: #111; color: #fff;
-  font-size: 0.9rem; text-align: center; }
-#jump-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid #7b2fff;
-  background: #1a0a3a; color: #b980ff; cursor: pointer; font-size: 0.8rem; }
-
-/* ── tapped log ── */
-#log { max-height: 160px; overflow-y: auto; margin-bottom: 14px; }
-#log div { font-size: 0.75rem; padding: 2px 4px; border-bottom: 1px solid #111; }
-#log .ok  { color: #0a8; }
-#log .cur { color: #00d4ff; font-weight: 700; }
-#log .skip { color: #555; font-style: italic; }
-
-/* ── output ── */
-#output-box {
-  display: none; margin: 4px 0;
-  background: #0a100a; border: 1px solid #1a3a1a; border-radius: 10px;
-  padding: 10px; font-size: 0.68rem; color: #0c0; word-break: break-all;
-  white-space: pre-wrap; max-height: 160px; overflow-y: auto;
+/* ALL LINES list — tap to jump */
+#lines-panel {
+  margin-bottom:12px; max-height:240px; overflow-y:auto;
+  border:1px solid #181818; border-radius:10px;
 }
-#copy-btn {
-  display: none; margin-top: 8px; padding: 8px 24px; border-radius: 8px;
-  border: 1px solid #0c0; background: #001800; color: #0c0;
-  cursor: pointer; font-size: 0.85rem;
+.line-row {
+  display:flex; align-items:center; gap:8px;
+  padding:6px 10px; border-bottom:1px solid #111; cursor:pointer;
+  transition:background .1s;
 }
-#save-note { font-size: 0.7rem; color: #3a3a3a; text-align: center; margin-top: 6px; }
+.line-row:last-child { border-bottom:none; }
+.line-row:active { background:#1a1a2a; }
+.line-row.active  { background:#0a1020; }
+.line-row .ln     { font-size:0.7rem; color:#333; min-width:26px; }
+.line-row .lt     { font-size:0.75rem; color:#0a8; min-width:54px; font-variant-numeric:tabular-nums; }
+.line-row .lw     { font-size:1rem; font-weight:600; color:#888; flex:1; }
+.line-row.active .lw { color:#00d4ff; }
+.line-row .lt.skipped { color:#333; font-style:italic; }
+.line-row .retap-hint { font-size:0.65rem; color:#333; }
+
+/* output */
+#out-box {
+  display:none; background:#091209; border:1px solid #1a3a1a;
+  border-radius:10px; padding:10px; font-size:0.65rem; color:#0c0;
+  word-break:break-all; white-space:pre-wrap; max-height:150px; overflow-y:auto;
+  margin-bottom:8px;
+}
+#copy-btn { display:none; padding:8px 24px; border-radius:8px;
+  border:1px solid #0c0; background:#001800; color:#0c0; cursor:pointer; font-size:0.85rem; }
+#save-note { font-size:0.65rem; color:#252525; text-align:center; margin-top:8px; }
 </style>
 </head>
 <body>
 
-<h1>神后 — Full Song Tap Calibration</h1>
-<div id="status">Press START to load audio</div>
+<h1>神后 — Full-Song Tap Calibration</h1>
+<div id="status">Press ▶ START to load audio</div>
 
-<div id="progress-wrap">
+<div id="prog-wrap">
   <div id="prog-text">0 / 72</div>
-  <div id="prog-bar-wrap"><div id="prog-bar" style="width:0%"></div></div>
+  <div id="prog-bar-bg"><div id="prog-bar" style="width:0%"></div></div>
 </div>
 
-<div id="prev-line"></div>
-<div id="line-display">—</div>
-<div id="next-line"></div>
+<div id="prev-txt"></div>
+<div id="curr-txt">—</div>
+<div id="next-txt"></div>
 
 <div id="clock">0.0s</div>
-<div id="seek-wrap"><input type="range" id="seek" min="0" max="307" step="0.1" value="0"></div>
+<div id="seek-wrap"><input type="range" id="seek" min="0" max="307" step="0.5" value="0"></div>
+<div id="seek-labels"><span>0:00</span><span>1:17</span><span>2:34</span><span>3:50</span><span>5:07</span></div>
+
+<div id="scrub-row">
+  <button class="scrub-btn" id="back10">−10s</button>
+  <button class="scrub-btn" id="back5">−5s</button>
+  <button class="scrub-btn" id="fwd5">+5s</button>
+</div>
 
 <button id="tap-btn" disabled>TAP when she sings</button>
 
-<div id="controls">
+<div id="ctrl-row">
   <button class="ctrl" id="start-btn">▶ START</button>
+  <button class="ctrl" id="pause-btn">⏸ PAUSE</button>
   <button class="ctrl" id="undo-btn">↩ UNDO</button>
-  <button class="ctrl" id="skip-btn">⏭ SKIP line</button>
+  <button class="ctrl" id="skip-btn">⏭ SKIP</button>
   <button class="ctrl" id="done-btn">✓ DONE</button>
-  <button class="ctrl danger" id="clear-btn">✕ CLEAR ALL</button>
+  <button class="ctrl red" id="clear-btn">✕ CLEAR ALL</button>
 </div>
 
-<div id="jump-wrap">
-  <label>Jump to line:</label>
-  <input type="number" id="jump-input" min="1" max="72" placeholder="1-72">
-  <button id="jump-btn">Go</button>
-</div>
+<!-- clickable lines list -->
+<div id="lines-panel"></div>
 
-<div id="log"></div>
-<div id="output-box"></div>
-<button id="copy-btn" onclick="copyOutput()">📋 Copy JSON</button>
-<div id="save-note">Progress auto-saved in browser</div>
+<div id="out-box"></div>
+<button id="copy-btn" onclick="copyOut()">📋 Copy JSON</button>
+<div id="save-note">Auto-saved in browser — close &amp; reopen anytime</div>
 
 <script>
-const AUDIO_SRC = '/media/shen-hou-mv-audio.mp3';
-const STORAGE_KEY = 'shen-hou-calib-v2';
+const AUDIO_SRC   = '/media/shen-hou-mv-audio.mp3';
+const STORAGE_KEY = 'shen-hou-calib-v3';
 
 const LINES = [
   '我','喜欢看你','孩子般走在前头','像第一次','发现世界的探索',
@@ -166,96 +164,116 @@ const LINES = [
   '已换作','你向我告别','挥手'
 ];
 
-// taps[i] = number (audio time) or null (skipped / not yet done)
-let taps = Array(LINES.length).fill(null);
-let lineIdx = 0;   // next line to tap
-let audio = null;
+// taps[i] = number or null
+let taps    = Array(LINES.length).fill(null);
+let lineIdx = 0;
+let audio   = null;
 let running = false;
-let rafId = null;
-let seekDragging = false;
+let rafId   = null;
+let seekDrag= false;
 
-// ── DOM ───────────────────────────────────────────────────────────────────
-const tapBtn    = document.getElementById('tap-btn');
-const lineDisp  = document.getElementById('line-display');
-const prevLine  = document.getElementById('prev-line');
-const nextLine  = document.getElementById('next-line');
-const clockEl   = document.getElementById('clock');
-const statusEl  = document.getElementById('status');
-const progText  = document.getElementById('prog-text');
-const progBar   = document.getElementById('prog-bar');
-const logEl     = document.getElementById('log');
-const seekEl    = document.getElementById('seek');
-
-// ── load saved progress ───────────────────────────────────────────────────
-function loadSaved() {
+// ── persist ───────────────────────────────────────────────────────────────
+function load() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    if (Array.isArray(data.taps) && data.taps.length === LINES.length) {
-      taps = data.taps;
-      lineIdx = data.lineIdx || taps.findIndex(t => t === null && taps.indexOf(t) >= 0);
-      // lineIdx = first null after last non-null
-      lineIdx = 0;
-      for (let i = 0; i < taps.length; i++) {
-        if (taps[i] !== null) lineIdx = i + 1;
-      }
-      lineIdx = Math.min(lineIdx, LINES.length);
+    const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (d && Array.isArray(d.taps) && d.taps.length === LINES.length) {
+      taps    = d.taps;
+      lineIdx = d.lineIdx ?? firstNull();
     }
   } catch(e) {}
 }
-
 function save() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ taps, lineIdx }));
-  } catch(e) {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ taps, lineIdx })); } catch(e) {}
+}
+function firstNull() {
+  // first line that hasn't been tapped yet (from the end of the tapped block)
+  let last = -1;
+  for (let i = 0; i < taps.length; i++) if (taps[i] !== null) last = i;
+  return Math.min(last + 1, LINES.length);
 }
 
-// ── display ───────────────────────────────────────────────────────────────
-function updateDisplay() {
+// ── DOM refs ──────────────────────────────────────────────────────────────
+const tapBtn  = document.getElementById('tap-btn');
+const currTxt = document.getElementById('curr-txt');
+const prevTxt = document.getElementById('prev-txt');
+const nextTxt = document.getElementById('next-txt');
+const clockEl = document.getElementById('clock');
+const statusEl= document.getElementById('status');
+const progTxt = document.getElementById('prog-text');
+const progBar = document.getElementById('prog-bar');
+const seekEl  = document.getElementById('seek');
+const panel   = document.getElementById('lines-panel');
+
+// ── build clickable lines panel ───────────────────────────────────────────
+function buildPanel() {
+  panel.innerHTML = '';
+  LINES.forEach((line, i) => {
+    const row = document.createElement('div');
+    row.className = 'line-row' + (i === lineIdx ? ' active' : '');
+    row.dataset.idx = i;
+
+    const tStr = taps[i] !== null
+      ? taps[i].toFixed(2) + 's'
+      : (i < lineIdx ? 'skipped' : '');
+
+    row.innerHTML = `
+      <span class="ln">L${String(i+1).padStart(2,'0')}</span>
+      <span class="lt ${taps[i]===null && i<lineIdx ? 'skipped' : ''}">${tStr}</span>
+      <span class="lw">${line}</span>
+      ${i < lineIdx ? '<span class="retap-hint">tap to retap</span>' : ''}
+    `;
+
+    row.addEventListener('click', () => jumpTo(i));
+    panel.appendChild(row);
+  });
+}
+
+function scrollPanelToActive() {
+  const active = panel.querySelector('.active');
+  if (active) active.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+// ── jump to line ──────────────────────────────────────────────────────────
+function jumpTo(i) {
+  lineIdx = i;
+  save();
+  refreshAll();
+  // seek audio to just before that line's tap (or 3s before it)
+  if (audio && taps[i] !== null) {
+    audio.currentTime = Math.max(0, taps[i] - 3);
+  } else if (audio && i > 0 && taps[i-1] !== null) {
+    audio.currentTime = Math.max(0, taps[i-1] - 1);
+  }
+}
+
+// ── display refresh ───────────────────────────────────────────────────────
+function refreshAll() {
   const done = taps.filter(t => t !== null).length;
-  progText.textContent = `${done} / ${LINES.length}`;
-  progBar.style.width = (done / LINES.length * 100) + '%';
+  progTxt.textContent = `${done} / ${LINES.length}`;
+  progBar.style.width  = (done / LINES.length * 100) + '%';
 
   if (lineIdx >= LINES.length) {
-    lineDisp.textContent = '✓ All done!';
-    prevLine.textContent = '';
-    nextLine.textContent = '';
+    currTxt.textContent = '✓ All done!';
+    prevTxt.textContent = '';
+    nextTxt.textContent = '';
     tapBtn.disabled = true;
-    showOutput();
-    return;
+    showOut();
+  } else {
+    currTxt.textContent = LINES[lineIdx];
+    prevTxt.textContent = lineIdx > 0
+      ? (taps[lineIdx-1] !== null ? `✓ ${LINES[lineIdx-1]}` : `— ${LINES[lineIdx-1]}`)
+      : '';
+    nextTxt.textContent = lineIdx+1 < LINES.length ? `↓ ${LINES[lineIdx+1]}` : '';
+    if (running) tapBtn.disabled = false;
   }
 
-  lineDisp.textContent = LINES[lineIdx];
-  prevLine.textContent = lineIdx > 0
-    ? (taps[lineIdx-1] !== null ? `✓ ${LINES[lineIdx-1]}` : `— ${LINES[lineIdx-1]}`)
-    : '';
-  nextLine.textContent = lineIdx + 1 < LINES.length ? `↓  ${LINES[lineIdx+1]}` : '';
+  buildPanel();
+  scrollPanelToActive();
 }
 
-function rebuildLog() {
-  logEl.innerHTML = '';
-  for (let i = Math.max(0, lineIdx - 12); i <= Math.min(LINES.length - 1, lineIdx + 3); i++) {
-    const div = document.createElement('div');
-    if (i === lineIdx) {
-      div.className = 'cur';
-      div.textContent = `▶ L${i+1} ${LINES[i]}`;
-    } else if (taps[i] !== null) {
-      div.className = 'ok';
-      div.textContent = `✓ L${i+1} [${taps[i].toFixed(3)}s] ${LINES[i]}`;
-    } else {
-      div.className = 'skip';
-      div.textContent = `— L${i+1} ${LINES[i]}`;
-    }
-    logEl.appendChild(div);
-  }
-  // scroll to bottom
-  logEl.scrollTop = logEl.scrollHeight;
-}
-
-// ── clock RAF ─────────────────────────────────────────────────────────────
+// ── clock ─────────────────────────────────────────────────────────────────
 function tick() {
-  if (audio && !seekDragging) {
+  if (audio && !seekDrag) {
     const t = audio.currentTime;
     clockEl.textContent = t.toFixed(1) + 's';
     seekEl.value = t;
@@ -264,57 +282,64 @@ function tick() {
 }
 
 // ── seek bar ──────────────────────────────────────────────────────────────
-seekEl.addEventListener('mousedown',  () => { seekDragging = true; });
-seekEl.addEventListener('touchstart', () => { seekDragging = true; }, { passive: true });
+seekEl.addEventListener('mousedown',  () => seekDrag = true);
+seekEl.addEventListener('touchstart', () => seekDrag = true, { passive:true });
 seekEl.addEventListener('input', () => {
-  if (audio) { audio.currentTime = parseFloat(seekEl.value); }
-  clockEl.textContent = parseFloat(seekEl.value).toFixed(1) + 's';
+  const t = parseFloat(seekEl.value);
+  clockEl.textContent = t.toFixed(1) + 's';
+  if (audio) audio.currentTime = t;
 });
-seekEl.addEventListener('mouseup',  () => { seekDragging = false; });
-seekEl.addEventListener('touchend', () => { seekDragging = false; });
+seekEl.addEventListener('mouseup',  () => seekDrag = false);
+seekEl.addEventListener('touchend', () => seekDrag = false);
 
-// ── start ─────────────────────────────────────────────────────────────────
-document.getElementById('start-btn').addEventListener('click', async () => {
+// ── scrub buttons ─────────────────────────────────────────────────────────
+function scrub(delta) {
+  if (!audio) return;
+  audio.currentTime = Math.max(0, audio.currentTime + delta);
+}
+document.getElementById('back10').addEventListener('click', () => scrub(-10));
+document.getElementById('back5' ).addEventListener('click', () => scrub(-5));
+document.getElementById('fwd5'  ).addEventListener('click', () => scrub(+5));
+
+// ── start / pause ─────────────────────────────────────────────────────────
+document.getElementById('start-btn').addEventListener('click', () => {
   if (audio) { audio.play(); return; }
-  statusEl.textContent = 'Loading…';
+  statusEl.textContent = 'Loading audio…';
   audio = new Audio(AUDIO_SRC);
   audio.preload = 'auto';
-  seekEl.max = 307;
-
-  audio.addEventListener('loadedmetadata', () => {
-    seekEl.max = audio.duration || 307;
-  });
-
+  audio.addEventListener('loadedmetadata', () => { seekEl.max = audio.duration || 307; });
   audio.addEventListener('canplaythrough', () => {
-    statusEl.textContent = 'Tap the button the moment each line starts';
+    statusEl.textContent = 'Tap when each line starts • click any line below to retap it';
     tapBtn.disabled = false;
-    audio.play();
     running = true;
-    updateDisplay();
-    rebuildLog();
+    audio.play();
     tick();
+    refreshAll();
   }, { once: true });
-  audio.addEventListener('error', () => { statusEl.textContent = '⚠ Audio load error'; });
+  audio.addEventListener('error', () => { statusEl.textContent = '⚠ Audio error'; });
   audio.load();
 });
+document.getElementById('pause-btn').addEventListener('click', () => {
+  if (!audio) return;
+  audio.paused ? audio.play() : audio.pause();
+});
 
-// ── TAP ───────────────────────────────────────────────────────────────────
+// ── tap ───────────────────────────────────────────────────────────────────
 function doTap() {
   if (!running || !audio || lineIdx >= LINES.length) return;
   const t = audio.currentTime;
   taps[lineIdx] = t;
 
-  tapBtn.classList.add('tapped');
-  setTimeout(() => tapBtn.classList.remove('tapped'), 140);
+  tapBtn.classList.add('flash');
+  setTimeout(() => tapBtn.classList.remove('flash'), 150);
 
   lineIdx++;
   save();
-  updateDisplay();
-  rebuildLog();
+  refreshAll();
 }
 
 tapBtn.addEventListener('click', doTap);
-tapBtn.addEventListener('touchstart', e => { e.preventDefault(); doTap(); }, { passive: false });
+tapBtn.addEventListener('touchstart', e => { e.preventDefault(); doTap(); }, { passive:false });
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && !e.repeat) { e.preventDefault(); doTap(); }
 });
@@ -325,56 +350,42 @@ document.getElementById('undo-btn').addEventListener('click', () => {
   lineIdx--;
   taps[lineIdx] = null;
   save();
-  updateDisplay();
-  rebuildLog();
-  document.getElementById('output-box').style.display = 'none';
+  refreshAll();
+  document.getElementById('out-box').style.display = 'none';
   document.getElementById('copy-btn').style.display = 'none';
 });
 
 // ── skip ──────────────────────────────────────────────────────────────────
 document.getElementById('skip-btn').addEventListener('click', () => {
-  if (!running || lineIdx >= LINES.length) return;
-  taps[lineIdx] = null;   // mark skipped (null = interpolate later)
+  if (lineIdx >= LINES.length) return;
+  taps[lineIdx] = null;
   lineIdx++;
   save();
-  updateDisplay();
-  rebuildLog();
-});
-
-// ── jump-to ───────────────────────────────────────────────────────────────
-document.getElementById('jump-btn').addEventListener('click', () => {
-  const v = parseInt(document.getElementById('jump-input').value);
-  if (isNaN(v) || v < 1 || v > LINES.length) return;
-  lineIdx = v - 1;
-  save();
-  updateDisplay();
-  rebuildLog();
-  tapBtn.disabled = !running;
-});
-
-// ── clear ─────────────────────────────────────────────────────────────────
-document.getElementById('clear-btn').addEventListener('click', () => {
-  if (!confirm('Clear ALL taps and start over?')) return;
-  taps = Array(LINES.length).fill(null);
-  lineIdx = 0;
-  save();
-  updateDisplay();
-  rebuildLog();
-  document.getElementById('output-box').style.display = 'none';
-  document.getElementById('copy-btn').style.display = 'none';
+  refreshAll();
 });
 
 // ── done ──────────────────────────────────────────────────────────────────
-document.getElementById('done-btn').addEventListener('click', showOutput);
+document.getElementById('done-btn').addEventListener('click', showOut);
 
-function showOutput() {
-  const box = document.getElementById('output-box');
+// ── clear ─────────────────────────────────────────────────────────────────
+document.getElementById('clear-btn').addEventListener('click', () => {
+  if (!confirm('Clear ALL taps?')) return;
+  taps    = Array(LINES.length).fill(null);
+  lineIdx = 0;
+  save();
+  refreshAll();
+  document.getElementById('out-box').style.display = 'none';
+  document.getElementById('copy-btn').style.display = 'none';
+});
+
+// ── output ────────────────────────────────────────────────────────────────
+function showOut() {
+  const box = document.getElementById('out-box');
   box.textContent = JSON.stringify(taps);
   box.style.display = 'block';
   document.getElementById('copy-btn').style.display = 'inline-block';
 }
-
-function copyOutput() {
+function copyOut() {
   navigator.clipboard.writeText(JSON.stringify(taps)).then(() => {
     document.getElementById('copy-btn').textContent = '✓ Copied!';
     setTimeout(() => document.getElementById('copy-btn').textContent = '📋 Copy JSON', 1600);
@@ -382,11 +393,11 @@ function copyOutput() {
 }
 
 // ── init ──────────────────────────────────────────────────────────────────
-loadSaved();
-updateDisplay();
-rebuildLog();
-if (taps.filter(t => t !== null).length > 0) {
-  statusEl.textContent = `Resumed — ${taps.filter(t=>t!==null).length} lines saved. Press START to continue.`;
+load();
+refreshAll();
+const done0 = taps.filter(t => t !== null).length;
+if (done0 > 0) {
+  statusEl.textContent = `${done0} lines saved — press ▶ START to continue`;
 }
 </script>
 </body>
