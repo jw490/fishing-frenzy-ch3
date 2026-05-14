@@ -120,6 +120,17 @@
   <div class="timeline">
 
     <div class="entry">
+      <div class="entry-date">May 14, 2026</div>
+      <div class="entry-title">Guitar Hero dopamine + Skip Intro + pitch-coloured bars</div>
+      <ul>
+        <li><span class="tag tag-fix">Fix</span> <strong>Countdown timer now uses tap-calibrated lyricTimes[0]</strong> — for lyricsMode songs, the countdown previously used estimated <code>firstVocalSec</code>. It now reads <code>syllableBars[0].start</code> — the actual first character timestamp from the user-tapped lyricTimes array. Frame-accurate for all 36 songs.</li>
+        <li><span class="tag tag-new">New</span> <strong>Skip Intro button</strong> — a glowing green ⏭ SKIP INTRO button appears over the canvas during the song intro and auto-hides 1 s before singing begins. Tapping it seeks to first lyric − 3 s, giving a short runway. Works for both MV and lyricsMode songs.</li>
+        <li><span class="tag tag-new">New</span> <strong>Pitch-coloured syllable bars</strong> — upcoming bars now color-code by pitch: blue (low notes) → cyan (mid) → gold/orange (high notes). Active bars pulse with a sine-wave glow. HIGH / LOW zone labels appear at canvas edges. Makes it immediately obvious when you need to go up or down.</li>
+        <li><span class="tag tag-new">New</span> <strong>Guitar Hero–style dopamine</strong> — particles scale to 6× intensity during sustained good notes, with separate throttle for near-perfect accuracy. Streak milestones (5/10/20/30) now fire <code>_burstParticles()</code> (12→22→35→50 stars). Streak 10+ uses a larger <em>bomb-mega</em> CSS animation. New legend (purple) particle type for streak 20+. New streak 30 bucket: "DEMON MODE", "GODTIER ⚡", etc. Particle cap raised from 100 → 250.</li>
+      </ul>
+    </div>
+
+    <div class="entry">
       <div class="entry-date">May 10, 2026 (night)</div>
       <ul>
         <li><span class="tag tag-fix">Fix</span> <strong>跳樓機 + 開始懂了 — negative lyricTimes corrected</strong> — both songs had production credits embedded in their LRC files in non-standard format (吉他:, 词：) bypassing the credit filter. batch_char_align ran against the wrong reference timing, producing lyricTimes starting at −2 s and −11 s. Fixed by cleaning LRC files, re-running auto_offset against R2 audio (offsets +4.17 s / +5.49 s), and re-running char_align. 开始懂了: 51 lines, 331 chars, 1 fallback; 跳樓機: 53 lines, 468 chars, 0 fallbacks</li>
