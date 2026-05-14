@@ -651,7 +651,7 @@ const Game = {
       // Upgrade fires once per tier crossing; miss resets streak AND multiplier.
       {
         const streak = this.currentStreak;
-        const newMult = streak >= 30 ? 4 : streak >= 20 ? 3 : streak >= 10 ? 2 : 1;
+        const newMult = streak >= 15 ? 4 : streak >= 10 ? 3 : streak >= 5 ? 2 : 1;
         if (newMult > (this._multiplier || 1)) {
           this._multiplier = newMult;
           this._showMultiplierUpgrade(newMult);
@@ -663,7 +663,7 @@ const Game = {
           this._multiplier = newMult;
         }
         // Sub-tier pulse every 5 notes within a tier (keeps energy up)
-        if (streak > 0 && streak % 5 === 0 && newMult === (this._multiplier || 1)) {
+        if (streak > 0 && streak % 3 === 0 && newMult === (this._multiplier || 1)) {
           const playheadX = this.displayWidth * this.PLAYHEAD_X;
           const py = this._midiToY(data.midi);
           this._burstParticles(playheadX, py, 6, 'good');
@@ -914,8 +914,8 @@ const Game = {
 
     // Progress dots — only shown at 2×+ (at 1× they'd just be distracting grey dots)
     if (mult >= 2 || streak > 0) {
-      const dotCount = 10;
-      const filled = streak % 10;
+      const dotCount = 5;  // each tier is 5 notes wide
+      const filled = streak % 5;
       const dotR = Math.round(W * 0.005);
       const dotSpacing = dotR * 2.6;
       const dotsStartX = bx - (dotCount - 1) * dotSpacing / 2;
