@@ -1064,16 +1064,16 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---- Streak / Combo counter — anchored just left of the playhead (25%) ---- */
+/* ---- Streak / Combo counter — centre of screen ---- */
 .streak-indicator {
   position: absolute;
-  left: calc(25% - 16px);
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%) translateX(calc(-100% - 8px)); /* invisible: nudged left */
+  transform: translateX(-50%) translateY(-40%) scale(0.85);
   z-index: 40;
   display: flex;
   flex-direction: column;
-  align-items: flex-end; /* right-align so number butts up against the playhead */
+  align-items: center;
   gap: 0;
   pointer-events: none;
   opacity: 0;
@@ -1082,7 +1082,7 @@ html, body {
 
 .streak-indicator.active {
   opacity: 1;
-  transform: translateY(-50%) translateX(-100%);
+  transform: translateX(-50%) translateY(-40%) scale(1);
 }
 
 /* The big number */
@@ -1106,14 +1106,12 @@ html, body {
   margin-top: -2px;
 }
 
-/* 🔥 fire icon next to the number */
+/* 🔥 fire icon above the number */
 .streak-fire {
-  font-size: 22px;
-  position: absolute;
-  top: 0;
-  left: calc(100% + 4px);
+  font-size: 20px;
   opacity: 0;
   transition: opacity 0.2s;
+  margin-bottom: 2px;
 }
 .streak-indicator.active .streak-fire { opacity: 1; }
 
@@ -1155,7 +1153,7 @@ html, body {
 .grade-bomb {
   position: absolute;
   top: 38%;
-  left: 25%;
+  left: 50%;
   transform: translateX(-50%) translateY(-50%);
   font-family: var(--font-display);
   font-size: clamp(28px, 6vw, 44px);
@@ -1265,9 +1263,9 @@ html, body {
    Hidden when on-pitch or no melody segment active. */
 .pitch-direction {
   position: absolute;
-  left: calc(25% + 18px); /* just right of the playhead */
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateX(-50%) translateY(-50%);
   font-size: 28px;
   font-weight: 900;
   line-height: 1;
