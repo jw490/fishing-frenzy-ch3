@@ -1064,25 +1064,25 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---- Streak / Combo counter — canvas overlay, lower-left ---- */
+/* ---- Streak / Combo counter — anchored just left of the playhead (25%) ---- */
 .streak-indicator {
   position: absolute;
-  left: 16px;
-  bottom: 152px; /* sit just above the lyrics bar */
+  left: calc(25% - 16px);
+  top: 50%;
+  transform: translateY(-50%) translateX(calc(-100% - 8px)); /* invisible: nudged left */
   z-index: 40;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end; /* right-align so number butts up against the playhead */
   gap: 0;
   pointer-events: none;
   opacity: 0;
-  transform: translateX(-8px);
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
 .streak-indicator.active {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateY(-50%) translateX(-100%);
 }
 
 /* The big number */
@@ -1154,8 +1154,8 @@ html, body {
 /* Grade bomb overlay — centered over canvas, pointer-events off */
 .grade-bomb {
   position: absolute;
-  top: 42%;
-  left: 50%;
+  top: 38%;
+  left: 25%;
   transform: translateX(-50%) translateY(-50%);
   font-family: var(--font-display);
   font-size: clamp(28px, 6vw, 44px);
@@ -1265,7 +1265,7 @@ html, body {
    Hidden when on-pitch or no melody segment active. */
 .pitch-direction {
   position: absolute;
-  right: 14px;
+  left: calc(25% + 18px); /* just right of the playhead */
   top: 50%;
   transform: translateY(-50%);
   font-size: 28px;
@@ -1276,7 +1276,6 @@ html, body {
   opacity: 0;
   transition: opacity 0.08s ease-out, color 0.08s ease-out;
   text-shadow: 0 0 12px currentColor;
-  /* nudge up slightly so it sits in the canvas zone, not over lyrics */
   margin-top: -70px;
 }
 .pitch-direction.pd-high {
