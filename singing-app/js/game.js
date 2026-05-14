@@ -651,7 +651,7 @@ const Game = {
       // Upgrade fires once per tier crossing; miss resets streak AND multiplier.
       {
         const streak = this.currentStreak;
-        const newMult = streak >= 15 ? 4 : streak >= 10 ? 3 : streak >= 5 ? 2 : 1;
+        const newMult = streak >= 10 ? 4 : streak >= 5 ? 3 : streak >= 2 ? 2 : 1;
         if (newMult > (this._multiplier || 1)) {
           this._multiplier = newMult;
           this._showMultiplierUpgrade(newMult);
