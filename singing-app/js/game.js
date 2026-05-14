@@ -879,56 +879,62 @@ const Game = {
       ctx.restore();
     }
 
-    // ---- Always-on multiplier badge (Guitar Hero style) ----
+    // ---- Multiplier badge (Guitar Hero style — bottom-left corner, compact) ----
     const mult = this._multiplier || 1;
     const streak = this.currentStreak || 0;
 
-    // Tier colours: 1x green, 2x cyan, 3x orange, 4x gold
+    // Tier colours: 1x (dim), 2x cyan, 3x orange, 4x gold
     const MULT_COLORS = ['', '#00ff88', '#00d4ff', '#ff6b35', '#ffd700'];
     const mc = MULT_COLORS[mult] || '#ffffff';
 
-    // Position: centre-bottom of canvas
-    const bx = cx;
-    const by = H * 0.80;
+    // Compact: bottom-left corner, well clear of bars
+    const bx = W * 0.08;
+    const by = H * 0.88;
 
-    // Gentle pulse that intensifies with multiplier
-    const pulseSpeed = 200 + (4 - mult) * 80;
-    const pulse = 1 + (0.03 + mult * 0.015) * Math.sin(now / pulseSpeed);
-    const multFS = Math.round(W * 0.065 * pulse);
+    // Pulse only at 2×+; 1× is static and dim so it doesn't nag
+    const pulseAmt = mult >= 2 ? (0.02 + (mult - 1) * 0.02) * Math.sin(now / (280 - mult * 20)) : 0;
+    const pulse = 1 + pulseAmt;
+
+    // 1× is small and translucent; higher tiers are full-brightness and larger
+    const baseSize = mult === 1 ? W * 0.028 : W * 0.038 + (mult - 2) * W * 0.005;
+    const multFS = Math.round(baseSize * pulse);
+    const badgeAlpha = mult === 1 ? 0.28 : 1.0;
 
     ctx.save();
+    ctx.globalAlpha = badgeAlpha;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
     // Multiplier number
     ctx.font = `900 ${multFS}px 'Rajdhani', 'Inter', sans-serif`;
     ctx.shadowColor = mc;
-    ctx.shadowBlur = 16 + mult * 6;
+    ctx.shadowBlur = mult >= 2 ? 12 + mult * 4 : 0;
     ctx.fillStyle = mc;
     ctx.fillText(`${mult}×`, bx, by);
 
-    // Progress dots: 10 dots showing fill toward next tier
-    const dotCount = 10;
-    const filled = streak % 10; // 0–9 within current tier
-    const dotR = Math.round(W * 0.008);
-    const dotSpacing = dotR * 2.8;
-    const dotsStartX = bx - (dotCount - 1) * dotSpacing / 2;
-    const dotsY = by + multFS * 0.65;
+    // Progress dots — only shown at 2×+ (at 1× they'd just be distracting grey dots)
+    if (mult >= 2 || streak > 0) {
+      const dotCount = 10;
+      const filled = streak % 10;
+      const dotR = Math.round(W * 0.005);
+      const dotSpacing = dotR * 2.6;
+      const dotsStartX = bx - (dotCount - 1) * dotSpacing / 2;
+      const dotsY = by + multFS * 0.72;
 
-    for (let i = 0; i < dotCount; i++) {
-      const dx = dotsStartX + i * dotSpacing;
-      const isFilled = i < filled;
-      ctx.beginPath();
-      ctx.arc(dx, dotsY, dotR, 0, Math.PI * 2);
-      if (isFilled) {
-        ctx.shadowColor = mc;
-        ctx.shadowBlur = 8;
-        ctx.fillStyle = mc;
-      } else {
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      for (let i = 0; i < dotCount; i++) {
+        const dx = dotsStartX + i * dotSpacing;
+        ctx.beginPath();
+        ctx.arc(dx, dotsY, dotR, 0, Math.PI * 2);
+        if (i < filled) {
+          ctx.shadowColor = mc;
+          ctx.shadowBlur = 6;
+          ctx.fillStyle = mc;
+        } else {
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        }
+        ctx.fill();
       }
-      ctx.fill();
     }
 
     ctx.restore();
