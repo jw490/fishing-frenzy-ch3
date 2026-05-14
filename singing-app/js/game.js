@@ -636,20 +636,39 @@ const Game = {
       const _lastPH = this.pitchHistory[this.pitchHistory.length - 1];
       if (_lastPH) _lastPH.consec = acc >= 0.7 ? this._consecutiveGoodFrames : 0;
 
-      // Streak milestone grade bombs (fired once per crossing).
-      const _MILESTONES = [5, 10, 20, 30];
-      for (const _m of _MILESTONES) {
-        if (this.currentStreak >= _m && (this._lastStreakMilestone || 0) < _m) {
-          this._lastStreakMilestone = _m;
+      // Streak combo bombs — fire at 3, then every 5 after that (5, 10, 15, 20, 25...).
+      // Resets fully when streak drops to 0 so every new run feels rewarding.
+      {
+        const streak = this.currentStreak;
+        const last   = this._lastStreakMilestone || 0;
+        // Compute next fire point
+        let nextFire = null;
+        if (streak >= 3 && last < 3) {
+          nextFire = 3;
+        } else if (streak >= 5) {
+          const nextMultiple = Math.floor(streak / 5) * 5;
+          if (nextMultiple > last) nextFire = nextMultiple;
+        }
+        if (nextFire !== null) {
+          this._lastStreakMilestone = nextFire;
           const playheadX = this.displayWidth * this.PLAYHEAD_X;
           const py = this._midiToY(data.midi);
-          if (_m === 5)  { this._showGradeBomb(this._pickMsg('streak5'), '#00ff88', false); this._burstParticles(playheadX, py, 12, 'good'); }
-          if (_m === 10) { this._showGradeBomb(this._pickMsg('streak10'), '#ffd700', true);  this._burstParticles(playheadX, py, 22, 'perfect'); }
-          if (_m === 20) { this._showGradeBomb(this._pickMsg('streak20'), '#ff6b35', true);  this._burstParticles(playheadX, py, 35, 'legend'); }
-          if (_m === 30) { this._showGradeBomb(this._pickMsg('streak30'), '#ff00ff', true);  this._burstParticles(playheadX, py, 50, 'legend'); }
+          if (nextFire >= 20) {
+            this._showGradeBomb(this._pickMsg('streak20'), '#ff6b35', true);
+            this._burstParticles(playheadX, py, 35 + (nextFire - 20) * 2, 'legend');
+          } else if (nextFire >= 10) {
+            this._showGradeBomb(this._pickMsg('streak10'), '#ffd700', true);
+            this._burstParticles(playheadX, py, 22, 'perfect');
+          } else if (nextFire >= 5) {
+            this._showGradeBomb(this._pickMsg('streak5'), '#00ff88', false);
+            this._burstParticles(playheadX, py, 12, 'good');
+          } else {
+            this._showGradeBomb(this._pickMsg('streak3'), '#00ff88', false);
+            this._burstParticles(playheadX, py, 6, 'good');
+          }
         }
+        if (streak === 0) this._lastStreakMilestone = 0;
       }
-      if (this.currentStreak === 0) this._lastStreakMilestone = 0;
 
       // Line-completion grade bomb: fires when we transition to a new lyric line
       // and the just-finished line was sung well. Skipped if a streak bomb is live.
@@ -1336,19 +1355,19 @@ const Game = {
 
     if (streakEl) streakEl.textContent = this.currentStreak;
     if (streakIndicator) {
-      if (this.currentStreak >= 3) {
+      if (this.currentStreak >= 2) {
         streakIndicator.classList.add('active');
       } else {
         streakIndicator.classList.remove('active');
       }
     }
 
-    // Combo multiplier badge — ×2 at 5, ×3 at 10, ×5 at 20.
+    // Combo multiplier badge — ×2 at 3, ×3 at 10, ×5 at 20.
     const multEl = document.getElementById('streak-mult');
     let newComboLevel = 0;
     if (this.currentStreak >= 20) newComboLevel = 3;
     else if (this.currentStreak >= 10) newComboLevel = 2;
-    else if (this.currentStreak >= 5) newComboLevel = 1;
+    else if (this.currentStreak >= 3) newComboLevel = 1;
     if (multEl && newComboLevel !== this._comboLevel) {
       this._comboLevel = newComboLevel;
       const labels = ['', '×2', '×3', '×5'];
@@ -1730,7 +1749,8 @@ const Game = {
     const pools = {
       perfect:  ['完美 ✨', 'NAILED IT', '神了！', 'FLAWLESS', '完璧！', 'PERFECT ✨', '太棒了！'],
       good:     ['良好！', 'Keep it up!', 'GREAT!', '唱得好！', 'Nice one!', '加油！'],
-      streak5:  ['🔥 ×5 COMBO', 'NICE!', '连击！', 'Combo!', '5連擊！'],
+      streak3:  ['COMBO!', '连击！', 'Nice!', '太好了！', 'Keep going!'],
+      streak5:  ['🔥 COMBO ×5', 'HOT!', '5連擊！', 'Heating up!', '好唱！'],
       streak10: ['ON FIRE 🔥', '×10 连击！', 'AMAZING!', '好厉害！', 'Unstoppable!'],
       streak20: ['LEGEND 👑', '传说！', 'GODLIKE', '无敌！', 'UNSTOPPABLE ⚡'],
       streak30: ['DEMON MODE 👹', '魔王！', 'GODTIER ⚡', '神！', 'UNTOUCHABLE 💜'],
