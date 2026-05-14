@@ -189,6 +189,15 @@ const Game = {
     this._comboLevel = 0;
     this._lastStreakMilestone = 0;
     this._lastScoredLineIdx = -1;
+    this._multiplier = 1;
+    this._multUpgradeStart = null;
+    this._multUpgradeLevel = 1;
+    this._flashStart = null;
+    this._flashColor = '#ffffff';
+    this._flashAlpha = 0.3;
+    this._flashDur   = 0.3;
+    this._edgeGlowStart = null;
+    this._edgeGlowColor = '#ffffff';
     if (this._gradeBombTimer) { clearTimeout(this._gradeBombTimer); this._gradeBombTimer = null; }
 
     // Original-audio mode: user turned karaoke OFF on a karaoke-capable song.
@@ -517,6 +526,7 @@ const Game = {
                   if (this._streakBadFrames >= 3) {
                     this.currentStreak = 0;
                     this._streakBadFrames = 0;
+                    if (this._multiplier > 1) { this._multiplier = 1; this._screenFlash('#ff2244', 0.25, 0.22); }
                   }
                 }
               }
@@ -593,6 +603,7 @@ const Game = {
         if (this._streakBadFrames >= 3) {
           this.currentStreak = 0;
           this._streakBadFrames = 0;
+          if (this._multiplier > 1) { this._multiplier = 1; this._screenFlash('#ff2244', 0.25, 0.22); }
         }
       } else {
         this._streakBadFrames = 0;
@@ -636,38 +647,28 @@ const Game = {
       const _lastPH = this.pitchHistory[this.pitchHistory.length - 1];
       if (_lastPH) _lastPH.consec = acc >= 0.7 ? this._consecutiveGoodFrames : 0;
 
-      // Streak combo bombs — fire at 3, then every 5 after that (5, 10, 15, 20, 25...).
-      // Resets fully when streak drops to 0 so every new run feels rewarding.
+      // Guitar Hero-style multiplier tiers: 1x (0–9) 2x (10–19) 3x (20–29) 4x (30+).
+      // Upgrade fires once per tier crossing; miss resets streak AND multiplier.
       {
         const streak = this.currentStreak;
-        const last   = this._lastStreakMilestone || 0;
-        // Compute next fire point
-        let nextFire = null;
-        if (streak >= 3 && last < 3) {
-          nextFire = 3;
-        } else if (streak >= 5) {
-          const nextMultiple = Math.floor(streak / 5) * 5;
-          if (nextMultiple > last) nextFire = nextMultiple;
+        const newMult = streak >= 30 ? 4 : streak >= 20 ? 3 : streak >= 10 ? 2 : 1;
+        if (newMult > (this._multiplier || 1)) {
+          this._multiplier = newMult;
+          this._showMultiplierUpgrade(newMult);
+        } else if (streak === 0 && this._multiplier > 1) {
+          this._multiplier = 1;
+          // Brief red flash on drop
+          this._screenFlash('#ff2244', 0.25, 0.22);
+        } else {
+          this._multiplier = newMult;
         }
-        if (nextFire !== null) {
-          this._lastStreakMilestone = nextFire;
+        // Sub-tier pulse every 5 notes within a tier (keeps energy up)
+        if (streak > 0 && streak % 5 === 0 && newMult === (this._multiplier || 1)) {
           const playheadX = this.displayWidth * this.PLAYHEAD_X;
           const py = this._midiToY(data.midi);
-          if (nextFire >= 20) {
-            this._showGradeBomb(this._pickMsg('streak20'), '#ff6b35', true);
-            this._burstParticles(playheadX, py, 35 + (nextFire - 20) * 2, 'legend');
-          } else if (nextFire >= 10) {
-            this._showGradeBomb(this._pickMsg('streak10'), '#ffd700', true);
-            this._burstParticles(playheadX, py, 22, 'perfect');
-          } else if (nextFire >= 5) {
-            this._showGradeBomb(this._pickMsg('streak5'), '#00ff88', false);
-            this._burstParticles(playheadX, py, 12, 'good');
-          } else {
-            this._showGradeBomb(this._pickMsg('streak3'), '#00ff88', false);
-            this._burstParticles(playheadX, py, 6, 'good');
-          }
+          this._burstParticles(playheadX, py, 6, 'good');
+          this._screenFlash('#00ff88', 0.18, 0.08);
         }
-        if (streak === 0) this._lastStreakMilestone = 0;
       }
 
       // Line-completion grade bomb: fires when we transition to a new lyric line
@@ -764,91 +765,173 @@ const Game = {
 
   _drawOverlays(ctx, W, H) {
     const cx = W / 2;
-    const cy = H * 0.42; // vertical sweet spot — above center, in the bars zone
+    const now = performance.now();
 
-    // ---- Grade bomb ----
+    // ---- Full-screen flash (multiplier upgrade / miss penalty) ----
+    if (this._flashStart != null) {
+      const fe = (now - this._flashStart) / 1000;
+      const fd = this._flashDur || 0.3;
+      if (fe < fd) {
+        const fa = (this._flashAlpha || 0.3) * (1 - fe / fd);
+        ctx.save();
+        ctx.globalAlpha = fa;
+        ctx.fillStyle = this._flashColor || '#ffffff';
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      } else {
+        this._flashStart = null;
+      }
+    }
+
+    // ---- Screen-edge glow (multiplier upgrade) ----
+    if (this._edgeGlowStart != null) {
+      const ee = (now - this._edgeGlowStart) / 1000;
+      const ed = 0.9;
+      if (ee < ed) {
+        const ea = 0.7 * (1 - ee / ed);
+        const ec = this._edgeGlowColor || '#ffd700';
+        const gw = Math.round(W * 0.04);
+        ctx.save();
+        ctx.globalAlpha = ea;
+        // top
+        const gt = ctx.createLinearGradient(0, 0, 0, gw);
+        gt.addColorStop(0, ec); gt.addColorStop(1, 'transparent');
+        ctx.fillStyle = gt; ctx.fillRect(0, 0, W, gw);
+        // bottom
+        const gb = ctx.createLinearGradient(0, H - gw, 0, H);
+        gb.addColorStop(0, 'transparent'); gb.addColorStop(1, ec);
+        ctx.fillStyle = gb; ctx.fillRect(0, H - gw, W, gw);
+        // left
+        const gl = ctx.createLinearGradient(0, 0, gw, 0);
+        gl.addColorStop(0, ec); gl.addColorStop(1, 'transparent');
+        ctx.fillStyle = gl; ctx.fillRect(0, 0, gw, H);
+        // right
+        const gr = ctx.createLinearGradient(W - gw, 0, W, 0);
+        gr.addColorStop(0, 'transparent'); gr.addColorStop(1, ec);
+        ctx.fillStyle = gr; ctx.fillRect(W - gw, 0, gw, H);
+        ctx.restore();
+      } else {
+        this._edgeGlowStart = null;
+      }
+    }
+
+    // ---- Multiplier upgrade blast (big centred announcement) ----
+    if (this._multUpgradeStart != null) {
+      const me = (now - this._multUpgradeStart) / 1000;
+      const md = 1.0;
+      if (me < md) {
+        const mt = me / md;
+        // scale: snap to 2.2 then decay back to 1.0
+        const ms = mt < 0.12 ? 1 + (mt / 0.12) * 1.2 : 2.2 - ((mt - 0.12) / 0.88) * 1.2;
+        const ma = mt < 0.15 ? 1 : 1 - ((mt - 0.15) / 0.85);
+        const mc = this._multUpgradeColor || '#ffd700';
+        const mfs = Math.round(W * 0.16 * ms);
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, ma);
+        ctx.font = `900 ${mfs}px 'Rajdhani', 'Inter', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = mc;
+        ctx.shadowBlur = 60;
+        ctx.fillStyle = mc;
+        ctx.fillText(`${this._multUpgradeLevel}×`, cx, H * 0.38);
+        // white inner crisp layer
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ffffff';
+        ctx.globalAlpha = Math.max(0, ma) * 0.4;
+        ctx.fillText(`${this._multUpgradeLevel}×`, cx, H * 0.38);
+        ctx.restore();
+      } else {
+        this._multUpgradeStart = null;
+      }
+    }
+
+    // ---- Grade bomb (PERFECT / GREAT / etc.) ----
     if (this._gradeBombText && this._gradeBombStart != null) {
-      const elapsed  = (performance.now() - this._gradeBombStart) / 1000;
-      const duration = this._gradeBombMega ? 1.6 : 1.2;
-      const t = Math.min(1, elapsed / duration); // 0→1 over lifetime
-
-      // Opacity: fade in fast, hold, fade out
-      let alpha;
-      if (t < 0.08)       alpha = t / 0.08;
-      else if (t < 0.65)  alpha = 1;
-      else                 alpha = 1 - (t - 0.65) / 0.35;
-      alpha = Math.max(0, alpha);
-
-      // Scale: pop in then settle
-      let scale;
-      if (t < 0.10)      scale = 0.5 + (t / 0.10) * 0.6;   // 0.5 → 1.1
-      else if (t < 0.18) scale = 1.1 - (t - 0.10) / 0.08 * 0.1; // 1.1 → 1.0
-      else               scale = 1.0;
-      if (this._gradeBombMega) scale *= 1.25;
-
-      const fontSize = Math.round((this._gradeBombMega ? 52 : 38) * scale);
-      const liftY = cy - t * H * 0.12; // text drifts upward slightly
-
+      const ge = (now - this._gradeBombStart) / 1000;
+      const gd = this._gradeBombMega ? 1.6 : 1.2;
+      const gt = Math.min(1, ge / gd);
+      let ga;
+      if (gt < 0.08)      ga = gt / 0.08;
+      else if (gt < 0.65) ga = 1;
+      else                ga = 1 - (gt - 0.65) / 0.35;
+      ga = Math.max(0, ga);
+      let gs;
+      if (gt < 0.10)      gs = 0.5 + (gt / 0.10) * 0.6;
+      else if (gt < 0.18) gs = 1.1 - ((gt - 0.10) / 0.08) * 0.1;
+      else                gs = 1.0;
+      if (this._gradeBombMega) gs *= 1.25;
+      const gfs = Math.round((this._gradeBombMega ? 52 : 38) * gs);
+      const gly = H * 0.25 - gt * H * 0.08; // above the multiplier zone
       ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.font = `900 ${fontSize}px 'Rajdhani', 'Inter', sans-serif`;
+      ctx.globalAlpha = ga;
+      ctx.font = `900 ${gfs}px 'Rajdhani', 'Inter', sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-
-      // Glow
       ctx.shadowColor = this._gradeBombColor;
-      ctx.shadowBlur  = this._gradeBombMega ? 40 : 24;
-      ctx.fillStyle   = this._gradeBombColor;
-      ctx.fillText(this._gradeBombText, cx, liftY);
-
-      // Crisp inner layer
+      ctx.shadowBlur = this._gradeBombMega ? 40 : 24;
+      ctx.fillStyle = this._gradeBombColor;
+      ctx.fillText(this._gradeBombText, cx, gly);
       ctx.shadowBlur = 0;
-      ctx.fillStyle  = '#ffffff';
-      ctx.globalAlpha = alpha * 0.35;
-      ctx.fillText(this._gradeBombText, cx, liftY);
-
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = ga * 0.35;
+      ctx.fillText(this._gradeBombText, cx, gly);
       ctx.restore();
     }
 
-    // ---- Streak / combo counter ----
-    if (this.currentStreak >= 2) {
-      const streak = this.currentStreak;
+    // ---- Always-on multiplier badge (Guitar Hero style) ----
+    const mult = this._multiplier || 1;
+    const streak = this.currentStreak || 0;
 
-      // Color by level
-      let color;
-      if (streak >= 20)     color = '#ff6b35';
-      else if (streak >= 10) color = '#ffd700';
-      else                   color = '#00ff88';
+    // Tier colours: 1x green, 2x cyan, 3x orange, 4x gold
+    const MULT_COLORS = ['', '#00ff88', '#00d4ff', '#ff6b35', '#ffd700'];
+    const mc = MULT_COLORS[mult] || '#ffffff';
 
-      // Animate scale: pulse every time streak increments
-      // Use a simple always-on gentle pulse
-      const pulse = 1 + 0.04 * Math.sin(performance.now() / 300);
+    // Position: centre-bottom of canvas
+    const bx = cx;
+    const by = H * 0.80;
 
-      const numSize  = Math.round(W * 0.11 * pulse); // big number
-      const lblSize  = Math.round(W * 0.028);
-      const numX = cx;
-      const numY = cy + H * 0.22; // below the grade bomb zone
+    // Gentle pulse that intensifies with multiplier
+    const pulseSpeed = 200 + (4 - mult) * 80;
+    const pulse = 1 + (0.03 + mult * 0.015) * Math.sin(now / pulseSpeed);
+    const multFS = Math.round(W * 0.065 * pulse);
 
-      ctx.save();
-      ctx.textAlign    = 'center';
-      ctx.textBaseline = 'middle';
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
 
-      // Number
-      ctx.font       = `900 ${numSize}px 'Rajdhani', 'Inter', sans-serif`;
-      ctx.shadowColor = color;
-      ctx.shadowBlur  = 20;
-      ctx.fillStyle   = color;
-      ctx.fillText(streak, numX, numY);
+    // Multiplier number
+    ctx.font = `900 ${multFS}px 'Rajdhani', 'Inter', sans-serif`;
+    ctx.shadowColor = mc;
+    ctx.shadowBlur = 16 + mult * 6;
+    ctx.fillStyle = mc;
+    ctx.fillText(`${mult}×`, bx, by);
 
-      // "COMBO" label below
-      ctx.font      = `800 ${lblSize}px 'Rajdhani', 'Inter', sans-serif`;
-      ctx.shadowBlur = 0;
-      ctx.fillStyle  = color.replace(')', ',0.55)').replace('rgb', 'rgba');
-      ctx.globalAlpha = 0.7;
-      ctx.fillText('COMBO', numX, numY + numSize * 0.55);
+    // Progress dots: 10 dots showing fill toward next tier
+    const dotCount = 10;
+    const filled = streak % 10; // 0–9 within current tier
+    const dotR = Math.round(W * 0.008);
+    const dotSpacing = dotR * 2.8;
+    const dotsStartX = bx - (dotCount - 1) * dotSpacing / 2;
+    const dotsY = by + multFS * 0.65;
 
-      ctx.restore();
+    for (let i = 0; i < dotCount; i++) {
+      const dx = dotsStartX + i * dotSpacing;
+      const isFilled = i < filled;
+      ctx.beginPath();
+      ctx.arc(dx, dotsY, dotR, 0, Math.PI * 2);
+      if (isFilled) {
+        ctx.shadowColor = mc;
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = mc;
+      } else {
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      }
+      ctx.fill();
     }
+
+    ctx.restore();
   },
 
   _drawParticles(ctx) {
@@ -1886,6 +1969,33 @@ const Game = {
       this._gradeBombTimer = null;
       this._gradeBombText  = null;
     }, duration);
+  },
+
+  // Guitar Hero multiplier upgrade blast.
+  _showMultiplierUpgrade(newMult) {
+    const MULT_COLORS = ['', '#00ff88', '#00d4ff', '#ff6b35', '#ffd700'];
+    const color = MULT_COLORS[newMult] || '#ffffff';
+    this._multUpgradeStart = performance.now();
+    this._multUpgradeLevel = newMult;
+    this._multUpgradeColor = color;
+    // Full flash
+    this._screenFlash(color, 0.35, 0.35);
+    // Edge glow
+    this._edgeGlowStart = performance.now();
+    this._edgeGlowColor = color;
+    // Big particle burst from centre
+    const cx = this.displayWidth / 2;
+    const cy = this.displayHeight * 0.38;
+    const type = newMult >= 4 ? 'legend' : newMult >= 3 ? 'perfect' : 'good';
+    this._burstParticles(cx, cy, 20 + newMult * 12, type);
+  },
+
+  // Stores screen flash state for _drawOverlays.
+  _screenFlash(color, dur, alpha) {
+    this._flashStart = performance.now();
+    this._flashColor = color;
+    this._flashDur   = dur;
+    this._flashAlpha = alpha;
   },
 
   // --- Warm-up pitch meter ---
