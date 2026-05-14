@@ -602,23 +602,28 @@ const Game = {
       if (acc >= 0.7) {
         this._consecutiveGoodFrames++;
         const now = performance.now();
-        if (now - this._lastParticleTime > 80) {
+        const throttle = acc >= 0.95 ? 50 : 80; // perfect notes spawn faster
+        if (now - this._lastParticleTime > throttle) {
           this._lastParticleTime = now;
           const playheadX = this.displayWidth * this.PLAYHEAD_X;
           const py = this._midiToY(data.midi);
-          const intensity = this._consecutiveGoodFrames > 10 ? 3 : this._consecutiveGoodFrames > 5 ? 2 : 1;
+          // More particles the longer you hold a good note
+          const intensity = this._consecutiveGoodFrames > 15 ? 6
+                          : this._consecutiveGoodFrames > 8  ? 4
+                          : this._consecutiveGoodFrames > 3  ? 2 : 1;
+          const isPerfect = acc >= 0.95;
           for (let p = 0; p < intensity; p++) {
             this.particles.push({
-              x: playheadX + (Math.random() - 0.5) * 20,
-              y: py + (Math.random() - 0.5) * 16,
-              vx: (Math.random() - 0.5) * 3 + 1.5,
-              vy: (Math.random() - 0.5) * 3 - 1,
+              x: playheadX + (Math.random() - 0.5) * 24,
+              y: py + (Math.random() - 0.5) * 18,
+              vx: (Math.random() - 0.5) * 4 + 2,
+              vy: (Math.random() - 0.5) * 4 - 1.5,
               life: 1.0,
-              decay: 0.015 + Math.random() * 0.01,
-              size: 4 + Math.random() * 6,
-              type: acc >= 1.0 ? 'perfect' : 'good',
+              decay: isPerfect ? 0.012 + Math.random() * 0.008 : 0.018 + Math.random() * 0.012,
+              size: isPerfect ? 6 + Math.random() * 8 : 4 + Math.random() * 6,
+              type: isPerfect ? 'perfect' : 'good',
               rotation: Math.random() * Math.PI * 2,
-              rotSpeed: (Math.random() - 0.5) * 0.15,
+              rotSpeed: (Math.random() - 0.5) * 0.2,
             });
           }
         }
@@ -632,13 +637,16 @@ const Game = {
       if (_lastPH) _lastPH.consec = acc >= 0.7 ? this._consecutiveGoodFrames : 0;
 
       // Streak milestone grade bombs (fired once per crossing).
-      const _MILESTONES = [5, 10, 20];
+      const _MILESTONES = [5, 10, 20, 30];
       for (const _m of _MILESTONES) {
         if (this.currentStreak >= _m && (this._lastStreakMilestone || 0) < _m) {
           this._lastStreakMilestone = _m;
-          if (_m === 5)  this._showGradeBomb(this._pickMsg('streak5'), '#00ff88');
-          if (_m === 10) this._showGradeBomb(this._pickMsg('streak10'), '#ffd700');
-          if (_m === 20) this._showGradeBomb(this._pickMsg('streak20'), '#ff6b35');
+          const playheadX = this.displayWidth * this.PLAYHEAD_X;
+          const py = this._midiToY(data.midi);
+          if (_m === 5)  { this._showGradeBomb(this._pickMsg('streak5'), '#00ff88', false); this._burstParticles(playheadX, py, 12, 'good'); }
+          if (_m === 10) { this._showGradeBomb(this._pickMsg('streak10'), '#ffd700', true);  this._burstParticles(playheadX, py, 22, 'perfect'); }
+          if (_m === 20) { this._showGradeBomb(this._pickMsg('streak20'), '#ff6b35', true);  this._burstParticles(playheadX, py, 35, 'legend'); }
+          if (_m === 30) { this._showGradeBomb(this._pickMsg('streak30'), '#ff00ff', true);  this._burstParticles(playheadX, py, 50, 'legend'); }
         }
       }
       if (this.currentStreak === 0) this._lastStreakMilestone = 0;
@@ -753,8 +761,8 @@ const Game = {
       ctx.translate(p.x, p.y);
       ctx.rotate(p.rotation);
 
-      const color = p.type === 'perfect' ? '#ffd700' : '#00ff88';
-      const glowColor = p.type === 'perfect' ? 'rgba(255,215,0,' : 'rgba(0,255,136,';
+      const color = p.type === 'legend' ? '#ff00ff' : p.type === 'perfect' ? '#ffd700' : '#00ff88';
+      const glowColor = p.type === 'legend' ? 'rgba(255,0,255,' : p.type === 'perfect' ? 'rgba(255,215,0,' : 'rgba(0,255,136,';
 
       ctx.shadowColor = color;
       ctx.shadowBlur = 8 * p.life;
@@ -782,9 +790,9 @@ const Game = {
       ctx.restore();
     }
 
-    // Cap particle count
-    if (this.particles.length > 100) {
-      this.particles.splice(0, this.particles.length - 100);
+    // Cap particle count (allow more for burst moments)
+    if (this.particles.length > 250) {
+      this.particles.splice(0, this.particles.length - 250);
     }
   },
 
@@ -1024,9 +1032,40 @@ const Game = {
     ctx.stroke();
     ctx.restore();
 
+    // Pitch-zone labels: HIGH on top, LOW on bottom — helps players understand direction.
+    const labelX = 8;
+    ctx.save();
+    ctx.font = 'bold 10px Inter, sans-serif';
+    ctx.letterSpacing = '0.08em';
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText('HIGH', labelX, 18);
+    ctx.fillStyle = '#6ab0ff';
+    ctx.fillText('LOW', labelX, H - 8);
+    ctx.restore();
+
+    // Helper: interpolate bar color based on pitch fraction (0=low, 1=high)
+    // Low → sky blue, High → warm gold/orange (Guitar Hero style)
+    const pitchBarColor = (pitchFrac, alpha) => {
+      // Two-segment lerp: blue(0) → cyan(0.5) → gold(1)
+      let r, g, b;
+      if (pitchFrac < 0.5) {
+        const t = pitchFrac * 2;
+        r = 0;
+        g = Math.round(130 + t * 82);  // 130 → 212
+        b = 255;
+      } else {
+        const t = (pitchFrac - 0.5) * 2;
+        r = Math.round(t * 255);
+        g = Math.round(212 - t * 52);  // 212 → 160
+        b = Math.round(255 - t * 255); // 255 → 0
+      }
+      return `rgba(${r},${g},${b},${alpha})`;
+    };
+
     // Draw syllable bars
-    const nh = this.NOTE_HEIGHT * 0.7;
-    const cornerR = Math.min(nh / 2, 4);
+    const nh = this.NOTE_HEIGHT * 0.85; // slightly taller than before
+    const cornerR = Math.min(nh / 2, 5);
 
     for (const bar of this.syllableBars) {
       const x = playheadX + (bar.start - time) * pxPerSec;
@@ -1036,6 +1075,7 @@ const Game = {
       // Skip if off screen
       if (x + w < -10 || x > W + 10) continue;
 
+      const pitchFrac = Math.max(0, Math.min(1, (bar.midi - this.MIDI_LOW) / Math.max(1, this.NOTE_RANGE)));
       const isPast = bar.start + bar.dur < time;
       const isActive = time >= bar.start && time <= bar.start + bar.dur;
       const isSinging = this.currentPitch.freq > 0;
@@ -1043,33 +1083,35 @@ const Game = {
       ctx.save();
 
       if (isPast) {
-        // Past bars: check if user was singing
         const wasHit = bar.hit;
         if (wasHit) {
-          ctx.fillStyle = 'rgba(0,255,136,0.25)';
-          ctx.strokeStyle = 'rgba(0,255,136,0.5)';
+          ctx.fillStyle = 'rgba(0,255,136,0.22)';
+          ctx.strokeStyle = 'rgba(0,255,136,0.45)';
         } else {
-          ctx.fillStyle = 'rgba(255,255,255,0.04)';
-          ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+          ctx.fillStyle = 'rgba(255,255,255,0.03)';
+          ctx.strokeStyle = 'rgba(255,255,255,0.07)';
         }
         ctx.lineWidth = 1;
       } else if (isActive) {
-        // Active bar — bar.hit is set authoritatively by _scorePitch, not here.
         if (isSinging) {
           ctx.shadowColor = '#00ff88';
-          ctx.shadowBlur = 12;
-          ctx.fillStyle = 'rgba(0,255,136,0.4)';
+          ctx.shadowBlur = 16;
+          ctx.fillStyle = 'rgba(0,255,136,0.45)';
           ctx.strokeStyle = '#00ff88';
         } else {
-          ctx.fillStyle = 'rgba(0,212,255,0.3)';
-          ctx.strokeStyle = 'rgba(0,212,255,0.8)';
+          // Pulse the active bar even when not singing yet
+          const pulse = 0.5 + 0.3 * Math.sin(performance.now() / 200);
+          ctx.fillStyle = pitchBarColor(pitchFrac, 0.25 + pulse * 0.15);
+          ctx.strokeStyle = pitchBarColor(pitchFrac, 0.7 + pulse * 0.3);
+          ctx.shadowColor = pitchBarColor(pitchFrac, 0.5);
+          ctx.shadowBlur = 8 + pulse * 6;
         }
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2;
       } else {
-        // Upcoming bars
-        ctx.fillStyle = 'rgba(0,212,255,0.12)';
-        ctx.strokeStyle = 'rgba(0,212,255,0.35)';
-        ctx.lineWidth = 1;
+        // Upcoming bars — color-coded by pitch for immediate visual clarity
+        ctx.fillStyle = pitchBarColor(pitchFrac, 0.18);
+        ctx.strokeStyle = pitchBarColor(pitchFrac, 0.55);
+        ctx.lineWidth = 1.2;
       }
 
       this._roundRect(ctx, x, y - nh / 2, w, nh, cornerR);
@@ -1320,24 +1362,38 @@ const Game = {
   },
 
   // 5-4-3-2-1 countdown that fires in the 5 seconds before the first sung note.
+  // Returns the timestamp (seconds) when the first lyric syllable starts.
+  // Priority: syllableBars[0].start (lyricsMode tap-calibrated) → firstVocalSec → notes[0] → 8s fallback.
+  getFirstSinging() {
+    if (this.syllableBars && this.syllableBars.length > 0) return this.syllableBars[0].start;
+    if (this.song && this.song.firstVocalSec) return this.song.firstVocalSec;
+    const n = this.notes && this.notes.find(n => n.start > 0.5);
+    return n ? n.start : 8;
+  },
+
   _updateCountdown() {
     const el = document.getElementById('singing-countdown');
     if (!el) return;
     if (this._countdownDone) { el.hidden = true; return; }
 
-    // Find the first singing note. song.firstVocalSec always wins (explicit
-    // per-song calibration); fall back to JSON first note; then MV fallback.
-    const firstNote = (this.song && this.song.firstVocalSec)
-      ? { start: this.song.firstVocalSec }
-      : (this.notes.find(n => n.start > 0.5)
-          || (this.song && this.song.mvSrc && this.syllableBars && this.syllableBars.length === 0
-              ? { start: 8 } : null));
-    if (!firstNote) { el.hidden = true; return; }
+    // Find the first singing moment. Priority: syllableBars[0].start (tap-calibrated lyricTimes
+    // ground truth for lyricsMode songs) → firstVocalSec → notes[0] → MV fallback.
+    const firstSing = this.getFirstSinging();
+    const firstNote = { start: firstSing };
+
+    // Show / hide Skip Intro button: visible during intro, gone once singing begins.
+    const skipBtn = document.getElementById('btn-skip-intro');
+    if (skipBtn) {
+      skipBtn.hidden = (this.currentTime >= firstSing - 1.0 || this._countdownDone);
+    }
 
     const t = firstNote.start - this.currentTime; // seconds until first note
 
     if (t > 5.5 || t < -0.3) {
-      if (t < -0.3) this._countdownDone = true;
+      if (t < -0.3) {
+        this._countdownDone = true;
+        if (skipBtn) skipBtn.hidden = true;
+      }
       el.hidden = true;
       return;
     }
@@ -1607,35 +1663,59 @@ const Game = {
   // Pick a random message from a labelled bucket for grade-bomb variety.
   _pickMsg(bucket) {
     const pools = {
-      perfect: ['完美 ✨', 'NAILED IT', '神了！', 'FLAWLESS', '完璧！', 'PERFECT ✨', '太棒了！'],
-      good:    ['良好！', 'Keep it up!', 'GREAT!', '唱得好！', 'Nice one!', '加油！'],
-      streak5: ['🔥 ×5', 'NICE!', '连击！', 'Combo!', '不错哦！', '5 streak!'],
-      streak10: ['ON FIRE 🔥🔥', '×10 连击！', 'AMAZING!', '好厉害！', 'Unstoppable!'],
-      streak20: ['LEGEND 👑', '传说！', 'GODLIKE 👑', '无敌！', 'UNSTOPPABLE ⚡'],
+      perfect:  ['完美 ✨', 'NAILED IT', '神了！', 'FLAWLESS', '完璧！', 'PERFECT ✨', '太棒了！'],
+      good:     ['良好！', 'Keep it up!', 'GREAT!', '唱得好！', 'Nice one!', '加油！'],
+      streak5:  ['🔥 ×5 COMBO', 'NICE!', '连击！', 'Combo!', '5連擊！'],
+      streak10: ['ON FIRE 🔥', '×10 连击！', 'AMAZING!', '好厉害！', 'Unstoppable!'],
+      streak20: ['LEGEND 👑', '传说！', 'GODLIKE', '无敌！', 'UNSTOPPABLE ⚡'],
+      streak30: ['DEMON MODE 👹', '魔王！', 'GODTIER ⚡', '神！', 'UNTOUCHABLE 💜'],
     };
     const arr = pools[bucket] || ['GREAT!'];
     return arr[Math.floor(Math.random() * arr.length)];
   },
 
+  // Fires a burst of particles outward from (x, y) — used for streak milestones.
+  _burstParticles(x, y, count, type) {
+    const colors = { perfect: '#ffd700', good: '#00ff88', legend: '#ff00ff' };
+    const t = type || 'good';
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+      const speed = 3 + Math.random() * 5;
+      this.particles.push({
+        x: x + (Math.random() - 0.5) * 30,
+        y: y + (Math.random() - 0.5) * 20,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1,
+        life: 1.0,
+        decay: 0.010 + Math.random() * 0.012,
+        size: 5 + Math.random() * 9,
+        type: t,
+        rotation: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.25,
+      });
+    }
+  },
+
   // Flashes a centered grade label over the canvas (e.g. "PERFECT! ✨").
   // Streak milestones fire automatically; line-completion bombs are triggered
-  // from _scorePitch. If a bomb is already showing it's left alone (streak
-  // milestones have higher emotional impact than line-completion labels).
-  _showGradeBomb(text, color) {
+  // from _scorePitch. Pass mega=true for streak10+ to use bigger animation.
+  _showGradeBomb(text, color, mega) {
     const el = document.getElementById('grade-bomb');
     if (!el) return;
     // Don't interrupt a streak-milestone bomb with a line-completion one.
     if (this._gradeBombTimer && el.classList.contains('bomb-show')) return;
-    el.classList.remove('bomb-show');
+    el.classList.remove('bomb-show', 'bomb-mega');
     void el.offsetWidth; // force reflow to restart animation
     el.textContent = text;
     el.style.color = color || '#ffffff';
+    if (mega) el.classList.add('bomb-mega');
     el.classList.add('bomb-show');
     if (this._gradeBombTimer) clearTimeout(this._gradeBombTimer);
+    const duration = mega ? 1600 : 1200;
     this._gradeBombTimer = setTimeout(() => {
-      el.classList.remove('bomb-show');
+      el.classList.remove('bomb-show', 'bomb-mega');
       this._gradeBombTimer = null;
-    }, 1200);
+    }, duration);
   },
 
   // --- Warm-up pitch meter ---

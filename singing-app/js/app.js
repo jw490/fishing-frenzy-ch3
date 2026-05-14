@@ -1512,6 +1512,38 @@ const App = {
   // During the game, nudge the backing track (and the game clock, which
   // is slaved to it via Synth.getPlaybackTime()) forward by 5 seconds.
   // Useful for songs with long instrumental intros.
+  // Jump straight to the first lyric, minus a 3-second runway so the user
+  // has time to breathe before singing starts. Works for both MV and lyricsMode songs.
+  skipIntro() {
+    if (this.currentScreen !== 'game') return;
+    const firstSing = (typeof Game !== 'undefined' && Game.getFirstSinging)
+      ? Game.getFirstSinging() : 8;
+    const targetSec = Math.max(0, firstSing - 3);
+    const song = this.currentSong ? Songs.get(this.currentSong) : null;
+    const mvEl = document.getElementById('game-mv');
+    const currentPos = (() => {
+      if (song && song.mvSrc && !song.lyricsMode && mvEl) return mvEl.currentTime;
+      if (typeof Synth !== 'undefined') { const t = Synth.getPlaybackTime(); return t != null ? t : 0; }
+      return 0;
+    })();
+    const delta = targetSec - currentPos;
+    if (delta <= 0) return; // already past the intro
+
+    if (song && song.mvSrc && !song.lyricsMode && mvEl) {
+      mvEl.currentTime = targetSec;
+      Synth.seekBy(delta);
+      if (typeof Game !== 'undefined' && Game.onSeek) Game.onSeek(targetSec);
+    } else {
+      const newPos = Synth.seekBy(delta);
+      if (newPos == null) return;
+      if (typeof Game !== 'undefined' && Game.onSeek) Game.onSeek(newPos);
+    }
+    // Hide the button immediately — _updateCountdown will keep it hidden
+    const btn = document.getElementById('btn-skip-intro');
+    if (btn) btn.hidden = true;
+    this.showToast('Skipped to singing ▶', 'info', 1200);
+  },
+
   skipForward() {
     if (this.currentScreen !== 'game') return;
 
