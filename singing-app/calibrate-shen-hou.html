@@ -170,12 +170,12 @@ const LINES = [
 ];
 
 // Pre-filled: L1-L48 confirmed from previous session (L49 onwards = retap)
-const PREFILL = [58.945,60.416,61.689,64.977,66.209,69.658,71.665,77.399,78.916,80.337,83.404,84.575,88.143,90.342,92.792,95.075,97.328,99.765,102.644,104.441,106.909,109.544,111.177,113.098,114.282,116.899,118.749,121.759,123.608,126.176,128.675,132.539,135.259,137.29,140.557,141.332,145.444,148.059,148.759,156.682,159.325,161.879,164.162,165.841,168.042,169.392,170.651,172.041];
-const PREFILL_COUNT = PREFILL.length; // 48
+const PREFILL = [58.945,60.416,61.689,64.977,66.209,69.658,71.665,77.399,78.916,80.337,83.404,84.575,88.143,90.342,92.792,95.075,97.328,99.765,102.644,104.441,106.909,109.544,111.177,113.098,114.282,116.899,118.749,121.759,123.608,126.176,128.675,132.539,135.259,137.29,140.557,141.332,145.444,148.059,148.759,156.682,159.325,161.879,164.162,165.841,168.042,169.392,170.651,172.041,173.232,176.742];
+const PREFILL_COUNT = PREFILL.length; // 50 (L1-L50)
 
 // taps[i] = number or null
 let taps    = Array(LINES.length).fill(null);
-let lineIdx = PREFILL_COUNT; // start at L49
+let lineIdx = PREFILL_COUNT; // start at L51 或许就先走
 let audio   = null;
 let running = false;
 let rafId   = null;
@@ -325,8 +325,10 @@ document.getElementById('start-btn').addEventListener('click', () => {
     statusEl.textContent = 'Tap when each line starts • click any line below to retap it';
     tapBtn.disabled = false;
     running = true;
-    // Seek to 5s before L49 (能不能答应我) so user is ready to tap
-    audio.currentTime = Math.max(0, (taps[PREFILL_COUNT - 1] || 168) - 2);
+    // Seek to just before the first un-tapped line
+    const firstUntapped = taps.findIndex(t => t === null);
+    const seekTo = firstUntapped > 0 ? (taps[firstUntapped - 1] - 3) : 0;
+    audio.currentTime = Math.max(0, seekTo);
     audio.play();
     tick();
     refreshAll();
