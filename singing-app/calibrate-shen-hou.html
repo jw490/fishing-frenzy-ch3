@@ -3,98 +3,148 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>神后 Timing Calibration</title>
+<title>神后 Tap Calibration</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: #0a0a0f;
-    color: #fff;
-    font-family: -apple-system, sans-serif;
-    display: flex; flex-direction: column; align-items: center;
-    min-height: 100vh; padding: 20px;
-    user-select: none; -webkit-user-select: none;
-  }
-  h1 { font-size: 1.1rem; color: #888; margin-bottom: 8px; }
-  #status { font-size: 0.85rem; color: #555; margin-bottom: 16px; height: 18px; }
-  #progress { font-size: 0.8rem; color: #444; margin-bottom: 20px; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0a0a0f; color: #fff;
+  font-family: -apple-system, sans-serif;
+  min-height: 100vh; padding: 16px 12px 40px;
+  user-select: none; -webkit-user-select: none;
+}
 
-  #line-display {
-    font-size: 2.2rem; font-weight: 700;
-    color: #00d4ff; text-align: center;
-    min-height: 70px; display: flex; align-items: center; justify-content: center;
-    margin-bottom: 8px; letter-spacing: 0.05em;
-  }
-  #line-next {
-    font-size: 1rem; color: #444;
-    text-align: center; min-height: 28px;
-    margin-bottom: 28px;
-  }
-  #clock {
-    font-size: 3rem; font-weight: 800; font-variant-numeric: tabular-nums;
-    color: #ffd700; margin-bottom: 32px; letter-spacing: 0.05em;
-  }
+h1 { font-size: 1rem; color: #555; text-align: center; margin-bottom: 12px; }
 
-  #tap-btn {
-    width: min(340px, 90vw); height: 110px;
-    background: linear-gradient(135deg, #7b2fff, #00d4ff);
-    border: none; border-radius: 20px; cursor: pointer;
-    font-size: 1.6rem; font-weight: 800; color: #fff;
-    letter-spacing: 0.08em; touch-action: manipulation;
-    transition: transform 0.07s, opacity 0.07s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  #tap-btn:active { transform: scale(0.94); opacity: 0.85; }
-  #tap-btn:disabled { background: #222; color: #555; cursor: default; }
+/* ── status bar ── */
+#status { font-size: 0.8rem; color: #555; text-align: center; height: 16px; margin-bottom: 10px; }
 
-  #controls { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
-  button.ctrl {
-    padding: 10px 20px; border-radius: 10px; border: 1px solid #333;
-    background: #111; color: #aaa; cursor: pointer; font-size: 0.85rem;
-    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-  }
-  button.ctrl:active { background: #222; }
+/* ── progress ── */
+#progress-wrap { display: flex; justify-content: center; gap: 8px; align-items: center; margin-bottom: 14px; }
+#prog-text { font-size: 0.8rem; color: #444; }
+#prog-bar-wrap { flex: 1; max-width: 260px; height: 4px; background: #1a1a1a; border-radius: 2px; }
+#prog-bar { height: 100%; background: #7b2fff; border-radius: 2px; transition: width 0.2s; }
 
-  #tapped-list {
-    margin-top: 28px; width: min(400px, 96vw);
-    font-size: 0.8rem; color: #555; max-height: 180px; overflow-y: auto;
-  }
-  #tapped-list div { padding: 2px 0; border-bottom: 1px solid #1a1a1a; }
-  #tapped-list .latest { color: #00d4ff; }
+/* ── lyric display ── */
+#prev-line { font-size: 0.9rem; color: #333; text-align: center; min-height: 26px; margin-bottom: 4px; }
+#line-display {
+  font-size: 2.6rem; font-weight: 800; color: #00d4ff;
+  text-align: center; min-height: 76px;
+  display: flex; align-items: center; justify-content: center;
+  letter-spacing: 0.06em; margin-bottom: 4px;
+}
+#next-line { font-size: 0.9rem; color: #333; text-align: center; min-height: 26px; margin-bottom: 18px; }
 
-  #output-box {
-    display: none; margin-top: 20px; width: min(400px, 96vw);
-    background: #111; border: 1px solid #333; border-radius: 10px;
-    padding: 12px; font-size: 0.7rem; color: #0f0; word-break: break-all;
-    white-space: pre-wrap; max-height: 200px; overflow-y: auto;
-  }
-  #copy-btn { display: none; margin-top: 8px; padding: 8px 20px; border-radius: 8px;
-    border: 1px solid #0f0; background: #001a00; color: #0f0; cursor: pointer; }
+/* ── clock ── */
+#clock {
+  font-size: 2.6rem; font-weight: 800; font-variant-numeric: tabular-nums;
+  color: #ffd700; text-align: center; margin-bottom: 6px; letter-spacing: 0.04em;
+}
+
+/* ── seek bar ── */
+#seek-wrap { padding: 4px 8px; margin-bottom: 20px; }
+#seek { width: 100%; accent-color: #7b2fff; cursor: pointer; }
+
+/* ── tap button ── */
+#tap-btn {
+  display: block; width: min(360px, 94vw); margin: 0 auto 16px;
+  height: 100px;
+  background: linear-gradient(135deg, #7b2fff, #00d4ff);
+  border: none; border-radius: 20px; cursor: pointer;
+  font-size: 1.5rem; font-weight: 800; color: #fff;
+  letter-spacing: 0.08em; touch-action: manipulation;
+  transition: transform 0.07s, opacity 0.07s;
+  -webkit-tap-highlight-color: transparent;
+}
+#tap-btn:active { transform: scale(0.93); opacity: 0.82; }
+#tap-btn:disabled { background: #1a1a1a; color: #444; cursor: default; }
+#tap-btn.tapped { background: linear-gradient(135deg,#ff2fa8,#ffd700) !important; }
+
+/* ── controls ── */
+#controls {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center; margin-bottom: 18px;
+}
+button.ctrl {
+  padding: 9px 16px; border-radius: 10px;
+  border: 1px solid #2a2a2a; background: #111; color: #888;
+  cursor: pointer; font-size: 0.82rem;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+button.ctrl:active { background: #1e1e1e; color: #ccc; }
+button.ctrl.danger { border-color: #500; color: #c44; }
+
+/* ── jump-to ── */
+#jump-wrap { display: flex; gap: 8px; justify-content: center; align-items: center; margin-bottom: 16px; }
+#jump-wrap label { font-size: 0.78rem; color: #555; }
+#jump-input { width: 56px; padding: 6px 8px; border-radius: 8px;
+  border: 1px solid #2a2a2a; background: #111; color: #fff;
+  font-size: 0.9rem; text-align: center; }
+#jump-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid #7b2fff;
+  background: #1a0a3a; color: #b980ff; cursor: pointer; font-size: 0.8rem; }
+
+/* ── tapped log ── */
+#log { max-height: 160px; overflow-y: auto; margin-bottom: 14px; }
+#log div { font-size: 0.75rem; padding: 2px 4px; border-bottom: 1px solid #111; }
+#log .ok  { color: #0a8; }
+#log .cur { color: #00d4ff; font-weight: 700; }
+#log .skip { color: #555; font-style: italic; }
+
+/* ── output ── */
+#output-box {
+  display: none; margin: 4px 0;
+  background: #0a100a; border: 1px solid #1a3a1a; border-radius: 10px;
+  padding: 10px; font-size: 0.68rem; color: #0c0; word-break: break-all;
+  white-space: pre-wrap; max-height: 160px; overflow-y: auto;
+}
+#copy-btn {
+  display: none; margin-top: 8px; padding: 8px 24px; border-radius: 8px;
+  border: 1px solid #0c0; background: #001800; color: #0c0;
+  cursor: pointer; font-size: 0.85rem;
+}
+#save-note { font-size: 0.7rem; color: #3a3a3a; text-align: center; margin-top: 6px; }
 </style>
 </head>
 <body>
 
-<h1>神后 — Line Timing Calibration</h1>
+<h1>神后 — Full Song Tap Calibration</h1>
 <div id="status">Press START to load audio</div>
-<div id="progress"></div>
 
+<div id="progress-wrap">
+  <div id="prog-text">0 / 72</div>
+  <div id="prog-bar-wrap"><div id="prog-bar" style="width:0%"></div></div>
+</div>
+
+<div id="prev-line"></div>
 <div id="line-display">—</div>
-<div id="line-next"></div>
+<div id="next-line"></div>
+
 <div id="clock">0.0s</div>
+<div id="seek-wrap"><input type="range" id="seek" min="0" max="307" step="0.1" value="0"></div>
 
 <button id="tap-btn" disabled>TAP when she sings</button>
 
 <div id="controls">
   <button class="ctrl" id="start-btn">▶ START</button>
   <button class="ctrl" id="undo-btn">↩ UNDO</button>
+  <button class="ctrl" id="skip-btn">⏭ SKIP line</button>
   <button class="ctrl" id="done-btn">✓ DONE</button>
+  <button class="ctrl danger" id="clear-btn">✕ CLEAR ALL</button>
 </div>
 
-<div id="tapped-list"></div>
+<div id="jump-wrap">
+  <label>Jump to line:</label>
+  <input type="number" id="jump-input" min="1" max="72" placeholder="1-72">
+  <button id="jump-btn">Go</button>
+</div>
+
+<div id="log"></div>
 <div id="output-box"></div>
-<button id="copy-btn" onclick="copyOutput()">Copy JSON</button>
+<button id="copy-btn" onclick="copyOutput()">📋 Copy JSON</button>
+<div id="save-note">Progress auto-saved in browser</div>
 
 <script>
 const AUDIO_SRC = '/media/shen-hou-mv-audio.mp3';
+const STORAGE_KEY = 'shen-hou-calib-v2';
 
 const LINES = [
   '我','喜欢看你','孩子般走在前头','像第一次','发现世界的探索',
@@ -116,110 +166,227 @@ const LINES = [
   '已换作','你向我告别','挥手'
 ];
 
+// taps[i] = number (audio time) or null (skipped / not yet done)
+let taps = Array(LINES.length).fill(null);
+let lineIdx = 0;   // next line to tap
 let audio = null;
-let tapped = [];   // [{line, time}]
-let lineIdx = 0;
 let running = false;
-let clockRaf = null;
+let rafId = null;
+let seekDragging = false;
 
-const tapBtn   = document.getElementById('tap-btn');
-const lineDisp = document.getElementById('line-display');
-const lineNext = document.getElementById('line-next');
-const clockEl  = document.getElementById('clock');
-const statusEl = document.getElementById('status');
-const progressEl= document.getElementById('progress');
-const tappedList= document.getElementById('tapped-list');
+// ── DOM ───────────────────────────────────────────────────────────────────
+const tapBtn    = document.getElementById('tap-btn');
+const lineDisp  = document.getElementById('line-display');
+const prevLine  = document.getElementById('prev-line');
+const nextLine  = document.getElementById('next-line');
+const clockEl   = document.getElementById('clock');
+const statusEl  = document.getElementById('status');
+const progText  = document.getElementById('prog-text');
+const progBar   = document.getElementById('prog-bar');
+const logEl     = document.getElementById('log');
+const seekEl    = document.getElementById('seek');
 
-function updateClock() {
-  if (audio) clockEl.textContent = audio.currentTime.toFixed(1) + 's';
-  clockRaf = requestAnimationFrame(updateClock);
+// ── load saved progress ───────────────────────────────────────────────────
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (Array.isArray(data.taps) && data.taps.length === LINES.length) {
+      taps = data.taps;
+      lineIdx = data.lineIdx || taps.findIndex(t => t === null && taps.indexOf(t) >= 0);
+      // lineIdx = first null after last non-null
+      lineIdx = 0;
+      for (let i = 0; i < taps.length; i++) {
+        if (taps[i] !== null) lineIdx = i + 1;
+      }
+      lineIdx = Math.min(lineIdx, LINES.length);
+    }
+  } catch(e) {}
 }
 
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ taps, lineIdx }));
+  } catch(e) {}
+}
+
+// ── display ───────────────────────────────────────────────────────────────
 function updateDisplay() {
+  const done = taps.filter(t => t !== null).length;
+  progText.textContent = `${done} / ${LINES.length}`;
+  progBar.style.width = (done / LINES.length * 100) + '%';
+
   if (lineIdx >= LINES.length) {
-    lineDisp.textContent = '✓ Done!';
-    lineNext.textContent = '';
+    lineDisp.textContent = '✓ All done!';
+    prevLine.textContent = '';
+    nextLine.textContent = '';
     tapBtn.disabled = true;
     showOutput();
     return;
   }
+
   lineDisp.textContent = LINES[lineIdx];
-  lineNext.textContent = lineIdx + 1 < LINES.length ? '↓  ' + LINES[lineIdx + 1] : '';
-  progressEl.textContent = `Line ${lineIdx + 1} / ${LINES.length}`;
+  prevLine.textContent = lineIdx > 0
+    ? (taps[lineIdx-1] !== null ? `✓ ${LINES[lineIdx-1]}` : `— ${LINES[lineIdx-1]}`)
+    : '';
+  nextLine.textContent = lineIdx + 1 < LINES.length ? `↓  ${LINES[lineIdx+1]}` : '';
 }
 
+function rebuildLog() {
+  logEl.innerHTML = '';
+  for (let i = Math.max(0, lineIdx - 12); i <= Math.min(LINES.length - 1, lineIdx + 3); i++) {
+    const div = document.createElement('div');
+    if (i === lineIdx) {
+      div.className = 'cur';
+      div.textContent = `▶ L${i+1} ${LINES[i]}`;
+    } else if (taps[i] !== null) {
+      div.className = 'ok';
+      div.textContent = `✓ L${i+1} [${taps[i].toFixed(3)}s] ${LINES[i]}`;
+    } else {
+      div.className = 'skip';
+      div.textContent = `— L${i+1} ${LINES[i]}`;
+    }
+    logEl.appendChild(div);
+  }
+  // scroll to bottom
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// ── clock RAF ─────────────────────────────────────────────────────────────
+function tick() {
+  if (audio && !seekDragging) {
+    const t = audio.currentTime;
+    clockEl.textContent = t.toFixed(1) + 's';
+    seekEl.value = t;
+  }
+  rafId = requestAnimationFrame(tick);
+}
+
+// ── seek bar ──────────────────────────────────────────────────────────────
+seekEl.addEventListener('mousedown',  () => { seekDragging = true; });
+seekEl.addEventListener('touchstart', () => { seekDragging = true; }, { passive: true });
+seekEl.addEventListener('input', () => {
+  if (audio) { audio.currentTime = parseFloat(seekEl.value); }
+  clockEl.textContent = parseFloat(seekEl.value).toFixed(1) + 's';
+});
+seekEl.addEventListener('mouseup',  () => { seekDragging = false; });
+seekEl.addEventListener('touchend', () => { seekDragging = false; });
+
+// ── start ─────────────────────────────────────────────────────────────────
 document.getElementById('start-btn').addEventListener('click', async () => {
-  if (audio) { audio.currentTime = 0; audio.play(); return; }
-  statusEl.textContent = 'Loading audio…';
+  if (audio) { audio.play(); return; }
+  statusEl.textContent = 'Loading…';
   audio = new Audio(AUDIO_SRC);
   audio.preload = 'auto';
+  seekEl.max = 307;
+
+  audio.addEventListener('loadedmetadata', () => {
+    seekEl.max = audio.duration || 307;
+  });
+
   audio.addEventListener('canplaythrough', () => {
-    statusEl.textContent = 'Tap TAP each time a new line starts singing';
+    statusEl.textContent = 'Tap the button the moment each line starts';
     tapBtn.disabled = false;
     audio.play();
     running = true;
     updateDisplay();
-    updateClock();
+    rebuildLog();
+    tick();
   }, { once: true });
-  audio.addEventListener('error', () => { statusEl.textContent = 'Audio load error'; });
+  audio.addEventListener('error', () => { statusEl.textContent = '⚠ Audio load error'; });
   audio.load();
 });
 
+// ── TAP ───────────────────────────────────────────────────────────────────
 function doTap() {
   if (!running || !audio || lineIdx >= LINES.length) return;
   const t = audio.currentTime;
-  tapped.push({ line: LINES[lineIdx], time: t });
+  taps[lineIdx] = t;
 
-  // Flash
-  tapBtn.style.background = 'linear-gradient(135deg,#ff2fa8,#ffd700)';
-  setTimeout(() => tapBtn.style.background = '', 120);
-
-  // Update list
-  const div = document.createElement('div');
-  div.className = 'latest';
-  div.textContent = `L${lineIdx+1} [${t.toFixed(3)}] ${LINES[lineIdx]}`;
-  tappedList.prepend(div);
-  if (tappedList.children[1]) tappedList.children[1].className = '';
+  tapBtn.classList.add('tapped');
+  setTimeout(() => tapBtn.classList.remove('tapped'), 140);
 
   lineIdx++;
+  save();
   updateDisplay();
+  rebuildLog();
 }
 
 tapBtn.addEventListener('click', doTap);
 tapBtn.addEventListener('touchstart', e => { e.preventDefault(); doTap(); }, { passive: false });
-
-// Spacebar support
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && !e.repeat) { e.preventDefault(); doTap(); }
 });
 
+// ── undo ──────────────────────────────────────────────────────────────────
 document.getElementById('undo-btn').addEventListener('click', () => {
-  if (tapped.length === 0) return;
-  tapped.pop();
-  lineIdx = Math.max(0, lineIdx - 1);
-  if (tappedList.firstChild) tappedList.removeChild(tappedList.firstChild);
-  if (tappedList.firstChild) tappedList.firstChild.className = 'latest';
+  if (lineIdx === 0) return;
+  lineIdx--;
+  taps[lineIdx] = null;
+  save();
   updateDisplay();
+  rebuildLog();
   document.getElementById('output-box').style.display = 'none';
   document.getElementById('copy-btn').style.display = 'none';
 });
 
+// ── skip ──────────────────────────────────────────────────────────────────
+document.getElementById('skip-btn').addEventListener('click', () => {
+  if (!running || lineIdx >= LINES.length) return;
+  taps[lineIdx] = null;   // mark skipped (null = interpolate later)
+  lineIdx++;
+  save();
+  updateDisplay();
+  rebuildLog();
+});
+
+// ── jump-to ───────────────────────────────────────────────────────────────
+document.getElementById('jump-btn').addEventListener('click', () => {
+  const v = parseInt(document.getElementById('jump-input').value);
+  if (isNaN(v) || v < 1 || v > LINES.length) return;
+  lineIdx = v - 1;
+  save();
+  updateDisplay();
+  rebuildLog();
+  tapBtn.disabled = !running;
+});
+
+// ── clear ─────────────────────────────────────────────────────────────────
+document.getElementById('clear-btn').addEventListener('click', () => {
+  if (!confirm('Clear ALL taps and start over?')) return;
+  taps = Array(LINES.length).fill(null);
+  lineIdx = 0;
+  save();
+  updateDisplay();
+  rebuildLog();
+  document.getElementById('output-box').style.display = 'none';
+  document.getElementById('copy-btn').style.display = 'none';
+});
+
+// ── done ──────────────────────────────────────────────────────────────────
 document.getElementById('done-btn').addEventListener('click', showOutput);
 
 function showOutput() {
-  const times = tapped.map(t => t.time);
   const box = document.getElementById('output-box');
-  box.textContent = JSON.stringify(times, null, 0);
+  box.textContent = JSON.stringify(taps);
   box.style.display = 'block';
   document.getElementById('copy-btn').style.display = 'inline-block';
 }
 
 function copyOutput() {
-  const times = tapped.map(t => t.time);
-  navigator.clipboard.writeText(JSON.stringify(times)).then(() => {
+  navigator.clipboard.writeText(JSON.stringify(taps)).then(() => {
     document.getElementById('copy-btn').textContent = '✓ Copied!';
-    setTimeout(() => document.getElementById('copy-btn').textContent = 'Copy JSON', 1500);
+    setTimeout(() => document.getElementById('copy-btn').textContent = '📋 Copy JSON', 1600);
   });
+}
+
+// ── init ──────────────────────────────────────────────────────────────────
+loadSaved();
+updateDisplay();
+rebuildLog();
+if (taps.filter(t => t !== null).length > 0) {
+  statusEl.textContent = `Resumed — ${taps.filter(t=>t!==null).length} lines saved. Press START to continue.`;
 }
 </script>
 </body>
