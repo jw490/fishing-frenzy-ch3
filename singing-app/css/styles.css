@@ -1064,50 +1064,92 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- Streak / Combo counter — canvas overlay, lower-left ---- */
 .streak-indicator {
+  position: absolute;
+  left: 16px;
+  bottom: 152px; /* sit just above the lyrics bar */
+  z-index: 40;
   display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 99px;
-  background: rgba(255,215,0,0.1);
-  color: var(--yellow);
-  font-size: 14px;
-  font-weight: 700;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  pointer-events: none;
   opacity: 0;
-  transform: scale(0.8);
-  transition: all 0.3s ease;
+  transform: translateX(-8px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
 .streak-indicator.active {
   opacity: 1;
-  transform: scale(1);
+  transform: translateX(0);
 }
 
+/* The big number */
+.streak-count {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 8vw, 64px);
+  font-weight: 900;
+  line-height: 1;
+  color: #ffd700;
+  text-shadow: 0 0 30px rgba(255,215,0,0.6), 0 2px 4px rgba(0,0,0,0.5);
+  letter-spacing: -0.02em;
+}
+
+/* "COMBO" label beneath the number */
+.streak-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: rgba(255,215,0,0.6);
+  margin-top: -2px;
+}
+
+/* 🔥 fire icon next to the number */
 .streak-fire {
-  font-size: 16px;
+  font-size: 22px;
+  position: absolute;
+  top: 0;
+  left: calc(100% + 4px);
+  opacity: 0;
+  transition: opacity 0.2s;
 }
+.streak-indicator.active .streak-fire { opacity: 1; }
 
-/* Combo multiplier badge inside streak pill */
+/* Combo multiplier badge */
 .streak-mult {
   display: none;
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(255,215,0,0.15);
+  color: #ffd700;
 }
 .streak-mult.mult-pop {
-  animation: multPop 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+  animation: multPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
 }
 @keyframes multPop {
   from { transform: scale(0.4); opacity: 0.3; }
   to   { transform: scale(1);   opacity: 1; }
 }
 
-/* Streak glow by combo level */
-.streak-indicator.mult-2 { color: #00ff88; background: rgba(0,255,136,0.12); }
-.streak-indicator.mult-3 { color: #ffd700; background: rgba(255,215,0,0.14); box-shadow: 0 0 14px rgba(255,215,0,0.3); }
-.streak-indicator.mult-5 { color: #ff6b35; background: rgba(255,107,53,0.16); box-shadow: 0 0 20px rgba(255,107,53,0.45); }
+/* Color shifts by combo level */
+.streak-indicator.mult-2 .streak-count  { color: #00ff88; text-shadow: 0 0 30px rgba(0,255,136,0.6), 0 2px 4px rgba(0,0,0,0.5); }
+.streak-indicator.mult-2 .streak-label  { color: rgba(0,255,136,0.55); }
+.streak-indicator.mult-2 .streak-mult   { color: #00ff88; background: rgba(0,255,136,0.15); }
+
+.streak-indicator.mult-3 .streak-count  { color: #ffd700; text-shadow: 0 0 40px rgba(255,215,0,0.8), 0 2px 4px rgba(0,0,0,0.5); }
+.streak-indicator.mult-3 .streak-label  { color: rgba(255,215,0,0.6); }
+.streak-indicator.mult-3 .streak-mult   { color: #ffd700; background: rgba(255,215,0,0.2); }
+
+.streak-indicator.mult-5 .streak-count  { color: #ff6b35; text-shadow: 0 0 50px rgba(255,107,53,0.9), 0 2px 4px rgba(0,0,0,0.5); }
+.streak-indicator.mult-5 .streak-label  { color: rgba(255,107,53,0.65); }
+.streak-indicator.mult-5 .streak-mult   { color: #ff6b35; background: rgba(255,107,53,0.2); }
 
 /* Grade bomb overlay — centered over canvas, pointer-events off */
 .grade-bomb {
@@ -2675,7 +2717,7 @@ html, body {
   .mic-bars { height: 20px; gap: 2px; margin-top: 4px; }
   .mic-bar { width: 3px; }
   .btn-karaoke-mid { padding: 3px 8px; font-size: 9px; }
-  .streak-indicator { padding: 3px 8px; font-size: 12px; }
+  .streak-count { font-size: clamp(32px, 7vw, 48px); }
 
   /* ---- Touch targets — 44px minimum per Apple HIG ---- */
   .auth-tab { min-height: 44px; }

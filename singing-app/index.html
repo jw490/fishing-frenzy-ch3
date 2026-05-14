@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>VocalStar - Sing. Score. Improve.</title>
-  <link rel="stylesheet" href="css/styles.css?v=42">
+  <link rel="stylesheet" href="css/styles.css?v=43">
   <meta http-equiv="Cache-Control" content="no-cache">
   <meta name="theme-color" content="#06060f">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -404,11 +404,6 @@
           <div class="hud-score-label">SCORE</div>
           <div class="hud-score hud-score--waiting" id="game-score">—</div>
         </div>
-        <div class="streak-indicator" id="streak-indicator">
-          <span class="streak-fire">&#9733;</span>
-          <span class="streak-count" id="streak-count">0</span>
-          <span class="streak-mult" id="streak-mult"></span>
-        </div>
         <div class="mic-bars" id="mic-bars" title="Mic input">
           <span class="mic-bar"></span>
           <span class="mic-bar"></span>
@@ -420,6 +415,12 @@
     </div>
 
     <div id="grade-bomb" class="grade-bomb" aria-live="assertive"></div>
+    <div class="streak-indicator" id="streak-indicator">
+      <span class="streak-fire">🔥</span>
+      <span class="streak-count" id="streak-count">0</span>
+      <span class="streak-label">COMBO</span>
+      <span class="streak-mult" id="streak-mult"></span>
+    </div>
     <div id="singing-countdown" class="singing-countdown" hidden></div>
     <div id="pitch-direction" class="pitch-direction" aria-hidden="true"></div>
     <button id="btn-skip-intro" class="btn-skip-intro" type="button" onclick="App.skipIntro()" hidden>
