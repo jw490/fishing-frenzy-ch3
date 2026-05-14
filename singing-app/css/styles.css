@@ -1064,25 +1064,9 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---- Streak / Combo counter — centre of screen ---- */
+/* Streak indicator is now drawn on canvas — hide the HTML element */
 .streak-indicator {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translateX(-50%) translateY(-40%) scale(0.85);
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.25s ease, transform 0.25s ease;
-}
-
-.streak-indicator.active {
-  opacity: 1;
-  transform: translateX(-50%) translateY(-40%) scale(1);
+  display: none;
 }
 
 /* The big number */
@@ -1150,7 +1134,9 @@ html, body {
 .streak-indicator.mult-5 .streak-mult   { color: #ff6b35; background: rgba(255,107,53,0.2); }
 
 /* Grade bomb overlay — centered over canvas, pointer-events off */
+/* Grade bomb is now drawn on canvas — hide the HTML element */
 .grade-bomb {
+  display: none;
   position: absolute;
   top: 38%;
   left: 50%;

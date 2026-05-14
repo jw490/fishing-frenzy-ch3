@@ -751,12 +751,104 @@ const Game = {
     // Draw particles
     this._drawParticles(ctx);
 
+    // Canvas overlays: grade bomb + streak counter (drawn on canvas to avoid z-index issues)
+    this._drawOverlays(ctx, W, H);
+
     // Progress bar at bottom
     const progress = Math.min(1, this.currentTime / this.duration);
     ctx.fillStyle = 'rgba(0,212,255,0.15)';
     ctx.fillRect(0, H - 3, W, 3);
     ctx.fillStyle = 'rgba(0,212,255,0.6)';
     ctx.fillRect(0, H - 3, W * progress, 3);
+  },
+
+  _drawOverlays(ctx, W, H) {
+    const cx = W / 2;
+    const cy = H * 0.42; // vertical sweet spot — above center, in the bars zone
+
+    // ---- Grade bomb ----
+    if (this._gradeBombText && this._gradeBombStart != null) {
+      const elapsed  = (performance.now() - this._gradeBombStart) / 1000;
+      const duration = this._gradeBombMega ? 1.6 : 1.2;
+      const t = Math.min(1, elapsed / duration); // 0→1 over lifetime
+
+      // Opacity: fade in fast, hold, fade out
+      let alpha;
+      if (t < 0.08)       alpha = t / 0.08;
+      else if (t < 0.65)  alpha = 1;
+      else                 alpha = 1 - (t - 0.65) / 0.35;
+      alpha = Math.max(0, alpha);
+
+      // Scale: pop in then settle
+      let scale;
+      if (t < 0.10)      scale = 0.5 + (t / 0.10) * 0.6;   // 0.5 → 1.1
+      else if (t < 0.18) scale = 1.1 - (t - 0.10) / 0.08 * 0.1; // 1.1 → 1.0
+      else               scale = 1.0;
+      if (this._gradeBombMega) scale *= 1.25;
+
+      const fontSize = Math.round((this._gradeBombMega ? 52 : 38) * scale);
+      const liftY = cy - t * H * 0.12; // text drifts upward slightly
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = `900 ${fontSize}px 'Rajdhani', 'Inter', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Glow
+      ctx.shadowColor = this._gradeBombColor;
+      ctx.shadowBlur  = this._gradeBombMega ? 40 : 24;
+      ctx.fillStyle   = this._gradeBombColor;
+      ctx.fillText(this._gradeBombText, cx, liftY);
+
+      // Crisp inner layer
+      ctx.shadowBlur = 0;
+      ctx.fillStyle  = '#ffffff';
+      ctx.globalAlpha = alpha * 0.35;
+      ctx.fillText(this._gradeBombText, cx, liftY);
+
+      ctx.restore();
+    }
+
+    // ---- Streak / combo counter ----
+    if (this.currentStreak >= 2) {
+      const streak = this.currentStreak;
+
+      // Color by level
+      let color;
+      if (streak >= 20)     color = '#ff6b35';
+      else if (streak >= 10) color = '#ffd700';
+      else                   color = '#00ff88';
+
+      // Animate scale: pulse every time streak increments
+      // Use a simple always-on gentle pulse
+      const pulse = 1 + 0.04 * Math.sin(performance.now() / 300);
+
+      const numSize  = Math.round(W * 0.11 * pulse); // big number
+      const lblSize  = Math.round(W * 0.028);
+      const numX = cx;
+      const numY = cy + H * 0.22; // below the grade bomb zone
+
+      ctx.save();
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Number
+      ctx.font       = `900 ${numSize}px 'Rajdhani', 'Inter', sans-serif`;
+      ctx.shadowColor = color;
+      ctx.shadowBlur  = 20;
+      ctx.fillStyle   = color;
+      ctx.fillText(streak, numX, numY);
+
+      // "COMBO" label below
+      ctx.font      = `800 ${lblSize}px 'Rajdhani', 'Inter', sans-serif`;
+      ctx.shadowBlur = 0;
+      ctx.fillStyle  = color.replace(')', ',0.55)').replace('rgb', 'rgba');
+      ctx.globalAlpha = 0.7;
+      ctx.fillText('COMBO', numX, numY + numSize * 0.55);
+
+      ctx.restore();
+    }
   },
 
   _drawParticles(ctx) {
@@ -1781,25 +1873,18 @@ const Game = {
     }
   },
 
-  // Flashes a centered grade label over the canvas (e.g. "PERFECT! ✨").
-  // Streak milestones fire automatically; line-completion bombs are triggered
-  // from _scorePitch. Pass mega=true for streak10+ to use bigger animation.
+  // Stores grade bomb state for canvas rendering. Drawn in _drawOverlays().
   _showGradeBomb(text, color, mega) {
-    const el = document.getElementById('grade-bomb');
-    if (!el) return;
-    // Don't interrupt a streak-milestone bomb with a line-completion one.
-    if (this._gradeBombTimer && el.classList.contains('bomb-show')) return;
-    el.classList.remove('bomb-show', 'bomb-mega');
-    void el.offsetWidth; // force reflow to restart animation
-    el.textContent = text;
-    el.style.color = color || '#ffffff';
-    if (mega) el.classList.add('bomb-mega');
-    el.classList.add('bomb-show');
-    if (this._gradeBombTimer) clearTimeout(this._gradeBombTimer);
+    // Don't interrupt an active bomb with a weaker one.
+    if (this._gradeBombTimer) return;
+    this._gradeBombText  = text;
+    this._gradeBombColor = color || '#ffffff';
+    this._gradeBombMega  = !!mega;
+    this._gradeBombStart = performance.now();
     const duration = mega ? 1600 : 1200;
     this._gradeBombTimer = setTimeout(() => {
-      el.classList.remove('bomb-show', 'bomb-mega');
       this._gradeBombTimer = null;
+      this._gradeBombText  = null;
     }, duration);
   },
 
