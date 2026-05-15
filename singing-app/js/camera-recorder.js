@@ -139,8 +139,13 @@ const CameraRecorder = {
   },
 
   setSize(size) {
+    const wasOff = this.size === 'off';
     this.size = size;
-    if (size === 'off') this.stopCamera();
+    if (size === 'off') {
+      this.stopCamera();
+    } else if (wasOff) {
+      this.startCamera(); // restart stream when switching back from Off
+    }
     document.querySelectorAll('.cam-picker-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.size === size);
     });
