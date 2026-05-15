@@ -356,23 +356,24 @@
       <div class="cam-setup-preview-wrap">
         <video id="cam-setup-video" class="cam-setup-video" autoplay playsinline muted></video>
         <div class="cam-setup-no-cam" id="cam-setup-no-cam">Camera off</div>
+        <div class="cam-preview-hint" id="cam-preview-hint"></div>
       </div>
 
       <div class="cam-setup-controls">
         <div class="cam-picker" id="cam-picker">
-          <button class="cam-picker-btn" data-size="off" onclick="CameraRecorder.setSize('off'); document.getElementById('cam-setup-no-cam').style.display='flex'; document.getElementById('cam-setup-video').style.display='none';" title="No camera">
+          <button class="cam-picker-btn" data-size="off" onclick="CameraRecorder.setSize('off'); document.getElementById('cam-setup-no-cam').style.display='flex'; document.getElementById('cam-setup-video').style.display='none';">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"/></svg>
             <span>Off</span>
           </button>
-          <button class="cam-picker-btn" data-size="bubble-sm" onclick="CameraRecorder.setSize('bubble-sm'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='block';" title="Small bubble">
+          <button class="cam-picker-btn" data-size="bubble-sm" onclick="CameraRecorder.setSize('bubble-sm'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='';">
             <svg width="12" height="12" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>
             <span>Small</span>
           </button>
-          <button class="cam-picker-btn active" data-size="bubble" onclick="CameraRecorder.setSize('bubble'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='block';" title="Bubble">
+          <button class="cam-picker-btn active" data-size="bubble" onclick="CameraRecorder.setSize('bubble'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='';">
             <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>
             <span>Bubble</span>
           </button>
-          <button class="cam-picker-btn" data-size="bubble-lg" onclick="CameraRecorder.setSize('bubble-lg'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='block';" title="Large bubble">
+          <button class="cam-picker-btn" data-size="bubble-lg" onclick="CameraRecorder.setSize('bubble-lg'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='';">
             <svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>
             <span>Large</span>
           </button>
@@ -688,7 +689,7 @@
   <script src="js/midi-parser.js?v=10"></script>
   <script src="js/audio-analyzer.js?v=10"></script>
   <script src="js/game.js?v=51"></script>
-  <script src="js/camera-recorder.js?v=2"></script>
+  <script src="js/camera-recorder.js?v=3"></script>
   <script src="js/app.js?v=51"></script>
   <script src="js/feedback.js?v=1"></script>
   <script defer src="/_vercel/insights/script.js"></script>

@@ -44,6 +44,8 @@ const CameraRecorder = {
         setupVid.srcObject = this._camStream;
         setupVid.play().catch(() => {});
       }
+      // Initialise bubble hint once layout is settled
+      requestAnimationFrame(() => this._updatePreviewHint(this.size));
     } catch (e) {
       console.warn('CameraRecorder: camera unavailable', e);
       this._camStream = null;
@@ -129,6 +131,26 @@ const CameraRecorder = {
     document.querySelectorAll('.cam-picker-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.size === size);
     });
+    this._updatePreviewHint(size);
+  },
+
+  _updatePreviewHint(size) {
+    const hint = document.getElementById('cam-preview-hint');
+    const wrap = hint && hint.parentElement;
+    if (!hint || !wrap) return;
+    if (size === 'off') { hint.style.opacity = '0'; return; }
+    const W = wrap.clientWidth;
+    const H = wrap.clientHeight;
+    const radiusMap = { 'bubble-sm': 0.08, 'bubble': 0.12, 'bubble-lg': 0.17 };
+    const ratio = radiusMap[size] || 0.12;
+    const r = Math.round(Math.min(W, H) * ratio);
+    const cx = Math.round(W * 0.12);
+    const cy = H - r - Math.round(H * 0.05);
+    hint.style.width  = (r * 2) + 'px';
+    hint.style.height = (r * 2) + 'px';
+    hint.style.left   = cx + 'px';
+    hint.style.top    = cy + 'px';
+    hint.style.opacity = '1';
   },
 
   hasClip() {
@@ -245,22 +267,23 @@ const CameraRecorder = {
     }
     ctx.clip();
 
-    // ── Layer 1: base — bright, warm, lifted ─────────────────────────
-    // Noticeably different from raw cam: removes cold webcam cast,
-    // lifts shadows, warms skin to golden-hour tone
-    ctx.filter = 'brightness(1.28) contrast(1.10) saturate(1.22) sepia(0.08) hue-rotate(-4deg)';
+    // ── Layer 1: base — TikTok beauty grade ──────────────────────────
+    // Low contrast (0.82) flattens skin texture; warm hue lifts tone;
+    // high saturation (1.50) gives the vivid "filter" pop
+    ctx.filter = 'brightness(1.18) contrast(0.82) saturate(1.50) hue-rotate(-8deg)';
     ctx.drawImage(vid, sx, sy, sw, sh, x, y, w, h);
 
     // ── Layer 2: skin smoothing — soft-light blur pass ───────────────
+    // Higher alpha (0.38) than before = more porcelain skin effect
     ctx.globalCompositeOperation = 'soft-light';
-    ctx.filter = 'blur(5px) brightness(1.10)';
-    ctx.globalAlpha = 0.25;
+    ctx.filter = 'blur(10px) brightness(1.06)';
+    ctx.globalAlpha = 0.38;
     ctx.drawImage(vid, sx, sy, sw, sh, x, y, w, h);
 
-    // ── Layer 3: feature sharpening — overlay at low opacity ─────────
+    // ── Layer 3: eye & feature pop — overlay at low opacity ──────────
     ctx.globalCompositeOperation = 'overlay';
-    ctx.filter = 'contrast(1.7) brightness(0.90)';
-    ctx.globalAlpha = 0.10;
+    ctx.filter = 'contrast(1.55) brightness(0.92)';
+    ctx.globalAlpha = 0.09;
     ctx.drawImage(vid, sx, sy, sw, sh, x, y, w, h);
 
     ctx.globalCompositeOperation = 'source-over';
