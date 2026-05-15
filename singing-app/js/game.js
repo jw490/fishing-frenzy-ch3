@@ -163,7 +163,7 @@ const Game = {
     // Reset scoring
     this.currentStreak = 0;
     this.bestStreak = 0;
-    this.noteScores = this.notes.map(() => ({ hit: false, pitchAcc: 0, samples: 0, totalCents: 0 }));
+    this.noteScores = this.notes.map(() => ({ hit: false, pitchAcc: 0, samples: 0, totalCents: 0, signedCents: 0 }));
     this.pitchHistory = [];
     this.particles = [];
     this._consecutiveGoodFrames = 0;
@@ -198,6 +198,10 @@ const Game = {
     this._flashDur   = 0.3;
     this._edgeGlowStart = null;
     this._edgeGlowColor = '#ffffff';
+    this._missStreakLines = 0;
+    this._coachMsgText   = null;
+    this._coachMsgStart  = null;
+    this._coachMsgColor  = '#ffaa44';
     if (this._gradeBombTimer) { clearTimeout(this._gradeBombTimer); this._gradeBombTimer = null; }
 
     // Original-audio mode: user turned karaoke OFF on a karaoke-capable song.
@@ -577,7 +581,14 @@ const Game = {
       // Accumulate onto the line-level noteScores (used by getResults).
       this.noteScores[lineIdx].pitchAcc += acc;
       this.noteScores[lineIdx].samples++;
-      if (targetMidi > 0) this.noteScores[lineIdx].totalCents += centsDiff;
+      if (targetMidi > 0) {
+        this.noteScores[lineIdx].totalCents += centsDiff;
+        // Signed cents: positive = sharp, negative = flat (after octave fold)
+        let _sung = data.midi;
+        while (_sung - targetMidi > 6) _sung -= 12;
+        while (targetMidi - _sung > 6) _sung += 12;
+        this.noteScores[lineIdx].signedCents += (_sung - targetMidi) * 100;
+      }
 
       // Per-bar hit flag for the canvas bar renderer.
       if (acc >= 0.7) activeBar.hit = true;
@@ -662,7 +673,7 @@ const Game = {
         }
       }
 
-      // Line-transition: grade bomb + streak reset on missed lines.
+      // Line-transition: grade bomb + streak reset + pitch coaching.
       if (this._lastScoredLineIdx >= 0 && lineIdx !== this._lastScoredLineIdx) {
         const _prevNs = this.noteScores[this._lastScoredLineIdx];
         if (_prevNs && _prevNs.samples > 0) {
@@ -671,6 +682,30 @@ const Game = {
           if (!this._gradeBombTimer) {
             if (_avgAcc >= 0.88) this._showGradeBomb(this._pickMsg('perfect'), '#ffd700');
             else if (_avgAcc >= 0.70) this._showGradeBomb(this._pickMsg('good'), '#00ff88');
+          }
+          // Miss streak: track consecutive lines with no hit and poor accuracy
+          if (!_prevNs.hit && _avgAcc < 0.55) {
+            this._missStreakLines = (this._missStreakLines || 0) + 1;
+            // Pitch direction: positive = was singing sharp, negative = flat
+            const _avgSigned = _prevNs.samples > 0 ? _prevNs.signedCents / _prevNs.samples : 0;
+            if (this._missStreakLines >= 2) {
+              // Only show coaching if no coach msg is already active
+              const _coachAge = this._coachMsgStart ? (performance.now() - this._coachMsgStart) / 1000 : 99;
+              if (_coachAge > 2.0) {
+                let _coachText;
+                if (_avgSigned < -40) {
+                  _coachText = this._missStreakLines >= 4 ? 'Try singing a bit higher ↑' : 'A little higher ↑';
+                } else if (_avgSigned > 40) {
+                  _coachText = this._missStreakLines >= 4 ? 'Try singing a bit lower ↓' : 'A little lower ↓';
+                } else {
+                  _coachText = this._missStreakLines >= 4 ? 'Listen to the melody 🎵' : 'Follow the melody';
+                }
+                this._showCoachMsg(_coachText);
+              }
+            }
+          } else if (_prevNs.hit) {
+            // Good line resets the miss streak
+            this._missStreakLines = 0;
           }
           // Streak reset only if the whole line was completely missed (no hit at all)
           if (!_prevNs.hit) {
@@ -875,6 +910,50 @@ const Game = {
       ctx.globalAlpha = ga * 0.35;
       ctx.fillText(this._gradeBombText, cx, gly);
       ctx.restore();
+    }
+
+    // ---- Pitch coaching nudge (bottom-centre, amber, gentle) ----
+    if (this._coachMsgText && this._coachMsgStart != null) {
+      const ce = (now - this._coachMsgStart) / 1000;
+      const cHold = 2.8;   // total duration
+      const cFadeIn  = 0.25;
+      const cFadeOut = 0.55;
+      let ca;
+      if (ce < cFadeIn)                      ca = ce / cFadeIn;
+      else if (ce < cHold - cFadeOut)        ca = 1;
+      else if (ce < cHold)                   ca = 1 - (ce - (cHold - cFadeOut)) / cFadeOut;
+      else                                   ca = 0;
+      if (ca > 0) {
+        const cfs = Math.round(W * 0.032);
+        const cc  = this._coachMsgColor || '#ffaa44';
+        const cy2 = H * 0.80;   // below grade bomb zone, above multiplier badge
+        ctx.save();
+        ctx.globalAlpha = ca * 0.92;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        // Soft pill background so it reads on any MV
+        const cMetrics = cfs * 1.0;
+        const cPadX = cfs * 0.9;
+        const cPadY = cfs * 0.45;
+        const cTextW = ctx.measureText(this._coachMsgText).width;
+        const cRx = cx - cTextW / 2 - cPadX;
+        const cRw = cTextW + cPadX * 2;
+        const cRy = cy2 - cfs * 0.5 - cPadY;
+        const cRh = cfs + cPadY * 2;
+        ctx.fillStyle = 'rgba(0,0,0,0.52)';
+        ctx.beginPath();
+        ctx.roundRect(cRx, cRy, cRw, cRh, Math.round(cRh / 2));
+        ctx.fill();
+        // Text
+        ctx.font = `600 ${cfs}px 'Rajdhani', 'Inter', sans-serif`;
+        ctx.shadowColor = cc;
+        ctx.shadowBlur = 14;
+        ctx.fillStyle = cc;
+        ctx.fillText(this._coachMsgText, cx, cy2);
+        ctx.restore();
+      } else if (ce >= cHold) {
+        this._coachMsgText = null;
+      }
     }
 
     // ---- Multiplier badge (Guitar Hero style — bottom-left corner, compact) ----
@@ -2000,6 +2079,14 @@ const Game = {
     this._flashColor = color;
     this._flashDur   = dur;
     this._flashAlpha = alpha;
+  },
+
+  // Shows a gentle pitch coaching nudge (bottom-centre, amber). Drawn in _drawOverlays().
+  // Only replaces an existing coach msg if the current one has mostly faded.
+  _showCoachMsg(text) {
+    this._coachMsgText  = text;
+    this._coachMsgStart = performance.now();
+    this._coachMsgColor = '#ffaa44';
   },
 
   // --- Warm-up pitch meter ---
