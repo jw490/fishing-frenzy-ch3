@@ -5,7 +5,7 @@
 
 const CameraRecorder = {
 
-  // 'off' | 'bubble' | 'box' | 'side'
+  // 'off' | 'bubble-sm' | 'bubble' | 'bubble-lg' | 'box'
   size: 'bubble',
 
   _videoEl: null,
@@ -14,6 +14,13 @@ const CameraRecorder = {
   _chunks: [],
   _recordedBlob: null,
   isRecording: false,
+
+  // Bubble position in display coords (set at first draw if not yet placed)
+  _bubbleX: null,
+  _bubbleY: null,
+  _dragging: false,
+  _dragOffX: 0,
+  _dragOffY: 0,
 
   // ── Camera lifecycle ──────────────────────────────────────────────
 
@@ -24,15 +31,23 @@ const CameraRecorder = {
         video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
         audio: false,
       });
-      this._videoEl = document.createElement('video');
+      if (!this._videoEl) {
+        this._videoEl = document.createElement('video');
+        this._videoEl.muted = true;
+        this._videoEl.playsInline = true;
+      }
       this._videoEl.srcObject = this._camStream;
-      this._videoEl.muted = true;
-      this._videoEl.playsInline = true;
       await this._videoEl.play();
+
+      // Also feed the setup preview if it exists
+      const setupVid = document.getElementById('cam-setup-video');
+      if (setupVid) {
+        setupVid.srcObject = this._camStream;
+        setupVid.play().catch(() => {});
+      }
     } catch (e) {
       console.warn('CameraRecorder: camera unavailable', e);
       this._camStream = null;
-      this._videoEl = null;
     }
   },
 
@@ -41,7 +56,8 @@ const CameraRecorder = {
       this._camStream.getTracks().forEach(t => t.stop());
       this._camStream = null;
     }
-    this._videoEl = null;
+    const setupVid = document.getElementById('cam-setup-video');
+    if (setupVid) { setupVid.srcObject = null; }
   },
 
   // ── Recording lifecycle ──────────────────────────────────────────
@@ -52,16 +68,11 @@ const CameraRecorder = {
     if (!canvas || !canvas.captureStream) return;
 
     const canvasStream = canvas.captureStream(30);
-
-    // Use the mic stream for ambient audio (captures both voice + instrumental bleeding
-    // through speakers — same as a manual screen recording would capture).
     const micStream = typeof PitchDetector !== 'undefined' ? PitchDetector.stream : null;
-
     const tracks = [
       ...canvasStream.getVideoTracks(),
       ...(micStream ? micStream.getAudioTracks() : []),
     ];
-    const combined = new MediaStream(tracks);
 
     const mimeType = [
       'video/webm;codecs=vp9,opus',
@@ -70,7 +81,7 @@ const CameraRecorder = {
     ].find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
 
     try {
-      this._recorder = new MediaRecorder(combined, {
+      this._recorder = new MediaRecorder(new MediaStream(tracks), {
         mimeType,
         videoBitsPerSecond: 3_500_000,
       });
@@ -80,7 +91,7 @@ const CameraRecorder = {
       this._recorder.start(1000);
       this.isRecording = true;
     } catch (e) {
-      console.warn('CameraRecorder: MediaRecorder setup failed', e);
+      console.warn('CameraRecorder: MediaRecorder failed', e);
     }
   },
 
@@ -115,9 +126,7 @@ const CameraRecorder = {
 
   setSize(size) {
     this.size = size;
-    // If switching to 'off', release camera to save resources
     if (size === 'off') this.stopCamera();
-    // Update picker UI
     document.querySelectorAll('.cam-picker-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.size === size);
     });
@@ -127,37 +136,88 @@ const CameraRecorder = {
     return !!this._recordedBlob;
   },
 
+  // ── Drag-to-reposition ───────────────────────────────────────────
+  // Attach pointer events to the game canvas so players can drag the bubble anywhere
+
+  initDrag(canvas) {
+    canvas.addEventListener('pointerdown', e => {
+      if (this.size === 'off' || !this._videoEl) return;
+      const rect = canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      const W = canvas.clientWidth;
+      const H = canvas.clientHeight;
+      const { cx, cy, r } = this._bubbleGeometry(W, H);
+      const dist = Math.hypot(px - cx, py - cy);
+      if (dist <= r + 18) {  // 18px grab margin
+        this._dragging = true;
+        this._dragOffX = px - cx;
+        this._dragOffY = py - cy;
+        canvas.setPointerCapture(e.pointerId);
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('pointermove', e => {
+      if (!this._dragging) return;
+      const rect = canvas.getBoundingClientRect();
+      const W = canvas.clientWidth;
+      const H = canvas.clientHeight;
+      const r = this._bubbleRadius(Math.min(W, H));
+      const px = e.clientX - rect.left - this._dragOffX;
+      const py = e.clientY - rect.top  - this._dragOffY;
+      this._bubbleX = Math.max(r, Math.min(W - r, px));
+      this._bubbleY = Math.max(r, Math.min(H - r, py));
+      e.preventDefault();
+    }, { passive: false });
+
+    canvas.addEventListener('pointerup', () => { this._dragging = false; });
+    canvas.addEventListener('pointercancel', () => { this._dragging = false; });
+  },
+
+  _bubbleRadius(minDim) {
+    const radiusMap = { 'bubble-sm': 0.08, 'bubble': 0.12, 'bubble-lg': 0.17, 'box': 0 };
+    return Math.round(minDim * (radiusMap[this.size] || 0.12));
+  },
+
+  _bubbleGeometry(W, H) {
+    const r = this._bubbleRadius(Math.min(W, H));
+    if (this._bubbleX === null) {
+      this._bubbleX = Math.round(W * 0.12);
+      this._bubbleY = Math.round(H - r - H * 0.05);
+    }
+    return { cx: this._bubbleX, cy: this._bubbleY, r };
+  },
+
   // ── Canvas overlay ────────────────────────────────────────────────
 
   drawOverlay(ctx, W, H) {
     if (this.size === 'off' || !this._videoEl || !this._camStream) return;
     if (this._videoEl.readyState < 2) return;
 
-    if (this.size === 'bubble') {
-      const r = Math.round(Math.min(W, H) * 0.13);
-      const cx = Math.round(W * 0.12);
-      const cy = H - r - Math.round(H * 0.04);
-      this._drawFrame(ctx, cx - r, cy - r, r * 2, r * 2, 'circle', r);
-
-    } else if (this.size === 'box') {
+    if (this.size === 'box') {
       const bw = Math.round(W * 0.24);
       const bh = Math.round(bw * 0.75);
       const bx = Math.round(W * 0.03);
       const by = H - bh - Math.round(H * 0.04);
       this._drawFrame(ctx, bx, by, bw, bh, 'rect', 14);
+    } else {
+      // Bubble sizes: sm / default / lg
+      const { cx, cy, r } = this._bubbleGeometry(W, H);
+      this._drawFrame(ctx, cx - r, cy - r, r * 2, r * 2, 'circle', r);
 
-    } else if (this.size === 'side') {
-      const pw = Math.round(W * 0.28);
-      this._drawFrame(ctx, 0, 0, pw, H, 'rect', 0);
-      // Separator line
-      ctx.save();
-      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(pw, 0);
-      ctx.lineTo(pw, H);
-      ctx.stroke();
-      ctx.restore();
+      // Drag handle hint — small grabber dot visible when not recording
+      if (!this.isRecording) {
+        ctx.save();
+        ctx.globalAlpha = 0.45;
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(cx, cy - r + Math.round(r * 0.22), Math.round(r * 0.1), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
     }
   },
 
@@ -166,7 +226,7 @@ const CameraRecorder = {
     const vw = vid.videoWidth  || 640;
     const vh = vid.videoHeight || 480;
 
-    // Object-fit: cover — crop to fill target rect
+    // Object-fit: cover
     const scale = Math.max(w / vw, h / vh);
     const sw = w / scale;
     const sh = h / scale;
@@ -186,34 +246,32 @@ const CameraRecorder = {
     }
     ctx.clip();
 
-    // ── Layer 1: base image — bright, warm, lifted ──────────────────
-    // Removes the cold blue webcam cast; sepia(0.06) adds warmth without orange
-    ctx.filter = 'brightness(1.18) contrast(1.07) saturate(1.15) sepia(0.06)';
+    // ── Layer 1: base — bright, warm, lifted ─────────────────────────
+    // Noticeably different from raw cam: removes cold webcam cast,
+    // lifts shadows, warms skin to golden-hour tone
+    ctx.filter = 'brightness(1.28) contrast(1.10) saturate(1.22) sepia(0.08) hue-rotate(-4deg)';
     ctx.drawImage(vid, sx, sy, sw, sh, x, y, w, h);
 
-    // ── Layer 2: skin smoothing — soft-light blur pass ──────────────
-    // Fills in pore texture without blurring hard edges (eyes, lips, hair stay sharp
-    // because soft-light is a low-contrast blend — large smooth areas are most affected)
+    // ── Layer 2: skin smoothing — soft-light blur pass ───────────────
     ctx.globalCompositeOperation = 'soft-light';
-    ctx.filter = 'blur(4px) brightness(1.06)';
-    ctx.globalAlpha = 0.22;
+    ctx.filter = 'blur(5px) brightness(1.10)';
+    ctx.globalAlpha = 0.25;
     ctx.drawImage(vid, sx, sy, sw, sh, x, y, w, h);
 
-    // ── Layer 3: edge sharpening — overlay at low opacity ──────────
-    // High contrast overlay pulls jawline, eyes, and lip lines forward
+    // ── Layer 3: feature sharpening — overlay at low opacity ─────────
     ctx.globalCompositeOperation = 'overlay';
-    ctx.filter = 'contrast(1.6) brightness(0.92)';
-    ctx.globalAlpha = 0.11;
+    ctx.filter = 'contrast(1.7) brightness(0.90)';
+    ctx.globalAlpha = 0.10;
     ctx.drawImage(vid, sx, sy, sw, sh, x, y, w, h);
 
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1.0;
     ctx.filter = 'none';
 
-    // ── Border ring ─────────────────────────────────────────────────
+    // ── Border ring ──────────────────────────────────────────────────
     ctx.shadowColor = 'rgba(0,0,0,0.6)';
     ctx.shadowBlur = 14;
-    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     if (shape === 'circle') {
@@ -229,7 +287,7 @@ const CameraRecorder = {
   },
 
   // ── REC indicator ─────────────────────────────────────────────────
-  // Small pulsing dot drawn on the canvas while recording
+
   drawRecIndicator(ctx, W, H) {
     if (!this.isRecording) return;
     const now = performance.now();

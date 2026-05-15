@@ -202,11 +202,13 @@ const App = {
     if (this.currentScreen === 'warmup') this._stopWarmup();
     if (this.currentScreen === 'game') { Game.stop(); this._stopMv(); }
     // Cancel any in-flight song selection (e.g. user navigates away during countdown)
-    if (this.currentScreen === 'countdown' || this.currentScreen === 'game') {
+    if (this.currentScreen === 'countdown' || this.currentScreen === 'game' || this.currentScreen === 'cam-setup') {
       this._abortSelect = true;
       this._selectingSong = false;
       try { Synth.stop(); } catch (e) {}
       this._stopMv();
+      if (this._camSetupResolve) { this._camSetupResolve(); this._camSetupResolve = null; }
+      if (typeof CameraRecorder !== 'undefined') CameraRecorder.stopCamera();
     }
 
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -507,12 +509,18 @@ const App = {
         }
       }
 
-      // Show countdown — also start camera warmup so it's ready when game begins
+      // Camera setup screen — player configures camera, then clicks Go Live
+      if (typeof CameraRecorder !== 'undefined') {
+        document.getElementById('cam-setup-song-title').textContent = song.title;
+        this.showScreen('cam-setup');
+        CameraRecorder.startCamera(); // warm up camera while player configures
+        await new Promise(resolve => { this._camSetupResolve = resolve; });
+        if (this._abortSelect) return; // user navigated away
+      }
+
+      // Show countdown
       document.getElementById('countdown-title').textContent = song.title;
       this.showScreen('countdown');
-      if (typeof CameraRecorder !== 'undefined') {
-        CameraRecorder.startCamera();
-      }
 
       // Countdown 3-2-1
       const numEl = document.getElementById('countdown-num');
@@ -598,8 +606,9 @@ const App = {
     setTimeout(() => {
       Game._resize();
       Game.start();
-      // Start recording (camera + canvas)
       if (typeof CameraRecorder !== 'undefined') {
+        CameraRecorder._bubbleX = null; // reset position so it defaults to bottom-left each song
+        CameraRecorder.initDrag(Game.canvas);
         CameraRecorder.startRecording(Game.canvas);
       }
       // Start MV in sync with audio (only for non-lyricsMode songs that use video)
@@ -773,6 +782,18 @@ const App = {
       const song = Songs.get(this.currentSong);
       CameraRecorder.downloadClip(song ? song.title : 'vocalstar');
     }
+  },
+
+  startFromCamSetup() {
+    if (this._camSetupResolve) { this._camSetupResolve(); this._camSetupResolve = null; }
+  },
+
+  skipCamSetup() {
+    if (typeof CameraRecorder !== 'undefined') {
+      CameraRecorder.setSize('off');
+      CameraRecorder.stopCamera();
+    }
+    if (this._camSetupResolve) { this._camSetupResolve(); this._camSetupResolve = null; }
   },
 
   async onGameEnd() {
