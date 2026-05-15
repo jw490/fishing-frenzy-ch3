@@ -1033,7 +1033,7 @@ html, body {
 
 .cam-setup-preview-wrap {
   position: relative;
-  width: min(100%, 300px);
+  width: min(100%, 420px);
   aspect-ratio: 1;
   border-radius: 20px;
   background: #0a0a1a;

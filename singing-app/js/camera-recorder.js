@@ -254,15 +254,13 @@ const CameraRecorder = {
     if (!bubble) return;
     if (size === 'off') { bubble.style.opacity = '0'; return; }
 
-    // Compute the exact pixel diameter the bubble will have during the song,
-    // then clamp to the container so it never overflows.
     const radiusMap = { 'bubble-sm': 0.10, 'bubble': 0.18, 'bubble-lg': 0.30 };
     const ratio = radiusMap[size] || 0.18;
-    const realMinDim = Math.min(window.screen.width, window.screen.height);
-    const actualDiam = Math.round(2 * ratio * realMinDim);
     const wrap = bubble.parentElement;
     const containerPx = wrap ? wrap.clientWidth : 300;
-    const px = Math.min(actualDiam, Math.round(containerPx * 0.95));
+    // The preview box represents the screen's narrow dimension.
+    // diameter = 2 × ratio × containerPx gives the same proportion as in-song.
+    const px = Math.round(2 * ratio * containerPx);
 
     bubble.style.width  = px + 'px';
     bubble.style.height = px + 'px';
@@ -314,9 +312,7 @@ const CameraRecorder = {
 
   _bubbleRadius(minDim) {
     const radiusMap = { 'bubble-sm': 0.10, 'bubble': 0.18, 'bubble-lg': 0.30, 'box': 0 };
-    // Use device screen size as reference so preview and song match exactly
-    const ref = Math.min(window.screen.width, window.screen.height) || minDim;
-    return Math.round(ref * (radiusMap[this.size] || 0.18));
+    return Math.round(minDim * (radiusMap[this.size] || 0.18));
   },
 
   _bubbleGeometry(W, H) {
