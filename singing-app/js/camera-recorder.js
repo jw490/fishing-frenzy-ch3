@@ -90,6 +90,7 @@ const CameraRecorder = {
     // Get a separate mic stream for recording audio.
     let micStream = null;
     try {
+      // High-quality: disable voice-call processing that degrades singing
       micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: false,
@@ -99,10 +100,18 @@ const CameraRecorder = {
         },
         video: false,
       });
-      this._ownMicStream = micStream;
-    } catch (e) {
-      console.warn('CameraRecorder: mic unavailable for recording', e);
+    } catch (_) {}
+
+    // Some browsers/devices reject the advanced constraints — fall back to plain mic
+    if (!micStream || !micStream.getAudioTracks().length) {
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      } catch (e) {
+        console.warn('CameraRecorder: mic unavailable for recording', e);
+      }
     }
+
+    this._ownMicStream = micStream || null;
 
     const tracks = [
       ...canvasStream.getVideoTracks(),
