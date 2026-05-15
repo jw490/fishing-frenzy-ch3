@@ -254,17 +254,14 @@ const CameraRecorder = {
     if (!bubble) return;
     if (size === 'off') { bubble.style.opacity = '0'; return; }
 
-    // Mirror the exact same calculation used during the song:
-    // radius = bubbleRadiusRatio * min(screenW, screenH)
-    const radiusMap = { 'bubble-sm': 0.10, 'bubble': 0.18, 'bubble-lg': 0.30 };
-    const ratio = radiusMap[size] || 0.18;
-    const minScreenDim = Math.min(window.innerWidth, window.innerHeight);
-    const diameter = Math.round(2 * ratio * minScreenDim);
-
-    // Cap at 95% of preview container so it never overflows
+    // Show proportions relative to the preview container — same ratios as the
+    // in-song renderer but scaled to the container, not the full screen.
+    // This avoids the "all sizes cap at container width" problem on desktop.
     const wrap = bubble.parentElement;
-    const maxPx = wrap ? Math.round(wrap.clientWidth * 0.95) : 300;
-    const px = Math.min(diameter, maxPx);
+    const containerPx = wrap ? wrap.clientWidth : 300;
+    const containerMap = { 'bubble-sm': 0.32, 'bubble': 0.56, 'bubble-lg': 0.88 };
+    const frac = containerMap[size] || 0.56;
+    const px = Math.round(containerPx * frac);
 
     bubble.style.width  = px + 'px';
     bubble.style.height = px + 'px';
