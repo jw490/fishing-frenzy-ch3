@@ -40,6 +40,7 @@ const CameraRecorder = {
         document.body.appendChild(this._videoEl);
       }
       this._videoEl.srcObject = this._camStream;
+      if (typeof BeautyFilters !== 'undefined') BeautyFilters.initAsync();
       await this._videoEl.play().catch(() => {
         // Fallback: try again without awaiting — some browsers resolve later
         this._videoEl.play().catch(() => {});

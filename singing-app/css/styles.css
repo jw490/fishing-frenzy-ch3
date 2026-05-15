@@ -1109,16 +1109,25 @@ html, body {
 .filter-btn.active span { color: #00d4ff; }
 
 /* Swatch face-toned gradients */
-.filter-swatch--natural  { background: radial-gradient(circle at 38% 32%, #f5dfc5, #c8966a); }
-.filter-swatch--beauty   { background: radial-gradient(circle at 38% 32%, #fce4d0, #e8aa88); }
-.filter-swatch--tan      { background: radial-gradient(circle at 38% 32%, #f0a850, #a86018); }
-.filter-swatch--angel    { background: radial-gradient(circle at 38% 32%, #ffffff, #cce4ff); }
-.filter-swatch--pink     { background: radial-gradient(circle at 38% 32%, #ffb6c8, #e070a0); }
-.filter-swatch--glamour  { background: radial-gradient(circle at 38% 32%, #ff7aaa, #8b1040); }
-.filter-swatch--freckles { background: radial-gradient(circle at 38% 32%, #f0c090 60%, #c89050),
-                                        radial-gradient(2px 2px at 40% 55%, #7a4020 100%, transparent),
-                                        radial-gradient(2px 2px at 60% 48%, #7a4020 100%, transparent),
-                                        radial-gradient(2px 2px at 52% 62%, #7a4020 100%, transparent); }
+.filter-swatch--natural   { background: radial-gradient(circle at 38% 32%, #f5dfc5, #c8966a); }
+.filter-swatch--smooth    { background: radial-gradient(circle at 38% 32%, #fce8dc, #e0aa88); }
+.filter-swatch--dewy      { background: radial-gradient(circle at 38% 32%, #e8f4ff, #b8d8f0), radial-gradient(circle at 60% 40%, rgba(255,255,255,0.6) 10%, transparent 60%); }
+.filter-swatch--porcelain { background: radial-gradient(circle at 38% 32%, #fff5ee, #f0c8aa); }
+.filter-swatch--golden    { background: radial-gradient(circle at 38% 32%, #f8c060, #c07828); }
+.filter-swatch--glamour   { background: radial-gradient(circle at 38% 32%, #ff7aaa, #8b1040); }
+.filter-swatch--freckles  { background: radial-gradient(circle at 38% 32%, #f0c090, #c89050);
+                             position: relative; }
+.filter-swatch--freckles::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(1.5px 1.5px at 38% 54%, #7a4020 100%, transparent),
+              radial-gradient(1.5px 1.5px at 55% 48%, #7a4020 100%, transparent),
+              radial-gradient(1.5px 1.5px at 48% 62%, #7a4020 100%, transparent),
+              radial-gradient(1.5px 1.5px at 62% 58%, #7a4020 100%, transparent),
+              radial-gradient(1.5px 1.5px at 44% 42%, #7a4020 100%, transparent);
+}
 
 .cam-setup-no-cam {
   position: absolute;
