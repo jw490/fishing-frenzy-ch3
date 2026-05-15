@@ -837,6 +837,12 @@ const Game = {
     ctx.fillRect(0, H - 3, W, 3);
     ctx.fillStyle = 'rgba(0,212,255,0.55)';
     ctx.fillRect(0, H - 3, W * progress, 3);
+
+    // Camera overlay + REC dot (drawn last so they sit above everything)
+    if (typeof CameraRecorder !== 'undefined') {
+      CameraRecorder.drawOverlay(ctx, W, H);
+      CameraRecorder.drawRecIndicator(ctx, W, H);
+    }
   },
 
   _drawOverlays(ctx, W, H) {

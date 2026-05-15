@@ -507,9 +507,12 @@ const App = {
         }
       }
 
-      // Show countdown
+      // Show countdown — also start camera warmup so it's ready when game begins
       document.getElementById('countdown-title').textContent = song.title;
       this.showScreen('countdown');
+      if (typeof CameraRecorder !== 'undefined') {
+        CameraRecorder.startCamera();
+      }
 
       // Countdown 3-2-1
       const numEl = document.getElementById('countdown-num');
@@ -595,6 +598,10 @@ const App = {
     setTimeout(() => {
       Game._resize();
       Game.start();
+      // Start recording (camera + canvas)
+      if (typeof CameraRecorder !== 'undefined') {
+        CameraRecorder.startRecording(Game.canvas);
+      }
       // Start MV in sync with audio (only for non-lyricsMode songs that use video)
       if (song.mvSrc && !song.lyricsMode && mvEl && gameScreen.classList.contains('has-mv')) {
         mvEl.currentTime = 0;
@@ -761,8 +768,24 @@ const App = {
     }
   },
 
+  downloadClip() {
+    if (typeof CameraRecorder !== 'undefined') {
+      const song = Songs.get(this.currentSong);
+      CameraRecorder.downloadClip(song ? song.title : 'vocalstar');
+    }
+  },
+
   async onGameEnd() {
     this._stopMv();
+    // Stop recording in parallel — don't await, blob will be ready by the time
+    // the user clicks Download (results screen takes ~1.5s to animate in)
+    if (typeof CameraRecorder !== 'undefined') {
+      CameraRecorder.stopRecording().then(() => {
+        const btn = document.getElementById('btn-download-clip');
+        if (btn) btn.hidden = !CameraRecorder.hasClip();
+      });
+      CameraRecorder.stopCamera();
+    }
     const results = Game.getResults();
     const song = Songs.get(this.currentSong);
 
