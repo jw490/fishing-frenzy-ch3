@@ -90,7 +90,15 @@ const CameraRecorder = {
     // Get a separate mic stream for recording audio.
     let micStream = null;
     try {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          sampleRate: 44100,
+        },
+        video: false,
+      });
       this._ownMicStream = micStream;
     } catch (e) {
       console.warn('CameraRecorder: mic unavailable for recording', e);
@@ -116,6 +124,7 @@ const CameraRecorder = {
       this._recorder = new MediaRecorder(new MediaStream(tracks), {
         mimeType,
         videoBitsPerSecond: 4_000_000,
+        audioBitsPerSecond: 192_000,
       });
       this._recorder.ondataavailable = e => {
         if (e.data && e.data.size > 0) this._chunks.push(e.data);
