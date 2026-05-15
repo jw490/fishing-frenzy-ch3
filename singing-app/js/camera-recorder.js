@@ -78,7 +78,7 @@ const CameraRecorder = {
 
   // ── Recording lifecycle ──────────────────────────────────────────
 
-  startRecording(canvas) {
+  async startRecording(canvas) {
     this._chunks = [];
     this._recordedBlob = null;
     this._recordedMime = 'video/webm';
@@ -86,10 +86,15 @@ const CameraRecorder = {
 
     const canvasStream = canvas.captureStream(30);
 
-    // Prefer mic stream from PitchDetector; fall back to raw camera audio
-    const micStream = (typeof PitchDetector !== 'undefined' && PitchDetector.stream)
-      ? PitchDetector.stream
-      : this._camStream;
+    // PitchDetector uses WebAudio internally and has no raw stream.
+    // Get a separate mic stream for recording audio.
+    let micStream = null;
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      this._ownMicStream = micStream;
+    } catch (e) {
+      console.warn('CameraRecorder: mic unavailable for recording', e);
+    }
 
     const tracks = [
       ...canvasStream.getVideoTracks(),
@@ -132,6 +137,10 @@ const CameraRecorder = {
       this._recorder.onstop = () => {
         this._recordedBlob = new Blob(this._chunks, { type: this._recordedMime || 'video/webm' });
         this.isRecording = false;
+        if (this._ownMicStream) {
+          this._ownMicStream.getTracks().forEach(t => t.stop());
+          this._ownMicStream = null;
+        }
         resolve(this._recordedBlob);
       };
       this._recorder.stop();
@@ -239,11 +248,19 @@ const CameraRecorder = {
     const bubble = document.getElementById('cam-bubble-preview');
     if (!bubble) return;
     if (size === 'off') { bubble.style.opacity = '0'; return; }
+
+    // Mirror the exact same calculation used during the song:
+    // radius = bubbleRadiusRatio * min(screenW, screenH)
+    const radiusMap = { 'bubble-sm': 0.14, 'bubble': 0.20, 'bubble-lg': 0.28 };
+    const ratio = radiusMap[size] || 0.20;
+    const minScreenDim = Math.min(window.innerWidth, window.innerHeight);
+    const diameter = Math.round(2 * ratio * minScreenDim);
+
+    // Cap at 95% of preview container so it never overflows
     const wrap = bubble.parentElement;
-    const W = wrap ? wrap.clientWidth : 300;
-    const sizeMap = { 'bubble-sm': 0.46, 'bubble': 0.62, 'bubble-lg': 0.80 };
-    const ratio = sizeMap[size] || 0.62;
-    const px = Math.round(W * ratio);
+    const maxPx = wrap ? Math.round(wrap.clientWidth * 0.95) : 300;
+    const px = Math.min(diameter, maxPx);
+
     bubble.style.width  = px + 'px';
     bubble.style.height = px + 'px';
     bubble.style.opacity = '1';
