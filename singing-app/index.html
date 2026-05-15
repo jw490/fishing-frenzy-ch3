@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>VocalStar - Sing. Score. Improve.</title>
-  <link rel="stylesheet" href="css/styles.css?v=47">
+  <link rel="stylesheet" href="css/styles.css?v=48">
   <meta http-equiv="Cache-Control" content="no-cache">
   <meta name="theme-color" content="#06060f">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -360,6 +360,37 @@
         <div class="cam-setup-no-cam" id="cam-setup-no-cam">Camera off</div>
       </div>
 
+      <div class="filter-picker" id="filter-picker">
+        <button class="filter-btn active" data-filter="natural" onclick="BeautyFilters.set('natural')">
+          <div class="filter-swatch filter-swatch--natural"></div>
+          <span>Natural</span>
+        </button>
+        <button class="filter-btn" data-filter="beauty" onclick="BeautyFilters.set('beauty')">
+          <div class="filter-swatch filter-swatch--beauty"></div>
+          <span>Beauty</span>
+        </button>
+        <button class="filter-btn" data-filter="tan" onclick="BeautyFilters.set('tan')">
+          <div class="filter-swatch filter-swatch--tan"></div>
+          <span>Tan</span>
+        </button>
+        <button class="filter-btn" data-filter="angel" onclick="BeautyFilters.set('angel')">
+          <div class="filter-swatch filter-swatch--angel"></div>
+          <span>Angel</span>
+        </button>
+        <button class="filter-btn" data-filter="pink" onclick="BeautyFilters.set('pink')">
+          <div class="filter-swatch filter-swatch--pink"></div>
+          <span>Pink</span>
+        </button>
+        <button class="filter-btn" data-filter="glamour" onclick="BeautyFilters.set('glamour')">
+          <div class="filter-swatch filter-swatch--glamour"></div>
+          <span>Bold Glamour</span>
+        </button>
+        <button class="filter-btn" data-filter="freckles" onclick="BeautyFilters.set('freckles')">
+          <div class="filter-swatch filter-swatch--freckles"></div>
+          <span>Freckles</span>
+        </button>
+      </div>
+
       <div class="cam-setup-controls">
         <div class="cam-picker" id="cam-picker">
           <button class="cam-picker-btn" data-size="off" onclick="CameraRecorder.setSize('off'); document.getElementById('cam-setup-no-cam').style.display='flex'; document.getElementById('cam-setup-video').style.display='none';">
@@ -690,7 +721,8 @@
   <script src="js/midi-parser.js?v=10"></script>
   <script src="js/audio-analyzer.js?v=10"></script>
   <script src="js/game.js?v=51"></script>
-  <script src="js/camera-recorder.js?v=7"></script>
+  <script src="js/beauty-filters.js?v=1"></script>
+  <script src="js/camera-recorder.js?v=8"></script>
   <script src="js/app.js?v=52"></script>
   <script src="js/feedback.js?v=1"></script>
   <script defer src="/_vercel/insights/script.js"></script>

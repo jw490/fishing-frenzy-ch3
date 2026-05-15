@@ -281,24 +281,11 @@ const CameraRecorder = {
     }
     ctx.clip();
 
-    // ── Layer 1: base — TikTok beauty grade ──────────────────────────
-    // Low contrast (0.82) flattens skin texture; warm hue lifts tone;
-    // high saturation (1.50) gives the vivid "filter" pop
-    ctx.filter = 'brightness(1.18) contrast(0.82) saturate(1.50) hue-rotate(-8deg)';
-    ctx.drawImage(vid, sx, sy, sw, sh, x, y, w, h);
-
-    // ── Layer 2: skin smoothing — soft-light blur pass ───────────────
-    // Higher alpha (0.38) than before = more porcelain skin effect
-    ctx.globalCompositeOperation = 'soft-light';
-    ctx.filter = 'blur(10px) brightness(1.06)';
-    ctx.globalAlpha = 0.38;
-    ctx.drawImage(vid, sx, sy, sw, sh, x, y, w, h);
-
-    // ── Layer 3: eye & feature pop — overlay at low opacity ──────────
-    ctx.globalCompositeOperation = 'overlay';
-    ctx.filter = 'contrast(1.55) brightness(0.92)';
-    ctx.globalAlpha = 0.09;
-    ctx.drawImage(vid, sx, sy, sw, sh, x, y, w, h);
+    if (typeof BeautyFilters !== 'undefined') {
+      BeautyFilters.apply(ctx, vid, sx, sy, sw, sh, x, y, w, h);
+    } else {
+      ctx.drawImage(vid, sx, sy, sw, sh, x, y, w, h);
+    }
 
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1.0;
