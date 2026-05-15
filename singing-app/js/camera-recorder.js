@@ -254,14 +254,14 @@ const CameraRecorder = {
     if (!bubble) return;
     if (size === 'off') { bubble.style.opacity = '0'; return; }
 
-    // Show proportions relative to the preview container — same ratios as the
-    // in-song renderer but scaled to the container, not the full screen.
-    // This avoids the "all sizes cap at container width" problem on desktop.
+    // Use identical ratios to the in-song renderer. The preview container
+    // represents the narrower screen dimension, so diameter = 2 × ratio × containerWidth
+    // gives the same visual proportion as 2 × ratio × min(screenW, screenH) in-song.
+    const radiusMap = { 'bubble-sm': 0.10, 'bubble': 0.18, 'bubble-lg': 0.30 };
+    const ratio = radiusMap[size] || 0.18;
     const wrap = bubble.parentElement;
     const containerPx = wrap ? wrap.clientWidth : 300;
-    const containerMap = { 'bubble-sm': 0.32, 'bubble': 0.56, 'bubble-lg': 0.88 };
-    const frac = containerMap[size] || 0.56;
-    const px = Math.round(containerPx * frac);
+    const px = Math.round(2 * ratio * containerPx);
 
     bubble.style.width  = px + 'px';
     bubble.style.height = px + 'px';
