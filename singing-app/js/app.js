@@ -512,6 +512,13 @@ const App = {
       // Camera setup screen — player configures camera, then clicks Go Live
       if (typeof CameraRecorder !== 'undefined') {
         document.getElementById('cam-setup-song-title').textContent = song.title;
+        // Always enter with bubble mode active so camera starts fresh each time
+        if (CameraRecorder.size === 'off') CameraRecorder.setSize('bubble');
+        // Restore video visibility in case player previously chose "Off"
+        const setupVid = document.getElementById('cam-setup-video');
+        const noCam = document.getElementById('cam-setup-no-cam');
+        if (setupVid) setupVid.style.display = '';
+        if (noCam) noCam.style.display = 'none';
         this.showScreen('cam-setup');
         CameraRecorder.startCamera(); // warm up camera while player configures
         await new Promise(resolve => { this._camSetupResolve = resolve; });
@@ -785,6 +792,9 @@ const App = {
   },
 
   startFromCamSetup() {
+    if (typeof CameraRecorder !== 'undefined' && CameraRecorder.size === 'off') {
+      CameraRecorder.stopCamera();
+    }
     if (this._camSetupResolve) { this._camSetupResolve(); this._camSetupResolve = null; }
   },
 

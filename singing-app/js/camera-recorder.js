@@ -25,7 +25,6 @@ const CameraRecorder = {
   // ── Camera lifecycle ──────────────────────────────────────────────
 
   async startCamera() {
-    if (this.size === 'off') return;
     try {
       this._camStream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
