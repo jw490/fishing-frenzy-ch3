@@ -153,22 +153,17 @@ const CameraRecorder = {
   },
 
   _updatePreviewHint(size) {
-    const hint = document.getElementById('cam-preview-hint');
-    const wrap = hint && hint.parentElement;
-    if (!hint || !wrap) return;
-    if (size === 'off') { hint.style.opacity = '0'; return; }
-    const W = wrap.clientWidth;
-    const H = wrap.clientHeight;
-    const radiusMap = { 'bubble-sm': 0.08, 'bubble': 0.12, 'bubble-lg': 0.17 };
-    const ratio = radiusMap[size] || 0.12;
-    const r = Math.round(Math.min(W, H) * ratio);
-    const cx = Math.round(W * 0.12);
-    const cy = H - r - Math.round(H * 0.05);
-    hint.style.width  = (r * 2) + 'px';
-    hint.style.height = (r * 2) + 'px';
-    hint.style.left   = cx + 'px';
-    hint.style.top    = cy + 'px';
-    hint.style.opacity = '1';
+    const bubble = document.getElementById('cam-bubble-preview');
+    if (!bubble) return;
+    if (size === 'off') { bubble.style.opacity = '0'; return; }
+    const wrap = bubble.parentElement;
+    const W = wrap ? wrap.clientWidth : 300;
+    const sizeMap = { 'bubble-sm': 0.30, 'bubble': 0.44, 'bubble-lg': 0.60 };
+    const ratio = sizeMap[size] || 0.44;
+    const px = Math.round(W * ratio);
+    bubble.style.width  = px + 'px';
+    bubble.style.height = px + 'px';
+    bubble.style.opacity = '1';
   },
 
   hasClip() {

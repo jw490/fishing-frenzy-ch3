@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>VocalStar - Sing. Score. Improve.</title>
-  <link rel="stylesheet" href="css/styles.css?v=46">
+  <link rel="stylesheet" href="css/styles.css?v=47">
   <meta http-equiv="Cache-Control" content="no-cache">
   <meta name="theme-color" content="#06060f">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -354,9 +354,10 @@
       </div>
 
       <div class="cam-setup-preview-wrap">
-        <video id="cam-setup-video" class="cam-setup-video" autoplay playsinline muted></video>
+        <div class="cam-bubble-preview" id="cam-bubble-preview">
+          <video id="cam-setup-video" class="cam-setup-video" autoplay playsinline muted></video>
+        </div>
         <div class="cam-setup-no-cam" id="cam-setup-no-cam">Camera off</div>
-        <div class="cam-preview-hint" id="cam-preview-hint"></div>
       </div>
 
       <div class="cam-setup-controls">
@@ -689,7 +690,7 @@
   <script src="js/midi-parser.js?v=10"></script>
   <script src="js/audio-analyzer.js?v=10"></script>
   <script src="js/game.js?v=51"></script>
-  <script src="js/camera-recorder.js?v=6"></script>
+  <script src="js/camera-recorder.js?v=7"></script>
   <script src="js/app.js?v=52"></script>
   <script src="js/feedback.js?v=1"></script>
   <script defer src="/_vercel/insights/script.js"></script>
