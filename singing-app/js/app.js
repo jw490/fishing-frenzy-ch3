@@ -201,8 +201,11 @@ const App = {
     // Cleanup previous screen
     if (this.currentScreen === 'warmup') this._stopWarmup();
     if (this.currentScreen === 'game') { Game.stop(); this._stopMv(); }
-    // Cancel any in-flight song selection (e.g. user navigates away during countdown)
-    if (this.currentScreen === 'countdown' || this.currentScreen === 'game' || this.currentScreen === 'cam-setup') {
+    // Cancel any in-flight song selection when navigating AWAY from the game flow.
+    // Do NOT abort when progressing forward: cam-setup → countdown → game.
+    const gameFlow = new Set(['cam-setup', 'countdown', 'game']);
+    const leavingGameFlow = gameFlow.has(this.currentScreen) && !gameFlow.has(id);
+    if (leavingGameFlow) {
       this._abortSelect = true;
       this._selectingSong = false;
       try { Synth.stop(); } catch (e) {}
