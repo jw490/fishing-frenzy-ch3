@@ -45,10 +45,12 @@ const CameraRecorder = {
         this._videoEl.play().catch(() => {});
       });
 
-      // Also feed the setup preview if it exists
+      // Feed the setup preview — this DOM element is also used for canvas drawing
       const setupVid = document.getElementById('cam-setup-video');
       if (setupVid) {
         setupVid.srcObject = this._camStream;
+        // Keep display:block so iOS doesn't suspend it when the screen hides
+        setupVid.style.display = 'block';
         setupVid.play().catch(() => {});
       }
       // Initialise bubble hint once layout is settled
@@ -224,19 +226,21 @@ const CameraRecorder = {
   // ── Canvas overlay ────────────────────────────────────────────────
 
   drawOverlay(ctx, W, H) {
-    if (this.size === 'off' || !this._videoEl || !this._camStream) return;
-    if (this._videoEl.readyState < 2) return;
+    if (this.size === 'off' || !this._camStream) return;
+    // Prefer the DOM video element (always in DOM, reliable on iOS) over detached _videoEl
+    const vid = document.getElementById('cam-setup-video') || this._videoEl;
+    if (!vid || !vid.videoWidth) return;
 
     if (this.size === 'box') {
       const bw = Math.round(W * 0.24);
       const bh = Math.round(bw * 0.75);
       const bx = Math.round(W * 0.03);
       const by = H - bh - Math.round(H * 0.04);
-      this._drawFrame(ctx, bx, by, bw, bh, 'rect', 14);
+      this._drawFrame(ctx, vid, bx, by, bw, bh, 'rect', 14);
     } else {
       // Bubble sizes: sm / default / lg
       const { cx, cy, r } = this._bubbleGeometry(W, H);
-      this._drawFrame(ctx, cx - r, cy - r, r * 2, r * 2, 'circle', r);
+      this._drawFrame(ctx, vid, cx - r, cy - r, r * 2, r * 2, 'circle', r);
 
       // Drag handle hint — small grabber dot visible when not recording
       if (!this.isRecording) {
@@ -253,8 +257,7 @@ const CameraRecorder = {
     }
   },
 
-  _drawFrame(ctx, x, y, w, h, shape, cornerR) {
-    const vid = this._videoEl;
+  _drawFrame(ctx, vid, x, y, w, h, shape, cornerR) {
     const vw = vid.videoWidth  || 640;
     const vh = vid.videoHeight || 480;
 
