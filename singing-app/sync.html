@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lyric Sync — Fact Check</title>
+  <style>
+    :root {
+      --bg: #0a0e1a;
+      --panel: #141a2a;
+      --panel-hi: #1c2438;
+      --border: #2a3349;
+      --text: #e6ecff;
+      --muted: #8892b0;
+      --accent: #00d4ff;
+      --good: #4ade80;
+      --warn: #fbbf24;
+      --bad: #f87171;
+      --purple: #a855f7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      line-height: 1.4;
+      padding: 16px;
+    }
+    h1 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    h2 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .subtitle { color: var(--muted); font-size: 12px; margin-bottom: 16px; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    /* Controls */
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+    button {
+      background: var(--panel-hi);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    button:hover:not(:disabled) { background: var(--border); border-color: var(--accent); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.primary { background: var(--accent); color: #000; border-color: var(--accent); }
+    button.primary:hover:not(:disabled) { background: #33ddff; }
+    button.good { background: var(--good); color: #000; border-color: var(--good); }
+    button.warn { background: var(--warn); color: #000; border-color: var(--warn); }
+    button.danger { background: var(--bad); color: #000; border-color: var(--bad); }
+
+    .time-display {
+      font-family: "SF Mono", Monaco, monospace;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      padding: 4px 10px;
+      background: var(--bg);
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      min-width: 80px;
+      text-align: center;
+    }
+
+    /* Timeline */
+    #timeline-wrap {
+      position: relative;
+      width: 100%;
+      height: 140px;
+      background: var(--bg);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    #timeline-canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+
+    /* Lyrics table */
+    .lyrics-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .lyrics-table th {
+      text-align: left;
+      padding: 6px 8px;
+      background: var(--panel-hi);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      position: sticky;
+      top: 0;
+    }
+    .lyrics-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .lyrics-table tr.current { background: rgba(0, 212, 255, 0.12); }
+    .lyrics-table tr.synced { background: rgba(74, 222, 128, 0.06); }
+    .lyrics-table tr:hover { background: rgba(255, 255, 255, 0.03); cursor: pointer; }
+    .t-old { color: var(--muted); font-family: "SF Mono", Monaco, monospace; font-size: 11px; }
+    .t-new { color: var(--good); font-family: "SF Mono", Monaco, monospace; font-weight: 600; font-size: 12px; }
+    .t-diff { font-family: "SF Mono", Monaco, monospace; font-size: 10px; }
+    .t-diff.big { color: var(--bad); font-weight: 600; }
+    .t-diff.med { color: var(--warn); }
+    .t-diff.ok { color: var(--good); }
+    .lyric-text { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .scroll-area {
+      max-height: 520px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    /* Status */
+    #status {
+      font-family: "SF Mono", Monaco, monospace;
+      color: var(--muted);
+      font-size: 11px;
+      padding: 4px 0;
+    }
+    #progress-bar {
+      width: 100%;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 6px;
+      display: none;
+    }
+    #progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.1s;
+    }
+
+    /* Export output */
+    #export-output {
+      width: 100%;
+      min-height: 200px;
+      background: var(--bg);
+      color: var(--good);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      font-family: "SF Mono", Monaco, monospace;
+      font-size: 11px;
+      resize: vertical;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .legend {
+      display: flex;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 4px; }
+    .legend-swatch { width: 10px; height: 10px; border-radius: 2px; }
+
+    .kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      background: var(--panel-hi);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: "SF Mono", Monaco, monospace;
+      font-size: 11px;
+      color: var(--accent);
+    }
+
+    .hint { color: var(--muted); font-size: 11px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Lyric Sync — Fact Check Tool</h1>
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+    <label style="color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:0.05em; font-weight:600;">Song</label>
+    <select id="song-picker" style="background:var(--panel-hi); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px 12px; font-size:13px; font-family:inherit; cursor:pointer; min-width:200px;"></select>
+    <span id="song-label" style="color:var(--muted); font-size:12px;"></span>
+  </div>
+  <p class="subtitle">Verify and correct lyric timestamps against the actual audio</p>
+
+  <!-- Lyrics editor panel -->
+  <div class="panel">
+    <h2>Step 1 · Paste correct lyrics</h2>
+    <p class="hint">Paste the correct lyrics from your trusted source — one line per row. Blank lines and whitespace are stripped. Click <b>Load lyrics</b> to replace the 40 lines below. Then use tap-sync or auto-detect to fix timings.</p>
+    <textarea id="lyrics-input" placeholder="想見你 只想見你…
+未來過去 我只想見你…
+(one line per row)" style="width: 100%; min-height: 180px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-family: inherit; font-size: 13px; resize: vertical; margin-top: 8px;"></textarea>
+    <div class="controls" style="margin-top: 8px;">
+      <button id="btn-load-lyrics" class="primary">Load lyrics → table</button>
+      <button id="btn-load-keep-timings">Load lyrics (keep old timings)</button>
+      <span id="lyrics-count" style="color: var(--muted); font-size: 11px;"></span>
+    </div>
+  </div>
+
+  <!-- Timeline panel -->
+  <div class="panel">
+    <h2>Timeline</h2>
+    <div id="timeline-wrap">
+      <canvas id="timeline-canvas"></canvas>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background: #334155"></div>Waveform</div>
+      <div class="legend-item"><div class="legend-swatch" style="background: #a855f7"></div>Onsets (energy spikes — candidate line starts)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background: #f87171"></div>Current lyric timestamps</div>
+      <div class="legend-item"><div class="legend-swatch" style="background: #4ade80"></div>Synced (corrected) timestamps</div>
+      <div class="legend-item"><div class="legend-swatch" style="background: #00d4ff"></div>Playhead</div>
+    </div>
+    <p class="hint">Click the timeline to seek. Red ticks = current timestamps. Purple bars = where vocals actually are. Green ticks = your corrected timestamps.</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="panel">
+    <div class="controls">
+      <button id="btn-play" class="primary">▶ Play</button>
+      <button id="btn-pause" disabled>⏸ Pause</button>
+      <button id="btn-restart">⏮ Restart</button>
+      <div class="time-display" id="time-display">0:00.000</div>
+      <button id="btn-back5">−5s</button>
+      <button id="btn-fwd5">+5s</button>
+      <button id="btn-analyze" class="warn">⏳ Auto-detect onsets</button>
+    </div>
+    <div class="controls">
+      <button id="btn-tap" class="good">⏱ Tap Sync (Space)</button>
+      <button id="btn-undo">↶ Undo last tap</button>
+      <button id="btn-reset-sync">Reset all synced</button>
+      <button id="btn-copy-current" title="Start from current timings">Copy current → synced</button>
+      <button id="btn-copy-detected" title="Fill synced from auto-detect">Auto → synced</button>
+      <button id="btn-export" class="primary">Export corrected notes</button>
+    </div>
+    <p class="hint">
+      Press <span class="kbd">Space</span> right when each line starts singing.
+      The current row highlights in blue; after tapping it advances to the next line.
+      <span class="kbd">←</span>/<span class="kbd">→</span> to step −1s/+1s.
+    </p>
+    <div id="status">Loading audio…</div>
+    <div id="progress-bar"><div id="progress-fill"></div></div>
+  </div>
+
+  <!-- Lyrics table -->
+  <div class="panel">
+    <h2>Lyrics · Old → Synced (<span id="sync-count">0</span> / <span id="total-count">0</span> synced)</h2>
+    <div class="scroll-area">
+      <table class="lyrics-table" id="lyrics-table">
+        <thead>
+          <tr>
+            <th style="width: 30px;">#</th>
+            <th style="width: 70px;">Old t</th>
+            <th style="width: 70px;">New t</th>
+            <th style="width: 50px;">Δ</th>
+            <th>Lyric</th>
+          </tr>
+        </thead>
+        <tbody id="lyrics-tbody"></tbody>
+      </table>
+    </div>
+    <textarea id="export-output" readonly></textarea>
+  </div>
+
+  <script src="js/songs.js"></script>
+  <script>
+    // ============================================================
+    // Lyric Sync Fact-Check Tool
+    // ============================================================
+
+    // Song picker: populate dropdown with all songs that have audio
+    const picker = document.getElementById('song-picker');
+    for (const s of Songs.library) {
+      if (!s.audioSrc) continue;
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = `${s.title} — ${s.artist}`;
+      picker.appendChild(opt);
+    }
+
+    // Song selection via ?song=<id> or picker. Default to first audio song.
+    const params = new URLSearchParams(location.search);
+    const initialSongId = params.get('song') || (picker.options.length > 0 ? picker.options[0].value : '');
+    picker.value = initialSongId;
+
+    // Navigate on change
+    picker.addEventListener('change', () => {
+      const url = new URL(location.href);
+      url.searchParams.set('song', picker.value);
+      location.href = url.toString();
+    });
+
+    const SONG_ID = picker.value;
+    const song = Songs.get(SONG_ID);
+    if (!song) {
+      document.getElementById('song-label').textContent = 'No songs with audio found';
+      throw new Error('no song');
+    }
+    const AUDIO_URL = song.audioSrc || `audio/${SONG_ID}.mp3`;
+
+    // Update page chrome to reflect the loaded song
+    document.getElementById('song-label').textContent = song.title + ' (' + SONG_ID + ')';
+    document.title = `Lyric Sync — ${song.title}`;
+
+    // Lines: each row in the editor
+    const lines = song.notes.map((n, i) => ({
+      idx: i,
+      oldStart: n.start,
+      oldDur: n.dur,
+      newStart: null,   // user-synced or auto-detected
+      lyric: n.lyric,
+    }));
+
+    // State
+    let audio = new Audio(AUDIO_URL);
+    audio.preload = 'auto';
+    let audioBuffer = null;
+    let currentLineIdx = 0;   // which line we're about to tap-sync
+    let vocalSegments = [];   // [{start, end}] from auto-detect
+    let waveformPeaks = null; // array of [min, max]
+    let duration = 0;
+
+    // DOM refs
+    const $status = document.getElementById('status');
+    const $progressBar = document.getElementById('progress-bar');
+    const $progressFill = document.getElementById('progress-fill');
+    const $timeDisplay = document.getElementById('time-display');
+    const $btnPlay = document.getElementById('btn-play');
+    const $btnPause = document.getElementById('btn-pause');
+    const $btnRestart = document.getElementById('btn-restart');
+    const $btnAnalyze = document.getElementById('btn-analyze');
+    const $btnTap = document.getElementById('btn-tap');
+    const $btnUndo = document.getElementById('btn-undo');
+    const $btnResetSync = document.getElementById('btn-reset-sync');
+    const $btnCopyCurrent = document.getElementById('btn-copy-current');
+    const $btnCopyDetected = document.getElementById('btn-copy-detected');
+    const $btnExport = document.getElementById('btn-export');
+    const $lyricsInput = document.getElementById('lyrics-input');
+    const $btnLoadLyrics = document.getElementById('btn-load-lyrics');
+    const $btnLoadKeepTimings = document.getElementById('btn-load-keep-timings');
+    const $lyricsCount = document.getElementById('lyrics-count');
+    const $btnBack5 = document.getElementById('btn-back5');
+    const $btnFwd5 = document.getElementById('btn-fwd5');
+    const $lyricsTbody = document.getElementById('lyrics-tbody');
+    const $syncCount = document.getElementById('sync-count');
+    const $totalCount = document.getElementById('total-count');
+    const $canvas = document.getElementById('timeline-canvas');
+    const $exportOut = document.getElementById('export-output');
+
+    const ctx = $canvas.getContext('2d');
+
+    // ---------- Audio load & decode ----------
+    $status.textContent = 'Loading audio...';
+    audio.addEventListener('loadedmetadata', () => {
+      duration = audio.duration;
+      $status.textContent = `Audio loaded: ${formatTime(duration)} (${duration.toFixed(2)}s)`;
+    });
+    audio.addEventListener('ended', () => {
+      $btnPlay.disabled = false;
+      $btnPause.disabled = true;
+    });
+    audio.addEventListener('error', (e) => {
+      $status.textContent = 'Error loading audio: ' + AUDIO_URL;
+    });
+
+    // Decode audio buffer once for waveform + analysis
+    async function decodeAudio() {
+      try {
+        const resp = await fetch(AUDIO_URL);
+        const arrayBuffer = await resp.arrayBuffer();
+        const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioBuffer = await tempCtx.decodeAudioData(arrayBuffer.slice(0));
+        tempCtx.close();
+        if (!duration) duration = audioBuffer.duration;
+        computeWaveformPeaks();
+        draw();
+        $status.textContent = `Ready. Audio decoded: ${duration.toFixed(2)}s · ${audioBuffer.numberOfChannels}ch @ ${audioBuffer.sampleRate}Hz. Click "Auto-detect onsets" or start tapping.`;
+      } catch (e) {
+        $status.textContent = 'Decode error: ' + e.message;
+      }
+    }
+
+    function computeWaveformPeaks() {
+      if (!audioBuffer) return;
+      const data = audioBuffer.getChannelData(0);
+      const width = $canvas.width || 1200;
+      const samplesPerPixel = Math.floor(data.length / width);
+      const peaks = new Float32Array(width * 2);
+      for (let px = 0; px < width; px++) {
+        let min = 1, max = -1;
+        const s0 = px * samplesPerPixel;
+        const s1 = Math.min(s0 + samplesPerPixel, data.length);
+        for (let i = s0; i < s1; i++) {
+          const v = data[i];
+          if (v < min) min = v;
+          if (v > max) max = v;
+        }
+        peaks[px * 2] = min;
+        peaks[px * 2 + 1] = max;
+      }
+      waveformPeaks = peaks;
+    }
+
+    // ---------- Vocal segment detection ----------
+    async function detectVocalSegments() {
+      if (!audioBuffer) { $status.textContent = 'Audio not decoded yet'; return; }
+
+      $btnAnalyze.disabled = true;
+      $progressBar.style.display = 'block';
+      $status.textContent = 'Analyzing audio for onsets...';
+      await new Promise(r => setTimeout(r, 0));
+
+      // Downsample to ~16kHz mono for fast analysis
+      const src = audioBuffer.getChannelData(0);
+      const srcRate = audioBuffer.sampleRate;
+      const targetRate = 16000;
+      const decim = Math.max(1, Math.floor(srcRate / targetRate));
+      const sampleRate = srcRate / decim;
+      const N = Math.floor(src.length / decim);
+      const data = new Float32Array(N);
+      for (let i = 0; i < N; i++) data[i] = src[i * decim];
+
+      // Analysis frames — ~40ms at 16kHz
+      const frameSize = 640;
+      const hopSize = 320; // ~20ms hops
+      const totalFrames = Math.floor((data.length - frameSize) / hopSize);
+
+      // Onset detection via high-frequency energy flux.
+      // Approach:
+      //  1. High-pass filter: y[n] = x[n] - x[n-1]  (emphasizes consonants/attacks)
+      //  2. Frame-wise RMS of the HP signal
+      //  3. Detect local peaks above adaptive threshold
+      // This is more robust than "voiced segments" in a full mix because it
+      // responds to onsets (word starts) regardless of whether music is playing.
+      $progressFill.style.width = '20%';
+
+      // HP-filter into same buffer (reuse first sample)
+      const hp = new Float32Array(data.length);
+      hp[0] = 0;
+      for (let i = 1; i < data.length; i++) hp[i] = data[i] - data[i - 1];
+
+      $progressFill.style.width = '40%';
+
+      // Per-frame RMS of HP signal
+      const onsetStrength = new Float32Array(totalFrames);
+      const timeArr = new Float32Array(totalFrames);
+      for (let i = 0; i < totalFrames; i++) {
+        const s0 = i * hopSize;
+        let sumSq = 0;
+        for (let j = 0; j < frameSize; j++) {
+          const v = hp[s0 + j];
+          sumSq += v * v;
+        }
+        onsetStrength[i] = Math.sqrt(sumSq / frameSize);
+        timeArr[i] = s0 / sampleRate;
+      }
+      $progressFill.style.width = '65%';
+
+      // Smooth with 3-frame moving average
+      const smooth = new Float32Array(totalFrames);
+      for (let i = 1; i < totalFrames - 1; i++) {
+        smooth[i] = (onsetStrength[i - 1] + onsetStrength[i] + onsetStrength[i + 1]) / 3;
+      }
+      smooth[0] = onsetStrength[0];
+      smooth[totalFrames - 1] = onsetStrength[totalFrames - 1];
+
+      // Spectral flux = positive difference from previous frame
+      const flux = new Float32Array(totalFrames);
+      for (let i = 1; i < totalFrames; i++) {
+        const d = smooth[i] - smooth[i - 1];
+        flux[i] = d > 0 ? d : 0;
+      }
+      $progressFill.style.width = '80%';
+
+      // Adaptive threshold: rolling local mean × k
+      const windowFrames = Math.round(0.6 / (hopSize / sampleRate)); // 0.6s window
+      const MIN_SEP_SEC = 0.20;
+      const minSepFrames = Math.round(MIN_SEP_SEC / (hopSize / sampleRate));
+
+      const onsets = [];
+      let lastOnsetFrame = -minSepFrames;
+
+      for (let i = 1; i < totalFrames - 1; i++) {
+        // Local mean over window centered at i
+        const wStart = Math.max(0, i - windowFrames);
+        const wEnd = Math.min(totalFrames, i + windowFrames + 1);
+        let localSum = 0;
+        for (let k = wStart; k < wEnd; k++) localSum += flux[k];
+        const localMean = localSum / (wEnd - wStart);
+        const thresh = localMean * 2.2;
+
+        // Is local peak?
+        if (flux[i] > thresh && flux[i] > flux[i - 1] && flux[i] >= flux[i + 1] && flux[i] > 0.002) {
+          if (i - lastOnsetFrame >= minSepFrames) {
+            onsets.push(timeArr[i]);
+            lastOnsetFrame = i;
+          }
+        }
+      }
+
+      // Store onsets as vocalSegments in {start, end} form (end = start + small marker) for rendering
+      vocalSegments = onsets.map((t, idx) => ({
+        start: t,
+        end: t + 0.08,
+        isOnset: true,
+      }));
+
+      $progressFill.style.width = '100%';
+      $progressBar.style.display = 'none';
+      $btnAnalyze.disabled = false;
+      $status.textContent = `Detected ${onsets.length} onsets (energy spikes). Click "Auto → synced" to snap each lyric to the nearest onset, or tap-sync manually.`;
+      draw();
+    }
+
+    // ---------- Tap sync ----------
+    function tapSync() {
+      if (currentLineIdx >= lines.length) {
+        $status.textContent = 'All lines synced. Click Export.';
+        return;
+      }
+      const t = audio.currentTime;
+      lines[currentLineIdx].newStart = t;
+      currentLineIdx++;
+      renderTable();
+      draw();
+      $status.textContent = `Synced line ${currentLineIdx} @ ${t.toFixed(3)}s. Press Space for next.`;
+    }
+
+    function undoTap() {
+      if (currentLineIdx === 0) return;
+      currentLineIdx--;
+      lines[currentLineIdx].newStart = null;
+      renderTable();
+      draw();
+      $status.textContent = `Undid line ${currentLineIdx + 1}. Press Space to re-sync.`;
+    }
+
+    function resetSync() {
+      for (const l of lines) l.newStart = null;
+      currentLineIdx = 0;
+      renderTable();
+      draw();
+      $status.textContent = 'Sync reset.';
+    }
+
+    function copyCurrentToSynced() {
+      for (const l of lines) l.newStart = l.oldStart;
+      currentLineIdx = lines.length;
+      renderTable();
+      draw();
+      $status.textContent = 'Copied current timings to synced column.';
+    }
+
+    function copyDetectedToSynced() {
+      if (vocalSegments.length === 0) {
+        $status.textContent = 'No onsets detected yet. Click "Auto-detect" first.';
+        return;
+      }
+      // Snap each lyric line to the nearest onset within a search window.
+      // Search window grows with distance between lines to avoid bad snaps.
+      for (let i = 0; i < lines.length; i++) {
+        const l = lines[i];
+        const searchWin = 2.0; // ±2s from old timestamp
+        let best = null, bestDelta = Infinity;
+        for (const s of vocalSegments) {
+          const d = Math.abs(s.start - l.oldStart);
+          if (d > searchWin) continue;
+          if (d < bestDelta) { bestDelta = d; best = s; }
+        }
+        l.newStart = best ? best.start : l.oldStart;
+      }
+      currentLineIdx = lines.length;
+      renderTable();
+      draw();
+      $status.textContent = 'Snapped each lyric to nearest onset within ±2s. Review and adjust as needed.';
+    }
+
+    function exportNotes() {
+      const out = [];
+      out.push('notes: [');
+      for (let i = 0; i < lines.length; i++) {
+        const l = lines[i];
+        const start = l.newStart != null ? l.newStart : l.oldStart;
+        // compute dur as next-line-start minus this-line-start, clamped
+        let dur = l.oldDur;
+        if (i < lines.length - 1) {
+          const nextStart = lines[i + 1].newStart != null ? lines[i + 1].newStart : lines[i + 1].oldStart;
+          const gap = nextStart - start;
+          if (gap > 0) dur = Math.min(gap - 0.05, Math.max(dur, gap - 0.3));
+          if (dur < 1) dur = Math.max(dur, gap - 0.05);
+        }
+        const lyricEsc = l.lyric.replace(/'/g, "\\'");
+        out.push(`  { midi: 0, start: ${start.toFixed(2)}, dur: ${dur.toFixed(2)}, lyric: '${lyricEsc}' },`);
+      }
+      out.push(']');
+      $exportOut.value = out.join('\n');
+      $exportOut.style.display = 'block';
+      $exportOut.select();
+      $status.textContent = `Exported. Copy the array and replace \`notes: [...]\` in songs.js for ${SONG_ID}.`;
+    }
+
+    // ---------- Rendering ----------
+    function formatTime(t) {
+      if (isNaN(t)) return '0:00.000';
+      const m = Math.floor(t / 60);
+      const s = t - m * 60;
+      return `${m}:${s.toFixed(3).padStart(6, '0')}`;
+    }
+
+    function renderTable() {
+      const synced = lines.filter(l => l.newStart != null).length;
+      $syncCount.textContent = synced;
+      $totalCount.textContent = lines.length;
+
+      const rows = lines.map((l, i) => {
+        const isCurrent = i === currentLineIdx;
+        const isSynced = l.newStart != null;
+        let diff = '—', diffClass = '';
+        if (isSynced) {
+          const d = l.newStart - l.oldStart;
+          diff = (d >= 0 ? '+' : '') + d.toFixed(2);
+          const ad = Math.abs(d);
+          if (ad < 0.3) diffClass = 'ok';
+          else if (ad < 1.0) diffClass = 'med';
+          else diffClass = 'big';
+        }
+        return `<tr class="${isCurrent ? 'current' : ''} ${isSynced ? 'synced' : ''}" data-idx="${i}">
+          <td>${i + 1}</td>
+          <td class="t-old">${l.oldStart.toFixed(2)}</td>
+          <td class="t-new">${isSynced ? l.newStart.toFixed(2) : '—'}</td>
+          <td class="t-diff ${diffClass}">${diff}</td>
+          <td class="lyric-text" title="${l.lyric}">${l.lyric}</td>
+        </tr>`;
+      }).join('');
+      $lyricsTbody.innerHTML = rows;
+
+      // Click row to seek
+      $lyricsTbody.querySelectorAll('tr').forEach(tr => {
+        tr.addEventListener('click', () => {
+          const i = parseInt(tr.dataset.idx);
+          const l = lines[i];
+          const t = l.newStart != null ? l.newStart : l.oldStart;
+          audio.currentTime = Math.max(0, t - 0.3); // seek just before
+          currentLineIdx = i;
+          renderTable();
+          draw();
+        });
+      });
+
+      // Auto-scroll current row into view
+      const curRow = $lyricsTbody.querySelector('tr.current');
+      if (curRow) curRow.scrollIntoView({ block: 'nearest' });
+    }
+
+    function draw() {
+      const rect = $canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      $canvas.width = rect.width * dpr;
+      $canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const W = rect.width;
+      const H = rect.height;
+      ctx.clearRect(0, 0, W, H);
+
+      const dur = duration || 1;
+      const x = (t) => (t / dur) * W;
+
+      // Waveform
+      if (waveformPeaks) {
+        ctx.fillStyle = '#334155';
+        const peaksW = waveformPeaks.length / 2;
+        const pxPerPeak = W / peaksW;
+        const mid = H / 2;
+        for (let i = 0; i < peaksW; i++) {
+          const min = waveformPeaks[i * 2];
+          const max = waveformPeaks[i * 2 + 1];
+          const y0 = mid - max * (H * 0.42);
+          const y1 = mid - min * (H * 0.42);
+          ctx.fillRect(i * pxPerPeak, y0, Math.max(1, pxPerPeak), Math.max(1, y1 - y0));
+        }
+      } else {
+        // flat reference line until loaded
+        ctx.strokeStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.moveTo(0, H / 2);
+        ctx.lineTo(W, H / 2);
+        ctx.stroke();
+      }
+
+      // Onsets (purple ticks at bottom)
+      if (vocalSegments.length) {
+        ctx.fillStyle = '#a855f7';
+        for (const s of vocalSegments) {
+          ctx.fillRect(x(s.start), H - 18, 2, 16);
+        }
+      }
+
+      // Old timestamps (red ticks top)
+      ctx.fillStyle = '#f87171';
+      for (const l of lines) {
+        const xv = x(l.oldStart);
+        ctx.fillRect(xv, 0, 1, 14);
+      }
+
+      // New (synced) timestamps (green ticks top, longer)
+      ctx.fillStyle = '#4ade80';
+      for (const l of lines) {
+        if (l.newStart != null) {
+          const xv = x(l.newStart);
+          ctx.fillRect(xv, 0, 2, 22);
+        }
+      }
+
+      // Current line marker (blue ring around expected position)
+      if (currentLineIdx < lines.length) {
+        const l = lines[currentLineIdx];
+        const xv = x(l.oldStart);
+        ctx.strokeStyle = '#00d4ff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(xv, 12, 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Playhead
+      const px = x(audio.currentTime);
+      ctx.strokeStyle = '#00d4ff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px, 0);
+      ctx.lineTo(px, H);
+      ctx.stroke();
+    }
+
+    // ---------- Event wiring ----------
+    $btnPlay.addEventListener('click', () => {
+      audio.play();
+      $btnPlay.disabled = true;
+      $btnPause.disabled = false;
+    });
+    $btnPause.addEventListener('click', () => {
+      audio.pause();
+      $btnPlay.disabled = false;
+      $btnPause.disabled = true;
+    });
+    $btnRestart.addEventListener('click', () => {
+      audio.currentTime = 0;
+      currentLineIdx = 0;
+      renderTable();
+      draw();
+    });
+    $btnBack5.addEventListener('click', () => { audio.currentTime = Math.max(0, audio.currentTime - 5); });
+    $btnFwd5.addEventListener('click', () => { audio.currentTime = Math.min(duration, audio.currentTime + 5); });
+    $btnAnalyze.addEventListener('click', detectVocalSegments);
+    $btnTap.addEventListener('click', tapSync);
+    $btnUndo.addEventListener('click', undoTap);
+    $btnResetSync.addEventListener('click', resetSync);
+    $btnCopyCurrent.addEventListener('click', copyCurrentToSynced);
+    $btnCopyDetected.addEventListener('click', copyDetectedToSynced);
+    $btnExport.addEventListener('click', exportNotes);
+
+    function parseLyricsInput() {
+      return $lyricsInput.value
+        .split(/\r?\n/)
+        .map(l => l.trim())
+        .filter(l => l.length > 0);
+    }
+    $lyricsInput.addEventListener('input', () => {
+      const n = parseLyricsInput().length;
+      $lyricsCount.textContent = n ? `${n} non-empty lines` : '';
+    });
+    function loadLyricsIntoTable(keepTimings) {
+      const newLyrics = parseLyricsInput();
+      if (newLyrics.length === 0) {
+        $status.textContent = 'Paste at least one line of lyrics first.';
+        return;
+      }
+      // Rebuild lines array
+      const newLines = newLyrics.map((lyric, i) => {
+        let oldStart = null, oldDur = null;
+        if (keepTimings && i < lines.length) {
+          oldStart = lines[i].oldStart;
+          oldDur = lines[i].oldDur;
+        } else {
+          // Evenly distribute across duration as placeholder if not keeping timings
+          const dur = duration || 256;
+          oldStart = (i / newLyrics.length) * dur;
+          oldDur = dur / newLyrics.length;
+        }
+        return { idx: i, oldStart, oldDur, newStart: null, lyric };
+      });
+      // Mutate in place
+      lines.length = 0;
+      for (const l of newLines) lines.push(l);
+      currentLineIdx = 0;
+      renderTable();
+      draw();
+      $status.textContent = `Loaded ${newLines.length} lyric lines${keepTimings ? ' (kept old timings as starting point)' : ' (placeholder timings — use tap-sync or auto-detect to set them)'}.`;
+    }
+    $btnLoadLyrics.addEventListener('click', () => loadLyricsIntoTable(false));
+    $btnLoadKeepTimings.addEventListener('click', () => loadLyricsIntoTable(true));
+
+    $canvas.addEventListener('click', (e) => {
+      const rect = $canvas.getBoundingClientRect();
+      const frac = (e.clientX - rect.left) / rect.width;
+      audio.currentTime = Math.max(0, Math.min(duration, frac * duration));
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (audio.paused) audio.play();
+        else tapSync();
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        audio.currentTime = Math.max(0, audio.currentTime - 1);
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        audio.currentTime = Math.min(duration, audio.currentTime + 1);
+      } else if (e.code === 'KeyZ' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        undoTap();
+      }
+    });
+
+    // Animation loop
+    function tick() {
+      $timeDisplay.textContent = formatTime(audio.currentTime);
+      draw();
+      requestAnimationFrame(tick);
+    }
+
+    // Init
+    renderTable();
+    decodeAudio();
+    tick();
+    window.addEventListener('resize', () => { computeWaveformPeaks(); draw(); });
+  </script>
+</body>
+</html>

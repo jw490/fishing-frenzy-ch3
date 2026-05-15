@@ -3378,3 +3378,44 @@ html, body {
   .feedback-modal-wrap { padding-bottom: 72px; padding-right: 12px; }
   .feedback-btn { bottom: 14px; right: 14px; }
 }
+
+/* ── Clip preview modal ─────────────────────────────────────────────── */
+
+.clip-preview-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+  padding: 20px;
+}
+.clip-preview-modal.active {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.25s ease, visibility 0s linear 0s;
+}
+.clip-preview-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 420px;
+}
+.clip-preview-video {
+  width: 100%;
+  border-radius: 16px;
+  background: #000;
+  max-height: 60vh;
+  object-fit: contain;
+}
+.clip-preview-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}

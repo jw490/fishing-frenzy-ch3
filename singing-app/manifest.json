@@ -1,0 +1,16 @@
+{
+  "name": "VocalStar",
+  "short_name": "VocalStar",
+  "description": "Real-time pitch-graded karaoke with honest scoring",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06060f",
+  "theme_color": "#06060f",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

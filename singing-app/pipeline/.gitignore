@@ -1,0 +1,9 @@
+# Python virtual environment (~900MB, recreate with:
+#   python3.13 -m venv venv && source venv/bin/activate && pip install demucs librosa torchcodec)
+venv/
+
+# Demucs separated stems cache (~150MB per song, regenerated on demand by extract_melody.py)
+stems/
+
+# Keep the scripts (extract_melody.py, contour_to_melody.py) and the JSON
+# artifacts under contours/ — those are the pipeline source of truth.

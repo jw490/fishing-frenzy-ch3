@@ -81,25 +81,36 @@ const CameraRecorder = {
   startRecording(canvas) {
     this._chunks = [];
     this._recordedBlob = null;
+    this._recordedMime = 'video/webm';
     if (!canvas || !canvas.captureStream) return;
 
     const canvasStream = canvas.captureStream(30);
-    const micStream = typeof PitchDetector !== 'undefined' ? PitchDetector.stream : null;
+
+    // Prefer mic stream from PitchDetector; fall back to raw camera audio
+    const micStream = (typeof PitchDetector !== 'undefined' && PitchDetector.stream)
+      ? PitchDetector.stream
+      : this._camStream;
+
     const tracks = [
       ...canvasStream.getVideoTracks(),
       ...(micStream ? micStream.getAudioTracks() : []),
     ];
 
+    // Safari records MP4 natively; Chrome/Firefox use WebM
     const mimeType = [
+      'video/mp4;codecs=h264,aac',
+      'video/mp4',
       'video/webm;codecs=vp9,opus',
       'video/webm;codecs=vp8,opus',
       'video/webm',
     ].find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
 
+    this._recordedMime = mimeType;
+
     try {
       this._recorder = new MediaRecorder(new MediaStream(tracks), {
         mimeType,
-        videoBitsPerSecond: 3_500_000,
+        videoBitsPerSecond: 4_000_000,
       });
       this._recorder.ondataavailable = e => {
         if (e.data && e.data.size > 0) this._chunks.push(e.data);
@@ -119,7 +130,7 @@ const CameraRecorder = {
         return;
       }
       this._recorder.onstop = () => {
-        this._recordedBlob = new Blob(this._chunks, { type: 'video/webm' });
+        this._recordedBlob = new Blob(this._chunks, { type: this._recordedMime || 'video/webm' });
         this.isRecording = false;
         resolve(this._recordedBlob);
       };
@@ -127,17 +138,87 @@ const CameraRecorder = {
     });
   },
 
-  downloadClip(songTitle) {
+  // Show preview modal — user watches clip, then taps Download (converted to MP4)
+  showPreview(songTitle) {
     if (!this._recordedBlob) return;
-    const slug = (songTitle || 'vocalstar').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    this._previewSlug = (songTitle || 'vocalstar').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+
+    const modal = document.getElementById('clip-preview-modal');
+    const vid   = document.getElementById('clip-preview-video');
+    if (!modal || !vid) return;
+
     const url = URL.createObjectURL(this._recordedBlob);
+    vid.src = url;
+    vid.load();
+    modal.classList.add('active');
+
+    // Clean up object URL when modal hides
+    this._previewUrl = url;
+  },
+
+  closePreview() {
+    const modal = document.getElementById('clip-preview-modal');
+    if (modal) modal.classList.remove('active');
+    const vid = document.getElementById('clip-preview-video');
+    if (vid) { vid.pause(); vid.src = ''; }
+    if (this._previewUrl) { URL.revokeObjectURL(this._previewUrl); this._previewUrl = null; }
+  },
+
+  async downloadClip(songTitle) {
+    if (!this._recordedBlob) return;
+    const slug = this._previewSlug || (songTitle || 'vocalstar').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+
+    // If recorded natively as MP4 (Safari), just save directly
+    if (this._recordedMime && this._recordedMime.startsWith('video/mp4')) {
+      this._triggerDownload(this._recordedBlob, slug + '-vocalstar.mp4');
+      return;
+    }
+
+    // Otherwise convert WebM → MP4 via ffmpeg.wasm
+    const btn = document.getElementById('clip-download-btn');
+    const origText = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = 'Converting…'; btn.disabled = true; }
+
+    try {
+      const mp4Blob = await this._toMp4(this._recordedBlob);
+      this._triggerDownload(mp4Blob, slug + '-vocalstar.mp4');
+    } catch (e) {
+      console.warn('MP4 conversion failed, downloading WebM', e);
+      this._triggerDownload(this._recordedBlob, slug + '-vocalstar.webm');
+    } finally {
+      if (btn) { btn.textContent = origText; btn.disabled = false; }
+    }
+  },
+
+  _triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = slug + '-vocalstar.webm';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 15000);
+  },
+
+  async _toMp4(webmBlob) {
+    // Lazy-load ffmpeg.wasm (legacy v0.11 — no COOP/COEP headers needed)
+    if (!window.FFmpeg) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js';
+        s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+    const { createFFmpeg, fetchFile } = window.FFmpeg;
+    if (!this._ff) {
+      this._ff = createFFmpeg({ log: false,
+        corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js' });
+      await this._ff.load();
+    }
+    this._ff.FS('writeFile', 'in.webm', await fetchFile(webmBlob));
+    await this._ff.run('-i', 'in.webm', '-c:v', 'libx264', '-preset', 'fast',
+                       '-crf', '23', '-c:a', 'aac', '-b:a', '128k', 'out.mp4');
+    const data = this._ff.FS('readFile', 'out.mp4');
+    return new Blob([data.buffer], { type: 'video/mp4' });
   },
 
   setSize(size) {
@@ -160,8 +241,8 @@ const CameraRecorder = {
     if (size === 'off') { bubble.style.opacity = '0'; return; }
     const wrap = bubble.parentElement;
     const W = wrap ? wrap.clientWidth : 300;
-    const sizeMap = { 'bubble-sm': 0.30, 'bubble': 0.44, 'bubble-lg': 0.60 };
-    const ratio = sizeMap[size] || 0.44;
+    const sizeMap = { 'bubble-sm': 0.46, 'bubble': 0.62, 'bubble-lg': 0.80 };
+    const ratio = sizeMap[size] || 0.62;
     const px = Math.round(W * ratio);
     bubble.style.width  = px + 'px';
     bubble.style.height = px + 'px';
@@ -212,8 +293,8 @@ const CameraRecorder = {
   },
 
   _bubbleRadius(minDim) {
-    const radiusMap = { 'bubble-sm': 0.08, 'bubble': 0.12, 'bubble-lg': 0.17, 'box': 0 };
-    return Math.round(minDim * (radiusMap[this.size] || 0.12));
+    const radiusMap = { 'bubble-sm': 0.14, 'bubble': 0.20, 'bubble-lg': 0.28, 'box': 0 };
+    return Math.round(minDim * (radiusMap[this.size] || 0.20));
   },
 
   _bubbleGeometry(W, H) {

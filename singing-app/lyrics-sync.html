@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VocalStar Lyrics Sync Tool</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0a0a1a;
+    color: #e8e8f0;
+    min-height: 100vh;
+  }
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(10, 10, 26, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .toolbar h1 {
+    font-size: 16px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #00d4ff, #7b2fff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-right: auto;
+  }
+  .time-display {
+    font-family: 'SF Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    color: #00d4ff;
+    min-width: 100px;
+    text-align: center;
+  }
+  button {
+    padding: 8px 16px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    color: #e8e8f0;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  button:hover { background: rgba(255,255,255,0.1); border-color: #00d4ff; }
+  button.primary { background: linear-gradient(135deg, #00d4ff, #7b2fff); border: none; color: #fff; }
+  button.danger { border-color: rgba(255,68,68,0.4); color: #ff6b6b; }
+  select {
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    color: #e8e8f0;
+    font-size: 13px;
+  }
+  .lyrics-list {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .lyric-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.04);
+    margin-bottom: 6px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .lyric-row:hover { background: rgba(255,255,255,0.04); }
+  .lyric-row.sync-cursor {
+    background: rgba(0, 212, 255, 0.1);
+    border-color: rgba(0, 212, 255, 0.3);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+  }
+  .lyric-row.playing {
+    background: rgba(0, 255, 136, 0.08);
+    border-color: rgba(0, 255, 136, 0.2);
+  }
+  .lyric-row.sync-cursor.playing {
+    background: rgba(0, 212, 255, 0.15);
+  }
+  .lyric-row.just-synced {
+    animation: flash-sync 0.4s ease-out;
+  }
+  @keyframes flash-sync {
+    0% { background: rgba(0, 255, 136, 0.3); }
+    100% { background: transparent; }
+  }
+  .lyric-row.synced {
+    border-left: 3px solid #00ff88;
+  }
+  .lyric-row.unsynced {
+    border-left: 3px solid #ff8844;
+  }
+  .lyric-idx {
+    font-size: 11px;
+    color: #555;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 2px;
+  }
+  .lyric-idx:hover {
+    background: rgba(0, 212, 255, 0.2);
+    color: #00d4ff;
+  }
+  .lyric-time {
+    font-family: 'SF Mono', monospace;
+    font-size: 13px;
+    color: #00d4ff;
+    min-width: 60px;
+    flex-shrink: 0;
+    cursor: text;
+  }
+  .lyric-time input {
+    width: 65px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: #00d4ff;
+    font-family: 'SF Mono', monospace;
+    font-size: 13px;
+    padding: 4px 6px;
+    text-align: center;
+  }
+  .lyric-dur {
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+    color: #888;
+    min-width: 45px;
+    flex-shrink: 0;
+  }
+  .lyric-dur input {
+    width: 50px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: #888;
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+    padding: 4px 6px;
+    text-align: center;
+  }
+  .lyric-text {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .lyric-text input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: #e8e8f0;
+    font-size: 16px;
+    font-weight: 500;
+    outline: none;
+    padding: 2px 0;
+  }
+  .lyric-text input:focus {
+    border-bottom: 1px solid rgba(0, 212, 255, 0.4);
+  }
+  .lyric-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .lyric-actions button {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  .instructions {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 16px 20px;
+    background: rgba(0, 212, 255, 0.05);
+    border: 1px solid rgba(0, 212, 255, 0.15);
+    border-radius: 10px;
+    font-size: 13px;
+    color: #8888aa;
+    line-height: 1.6;
+  }
+  .instructions kbd {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+    color: #e8e8f0;
+  }
+  .output-box {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 16px;
+    background: #0d0d1f;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+  }
+  .output-box textarea {
+    width: 100%;
+    height: 300px;
+    background: transparent;
+    border: none;
+    color: #e8e8f0;
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+    resize: vertical;
+    outline: none;
+  }
+  .add-row-area {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 10px 20px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <h1>Lyrics Sync Tool</h1>
+  <select id="song-select" onchange="loadSong(this.value)">
+    <option value="">-- Pick a song --</option>
+  </select>
+  <button onclick="togglePlay()" id="btn-play">Play</button>
+  <button onclick="seekBy(-5)">-5s</button>
+  <button onclick="seekBy(-1)">-1s</button>
+  <div class="time-display" id="time-display">0:00.0</div>
+  <button onclick="seekBy(1)">+1s</button>
+  <button onclick="seekBy(5)">+5s</button>
+  <button onclick="tapSync()" class="primary" id="btn-tap">Tap Sync (Space)</button>
+  <button onclick="undoSync()">Undo (Z)</button>
+  <button onclick="resetSync()">Reset All</button>
+  <button onclick="exportNotes()">Export</button>
+</div>
+
+<div style="max-width:800px;margin:16px auto;padding:0 20px">
+  <div class="instructions">
+    <strong>How to sync lyrics:</strong><br>
+    1. Select a song from the dropdown<br>
+    2. Click <kbd>Play</kbd> to start the audio<br>
+    3. When a lyric line starts, press <kbd>Space</kbd> (or click <strong>Tap Sync</strong>) — it stamps the current time on the next unsynced line<br>
+    4. Fine-tune: click any time value to edit manually<br>
+    5. Click <strong>Export</strong> to get the notes array — paste it into songs.js<br>
+    <br>
+    <strong>Shortcuts:</strong> <kbd>Space</kbd> = tap sync, <kbd>Z</kbd> = undo last tap, <kbd>P</kbd> = play/pause, <kbd>←</kbd> = -1s, <kbd>→</kbd> = +1s, <kbd>Shift+←</kbd> = -5s, <kbd>Shift+→</kbd> = +5s
+  </div>
+</div>
+
+<div class="lyrics-list" id="lyrics-list"></div>
+
+<div class="add-row-area">
+  <button onclick="addRow()">+ Add Lyric Line</button>
+</div>
+
+<div class="output-box" id="output-box" hidden>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <strong>Exported notes[]</strong>
+    <button onclick="copyOutput()">Copy</button>
+  </div>
+  <textarea id="output-text" readonly></textarea>
+</div>
+
+<audio id="audio" preload="auto"></audio>
+
+<script src="js/songs.js?v=35"></script>
+<script>
+const audio = document.getElementById('audio');
+const timeDisplay = document.getElementById('time-display');
+const lyricsList = document.getElementById('lyrics-list');
+const songSelect = document.getElementById('song-select');
+
+let currentSong = null;
+let syncIdx = 0; // next line to sync
+let rows = [];
+let undoStack = []; // for undo
+
+// Populate dropdown
+Songs.library.forEach(s => {
+  const opt = document.createElement('option');
+  opt.value = s.id;
+  opt.textContent = `${s.title} — ${s.artist}`;
+  songSelect.appendChild(opt);
+});
+
+// Escape HTML for safe insertion into value attributes
+function escapeAttr(str) {
+  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function loadSong(id) {
+  currentSong = Songs.get(id);
+  if (!currentSong) return;
+  audio.src = currentSong.audioSrc;
+  rows = currentSong.notes.map((n, i) => ({
+    start: n.start,
+    dur: n.dur,
+    lyric: n.lyric || '',
+    synced: false
+  }));
+  syncIdx = 0;
+  undoStack = [];
+  renderRows();
+}
+
+function resetSync() {
+  if (!confirm('Reset all sync data? This cannot be undone.')) return;
+  rows.forEach(r => r.synced = false);
+  syncIdx = 0;
+  undoStack = [];
+  renderRows();
+}
+
+function setSyncFrom(idx) {
+  syncIdx = idx;
+  for (let i = idx; i < rows.length; i++) rows[i].synced = false;
+  renderRows();
+}
+
+function renderRows() {
+  lyricsList.innerHTML = '';
+  rows.forEach((r, i) => {
+    const div = document.createElement('div');
+    div.className = `lyric-row ${r.synced ? 'synced' : 'unsynced'} ${i === syncIdx ? 'sync-cursor' : ''}`;
+    div.dataset.idx = i;
+    div.innerHTML = `
+      <span class="lyric-idx" onclick="setSyncFrom(${i})" title="Sync from here">${i + 1}</span>
+      <span class="lyric-time"><input type="text" value="${r.start.toFixed(2)}" data-idx="${i}" data-field="start" onchange="updateField(this)" onfocus="this.select()"></span>
+      <span class="lyric-dur"><input type="text" value="${r.dur.toFixed(1)}" data-idx="${i}" data-field="dur" onchange="updateField(this)" onfocus="this.select()"></span>
+      <span class="lyric-text"><input type="text" value="${escapeAttr(r.lyric)}" data-idx="${i}" data-field="lyric" onchange="updateField(this)"></span>
+      <span class="lyric-actions">
+        <button onclick="seekTo(${r.start})" title="Jump to this time">&#9654;</button>
+        <button onclick="deleteRow(${i})" class="danger" title="Delete">&#10005;</button>
+      </span>
+    `;
+    div.addEventListener('click', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+      seekTo(r.start);
+    });
+    lyricsList.appendChild(div);
+  });
+}
+
+// Lightweight update: only touch the specific row elements instead of full re-render
+function updateRowUI(idx) {
+  const rowEl = lyricsList.children[idx];
+  if (!rowEl) return;
+  const r = rows[idx];
+  rowEl.className = `lyric-row ${r.synced ? 'synced' : 'unsynced'} ${idx === syncIdx ? 'sync-cursor' : ''}`;
+  const startInput = rowEl.querySelector('input[data-field="start"]');
+  const durInput = rowEl.querySelector('input[data-field="dur"]');
+  if (startInput && document.activeElement !== startInput) startInput.value = r.start.toFixed(2);
+  if (durInput && document.activeElement !== durInput) durInput.value = r.dur.toFixed(1);
+  // Update the play button onclick with new start time
+  const playBtn = rowEl.querySelector('.lyric-actions button:first-child');
+  if (playBtn) playBtn.onclick = () => seekTo(r.start);
+}
+
+function updateField(input) {
+  const idx = parseInt(input.dataset.idx);
+  const field = input.dataset.field;
+  if (field === 'start') {
+    rows[idx].start = parseFloat(input.value) || 0;
+    rows[idx].synced = true;
+  } else if (field === 'dur') {
+    rows[idx].dur = parseFloat(input.value) || 2;
+  } else if (field === 'lyric') {
+    rows[idx].lyric = input.value;
+  }
+}
+
+function togglePlay() {
+  if (audio.paused) {
+    audio.play();
+    document.getElementById('btn-play').textContent = 'Pause';
+  } else {
+    audio.pause();
+    document.getElementById('btn-play').textContent = 'Play';
+  }
+}
+
+function seekBy(sec) {
+  audio.currentTime = Math.max(0, audio.currentTime + sec);
+}
+
+function seekTo(t) {
+  audio.currentTime = Math.max(0, t - 0.5);
+  if (audio.paused) audio.play();
+  document.getElementById('btn-play').textContent = 'Pause';
+}
+
+function tapSync() {
+  if (syncIdx >= rows.length) return;
+
+  const now = parseFloat(audio.currentTime.toFixed(2));
+
+  // Save undo state
+  undoStack.push({
+    idx: syncIdx,
+    oldStart: rows[syncIdx].start,
+    oldDur: rows[syncIdx].dur,
+    oldSynced: rows[syncIdx].synced,
+    prevIdx: syncIdx > 0 ? syncIdx - 1 : null,
+    prevOldDur: syncIdx > 0 ? rows[syncIdx - 1].dur : null,
+  });
+
+  // Stamp current time
+  rows[syncIdx].start = now;
+  rows[syncIdx].synced = true;
+
+  // Auto-set previous line's duration = gap between this tap and previous start
+  if (syncIdx > 0 && rows[syncIdx - 1].synced) {
+    const gap = now - rows[syncIdx - 1].start;
+    if (gap > 0) {
+      rows[syncIdx - 1].dur = parseFloat(gap.toFixed(1));
+      updateRowUI(syncIdx - 1);
+    }
+  }
+
+  // Update current row UI without full re-render
+  updateRowUI(syncIdx);
+
+  // Advance cursor
+  const prevIdx = syncIdx;
+  syncIdx++;
+
+  // Update old row (remove cursor) and new row (add cursor)
+  updateRowUI(prevIdx);
+  if (syncIdx < rows.length) {
+    updateRowUI(syncIdx);
+    // Scroll next row into view
+    const nextRow = lyricsList.children[syncIdx];
+    if (nextRow) nextRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // Flash effect on the just-synced row
+  const syncedRow = lyricsList.children[prevIdx];
+  if (syncedRow) {
+    syncedRow.classList.add('just-synced');
+    setTimeout(() => syncedRow.classList.remove('just-synced'), 400);
+  }
+}
+
+function undoSync() {
+  if (undoStack.length === 0) return;
+  const u = undoStack.pop();
+
+  // Restore the row that was synced
+  rows[u.idx].start = u.oldStart;
+  rows[u.idx].dur = u.oldDur;
+  rows[u.idx].synced = u.oldSynced;
+
+  // Restore previous row's dur if it was modified
+  if (u.prevIdx !== null && u.prevOldDur !== null) {
+    rows[u.prevIdx].dur = u.prevOldDur;
+    updateRowUI(u.prevIdx);
+  }
+
+  // Move cursor back
+  syncIdx = u.idx;
+
+  updateRowUI(u.idx);
+  if (u.idx + 1 < rows.length) updateRowUI(u.idx + 1);
+
+  // Scroll to cursor
+  const cursorRow = lyricsList.children[syncIdx];
+  if (cursorRow) cursorRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function addRow() {
+  rows.push({ start: audio.currentTime || 0, dur: 4.0, lyric: '', synced: false });
+  renderRows();
+  const inputs = lyricsList.querySelectorAll('input[data-field="lyric"]');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function deleteRow(idx) {
+  rows.splice(idx, 1);
+  if (syncIdx > idx) syncIdx--;
+  if (syncIdx >= rows.length) syncIdx = rows.length;
+  renderRows();
+}
+
+function exportNotes() {
+  const lines = rows.map(r =>
+    `        { midi: 0, start: ${r.start.toFixed(2)}, dur: ${r.dur.toFixed(1)}, lyric: '${r.lyric.replace(/'/g, "\\'")}' },`
+  );
+  const output = `notes: [\n${lines.join('\n')}\n      ]`;
+  document.getElementById('output-text').value = output;
+  document.getElementById('output-box').hidden = false;
+}
+
+function copyOutput() {
+  const ta = document.getElementById('output-text');
+  ta.select();
+  document.execCommand('copy');
+  alert('Copied!');
+}
+
+// Update time display + highlight currently-playing row
+// This ONLY manages the .playing class, never touches .sync-cursor
+setInterval(() => {
+  if (!audio.duration) return;
+  const t = audio.currentTime;
+  const m = Math.floor(t / 60);
+  const s = Math.floor(t % 60);
+  const ms = Math.floor((t % 1) * 10);
+  timeDisplay.textContent = `${m}:${s.toString().padStart(2, '0')}.${ms}`;
+
+  // Highlight currently-playing lyric (separate from sync cursor)
+  const rowEls = lyricsList.querySelectorAll('.lyric-row');
+  rowEls.forEach((row, i) => {
+    if (i >= rows.length) return;
+    const isPlaying = rows[i].synced && t >= rows[i].start && t < rows[i].start + rows[i].dur;
+    row.classList.toggle('playing', isPlaying);
+  });
+}, 100);
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  // Don't intercept when typing in an input
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  if (e.code === 'Space') {
+    e.preventDefault();
+    tapSync();
+  } else if (e.code === 'KeyP') {
+    e.preventDefault();
+    togglePlay();
+  } else if (e.code === 'KeyZ') {
+    e.preventDefault();
+    undoSync();
+  } else if (e.code === 'ArrowLeft') {
+    e.preventDefault();
+    seekBy(e.shiftKey ? -5 : -1);
+  } else if (e.code === 'ArrowRight') {
+    e.preventDefault();
+    seekBy(e.shiftKey ? 5 : 1);
+  }
+});
+</script>
+</body>
+</html>

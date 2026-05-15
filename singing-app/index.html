@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>VocalStar - Sing. Score. Improve.</title>
-  <link rel="stylesheet" href="css/styles.css?v=52">
+  <link rel="stylesheet" href="css/styles.css?v=53">
   <meta http-equiv="Cache-Control" content="no-cache">
   <meta name="theme-color" content="#06060f">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -554,8 +554,8 @@
       </div>
 
       <div class="results-actions">
-        <button id="btn-download-clip" class="btn btn-record btn-glow" onclick="App.downloadClip()" hidden>
-          <span class="btn-icon">&#9654;</span> Download Clip
+        <button id="btn-download-clip" class="btn btn-record btn-glow" onclick="App.previewClip()" hidden>
+          <span class="btn-icon">&#9654;</span> Preview &amp; Save
         </button>
         <button class="btn btn-primary btn-glow" onclick="App.replaySong()">
           <span class="btn-icon">&#8635;</span> Try Again
@@ -695,9 +695,22 @@
   <script src="js/midi-parser.js?v=10"></script>
   <script src="js/audio-analyzer.js?v=10"></script>
   <script src="js/game.js?v=51"></script>
+  <!-- ── Clip preview modal ── -->
+  <div id="clip-preview-modal" class="clip-preview-modal">
+    <div class="clip-preview-inner">
+      <video id="clip-preview-video" class="clip-preview-video" playsinline controls loop></video>
+      <div class="clip-preview-actions">
+        <button id="clip-download-btn" class="btn btn-primary btn-glow" onclick="App.downloadClip()">
+          Download MP4
+        </button>
+        <button class="btn btn-ghost" onclick="CameraRecorder.closePreview()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script src="js/beauty-filters.js?v=3"></script>
-  <script src="js/camera-recorder.js?v=10"></script>
-  <script src="js/app.js?v=52"></script>
+  <script src="js/camera-recorder.js?v=11"></script>
+  <script src="js/app.js?v=53"></script>
   <script src="js/feedback.js?v=1"></script>
   <script defer src="/_vercel/insights/script.js"></script>
   <script defer src="/_vercel/speed-insights/script.js"></script>

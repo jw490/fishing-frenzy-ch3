@@ -787,6 +787,13 @@ const App = {
     }
   },
 
+  previewClip() {
+    if (typeof CameraRecorder !== 'undefined') {
+      const song = Songs.get(this.currentSong);
+      CameraRecorder.showPreview(song ? song.title : 'vocalstar');
+    }
+  },
+
   downloadClip() {
     if (typeof CameraRecorder !== 'undefined') {
       const song = Songs.get(this.currentSong);
