@@ -34,9 +34,16 @@ const CameraRecorder = {
         this._videoEl = document.createElement('video');
         this._videoEl.muted = true;
         this._videoEl.playsInline = true;
+        this._videoEl.setAttribute('playsinline', '');
+        // Must be in the DOM for iOS Safari to allow srcObject autoplay
+        this._videoEl.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;';
+        document.body.appendChild(this._videoEl);
       }
       this._videoEl.srcObject = this._camStream;
-      await this._videoEl.play();
+      await this._videoEl.play().catch(() => {
+        // Fallback: try again without awaiting — some browsers resolve later
+        this._videoEl.play().catch(() => {});
+      });
 
       // Also feed the setup preview if it exists
       const setupVid = document.getElementById('cam-setup-video');
@@ -56,6 +63,10 @@ const CameraRecorder = {
     if (this._camStream) {
       this._camStream.getTracks().forEach(t => t.stop());
       this._camStream = null;
+    }
+    if (this._videoEl) {
+      this._videoEl.srcObject = null;
+      this._videoEl.pause();
     }
     const setupVid = document.getElementById('cam-setup-video');
     if (setupVid) { setupVid.srcObject = null; }
