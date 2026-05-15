@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>VocalStar - Sing. Score. Improve.</title>
-  <link rel="stylesheet" href="css/styles.css?v=56">
+  <link rel="stylesheet" href="css/styles.css?v=57">
   <meta http-equiv="Cache-Control" content="no-cache">
   <meta name="theme-color" content="#06060f">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -356,7 +356,9 @@
     </div>
 
     <!-- Bubble at its exact song position — box-shadow dims everything outside -->
-    <div class="cam-size-bubble" id="cam-bubble-preview"></div>
+    <div class="cam-size-bubble" id="cam-bubble-preview">
+      <video id="cam-bubble-video" class="cam-bubble-video" autoplay playsinline muted></video>
+    </div>
 
     <!-- Controls panel floats at bottom -->
     <div class="cam-setup-panel">
@@ -718,7 +720,7 @@
   </div>
 
   <script src="js/beauty-filters.js?v=3"></script>
-  <script src="js/camera-recorder.js?v=21"></script>
+  <script src="js/camera-recorder.js?v=22"></script>
   <script src="js/app.js?v=54"></script>
   <script src="js/feedback.js?v=1"></script>
   <script defer src="/_vercel/insights/script.js"></script>

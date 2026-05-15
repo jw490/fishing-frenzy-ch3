@@ -61,13 +61,17 @@ const CameraRecorder = {
         this._videoEl.play().catch(() => {});
       });
 
-      // Feed the setup preview — this DOM element is also used for canvas drawing
+      // Background (blurred) + bubble (clear face) both get the same stream
       const setupVid = document.getElementById('cam-setup-video');
       if (setupVid) {
         setupVid.srcObject = this._camStream;
-        // Keep display:block so iOS doesn't suspend it when the screen hides
         setupVid.style.display = 'block';
         setupVid.play().catch(() => {});
+      }
+      const bubbleVid = document.getElementById('cam-bubble-video');
+      if (bubbleVid) {
+        bubbleVid.srcObject = this._camStream;
+        bubbleVid.play().catch(() => {});
       }
       // Initialise bubble hint once layout is settled
       requestAnimationFrame(() => this._updatePreviewHint(this.size));
