@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>VocalStar - Sing. Score. Improve.</title>
-  <link rel="stylesheet" href="css/styles.css?v=53">
+  <link rel="stylesheet" href="css/styles.css?v=54">
   <meta http-equiv="Cache-Control" content="no-cache">
   <meta name="theme-color" content="#06060f">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -372,15 +372,15 @@
             <span>Off</span>
           </button>
           <button class="cam-picker-btn" data-size="bubble-sm" onclick="CameraRecorder.setSize('bubble-sm'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='';">
-            <svg width="12" height="12" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>
+            <svg width="10" height="10" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>
             <span>Small</span>
           </button>
           <button class="cam-picker-btn active" data-size="bubble" onclick="CameraRecorder.setSize('bubble'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='';">
             <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>
-            <span>Bubble</span>
+            <span>Medium</span>
           </button>
           <button class="cam-picker-btn" data-size="bubble-lg" onclick="CameraRecorder.setSize('bubble-lg'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='';">
-            <svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>
             <span>Large</span>
           </button>
         </div>
@@ -408,6 +408,14 @@
 
   <!-- ============ GAME / PERFORMANCE SCREEN ============ -->
   <div id="screen-game" class="screen">
+
+  <!-- Loom-style positioning overlay: visible before song starts -->
+  <div id="loom-overlay" class="loom-overlay">
+    <div class="loom-overlay-inner">
+      <p class="loom-hint">Drag the bubble to reposition</p>
+      <div class="loom-num" id="loom-num">3</div>
+    </div>
+  </div>
     <div class="game-hud">
       <div class="hud-left">
         <button class="btn-back btn-back-game" onclick="App.quitGame()">&times;</button>
@@ -709,8 +717,8 @@
   </div>
 
   <script src="js/beauty-filters.js?v=3"></script>
-  <script src="js/camera-recorder.js?v=15"></script>
-  <script src="js/app.js?v=53"></script>
+  <script src="js/camera-recorder.js?v=16"></script>
+  <script src="js/app.js?v=54"></script>
   <script src="js/feedback.js?v=1"></script>
   <script defer src="/_vercel/insights/script.js"></script>
   <script defer src="/_vercel/speed-insights/script.js"></script>

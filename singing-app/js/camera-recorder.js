@@ -256,8 +256,8 @@ const CameraRecorder = {
 
     // Mirror the exact same calculation used during the song:
     // radius = bubbleRadiusRatio * min(screenW, screenH)
-    const radiusMap = { 'bubble-sm': 0.14, 'bubble': 0.20, 'bubble-lg': 0.28 };
-    const ratio = radiusMap[size] || 0.20;
+    const radiusMap = { 'bubble-sm': 0.10, 'bubble': 0.18, 'bubble-lg': 0.30 };
+    const ratio = radiusMap[size] || 0.18;
     const minScreenDim = Math.min(window.innerWidth, window.innerHeight);
     const diameter = Math.round(2 * ratio * minScreenDim);
 
@@ -315,8 +315,8 @@ const CameraRecorder = {
   },
 
   _bubbleRadius(minDim) {
-    const radiusMap = { 'bubble-sm': 0.14, 'bubble': 0.20, 'bubble-lg': 0.28, 'box': 0 };
-    return Math.round(minDim * (radiusMap[this.size] || 0.20));
+    const radiusMap = { 'bubble-sm': 0.10, 'bubble': 0.18, 'bubble-lg': 0.30, 'box': 0 };
+    return Math.round(minDim * (radiusMap[this.size] || 0.18));
   },
 
   _bubbleGeometry(W, H) {

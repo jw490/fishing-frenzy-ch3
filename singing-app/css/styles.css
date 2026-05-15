@@ -3419,3 +3419,45 @@ html, body {
   gap: 12px;
   width: 100%;
 }
+
+/* ── Loom-style positioning overlay ────────────────────────────────── */
+
+.loom-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+}
+.loom-overlay.active {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.2s ease;
+}
+.loom-overlay-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.loom-hint {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.7);
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+  margin: 0;
+}
+.loom-num {
+  font-size: clamp(72px, 18vw, 120px);
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 0 40px rgba(0,200,255,0.6), 0 2px 16px rgba(0,0,0,0.8);
+  line-height: 1;
+  animation: countPulse 1s ease-in-out;
+}

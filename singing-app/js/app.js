@@ -528,36 +528,40 @@ const App = {
         if (this._abortSelect) return; // user navigated away
       }
 
-      // Show countdown
-      document.getElementById('countdown-title').textContent = song.title;
-      this.showScreen('countdown');
+      // Loom-style: show game screen immediately so user can see + drag bubble,
+      // then count down 3-2-1 as an overlay before audio starts.
+      this._setupGameScreen(songId);
 
-      // Countdown 3-2-1
-      const numEl = document.getElementById('countdown-num');
+      const loomOverlay = document.getElementById('loom-overlay');
+      const loomNum    = document.getElementById('loom-num');
+      if (loomOverlay) loomOverlay.classList.add('active');
+
       for (let i = 3; i >= 1; i--) {
-        if (this._abortSelect) return; // user navigated away during countdown
-        numEl.textContent = i;
-        numEl.style.animation = 'none';
-        void numEl.offsetHeight; // force reflow
-        numEl.style.animation = 'countPulse 1s ease-in-out';
+        if (this._abortSelect) { if (loomOverlay) loomOverlay.classList.remove('active'); return; }
+        if (loomNum) {
+          loomNum.textContent = i;
+          loomNum.style.animation = 'none';
+          void loomNum.offsetHeight;
+          loomNum.style.animation = 'countPulse 1s ease-in-out';
+        }
         PitchDetector.playClick();
         await this._wait(1000);
       }
 
-      if (this._abortSelect) return; // aborted during last wait
-      numEl.textContent = '\u266A';
+      if (this._abortSelect) { if (loomOverlay) loomOverlay.classList.remove('active'); return; }
+      if (loomNum) { loomNum.textContent = '\u266A'; }
       await this._wait(400);
 
-      if (this._abortSelect) return; // aborted during last wait
-      // Start game
-      this._startGame(songId);
+      if (loomOverlay) loomOverlay.classList.remove('active');
+      if (this._abortSelect) return;
+      this._launchGame(songId);
     } finally {
       // Always release the lock so subsequent song selections work normally.
       this._selectingSong = false;
     }
   },
 
-  _startGame(songId) {
+  _setupGameScreen(songId) {
     const song = Songs.get(songId);
     document.getElementById('game-title').textContent = song.title;
     document.getElementById('game-artist').textContent = song.artist;
@@ -566,11 +570,8 @@ const App = {
     document.getElementById('game-time').textContent = '0:00';
     document.getElementById('game-lyrics').innerHTML = '';
 
-    // Tell Synth whether to strip vocals this run, based on the per-song toggle
     Synth.stripVocalsOverride = this.isKaraokeOn(song);
 
-    // Reset rank state and kick off a background leaderboard fetch so the
-    // live rank display has data as soon as possible.
     this._gameRankScores = [];
     this._gameRankReady = false;
     this._fetchGameRanks(songId);
@@ -579,27 +580,14 @@ const App = {
     this._trackEvent('song_start', { song_id: songId, karaoke: this.isKaraokeOn(song) });
     Game.loadSong(songId);
 
-    // Show/hide karaoke toggle — shown whenever the song has an instrumental stem
-    // (including MV songs, where toggling switches between Synth instrumental
-    // and the video's embedded audio track).
     const karaokeBtn = document.getElementById('game-karaoke-btn');
     if (karaokeBtn) karaokeBtn.hidden = !song.stripVocals;
 
-    // MV mode: swap canvas for video. Audio routing depends on karaoke state:
-    //   Karaoke ON  → video muted (visual only),  Synth plays instrumental
-    //   Karaoke OFF → video unmuted (audio source), Synth silent
-    //
-    // lyricsMode songs skip the video entirely — Synth handles audio and the
-    // full canvas is used for pitch visualization. This removes the bandwidth
-    // cost, reduces CPU, and keeps the UI focused on lyrics + pitch feedback.
     const gameScreen = document.getElementById('screen-game');
     const mvEl = document.getElementById('game-mv');
     if (song.mvSrc && !song.lyricsMode && mvEl && gameScreen) {
       gameScreen.classList.add('has-mv');
-      mvEl.muted = this.isKaraokeOn(song); // muted when karaoke ON (Synth handles audio)
-      // Only restart loading if src changed — if selectSong() already started
-      // buffering (preload during countdown), don't call load() again or we'd
-      // throw away all the buffered data and restart from scratch.
+      mvEl.muted = this.isKaraokeOn(song);
       const mvFilename = song.mvSrc.split('/').pop();
       if (!mvEl.src || !mvEl.src.includes(mvFilename)) {
         mvEl.src = song.mvSrc;
@@ -612,26 +600,36 @@ const App = {
       if (mvEl) { mvEl.pause(); mvEl.muted = true; mvEl.removeAttribute('src'); }
     }
 
-    // Small delay to let screen render
+    // Resize canvas + init bubble drag so bubble is visible and draggable during countdown
     setTimeout(() => {
       Game._resize();
-      Game.start();
       if (typeof CameraRecorder !== 'undefined') {
-        CameraRecorder._bubbleX = null; // reset position so it defaults to bottom-left each song
+        CameraRecorder._bubbleX = null;
         CameraRecorder.initDrag(Game.canvas);
-        CameraRecorder.startRecording(Game.canvas);
       }
-      // Start MV in sync with audio (only for non-lyricsMode songs that use video)
-      if (song.mvSrc && !song.lyricsMode && mvEl && gameScreen.classList.contains('has-mv')) {
-        mvEl.currentTime = 0;
-        mvEl.play().catch(() => {/* autoplay may be blocked — video is muted so usually fine */});
-      }
-      // Sync karaoke button to current state after Game.loadSong() has set _isKaraokeOff
       this._updateKaraokeBtn();
-      // Hide rank until we have data
       const rankEl = document.getElementById('game-rank');
       if (rankEl) rankEl.hidden = true;
     }, 100);
+  },
+
+  _launchGame(songId) {
+    const song = Songs.get(songId);
+    const gameScreen = document.getElementById('screen-game');
+    const mvEl = document.getElementById('game-mv');
+    Game.start();
+    if (typeof CameraRecorder !== 'undefined') {
+      CameraRecorder.startRecording(Game.canvas);
+    }
+    if (song.mvSrc && !song.lyricsMode && mvEl && gameScreen && gameScreen.classList.contains('has-mv')) {
+      mvEl.currentTime = 0;
+      mvEl.play().catch(() => {});
+    }
+  },
+
+  _startGame(songId) {
+    this._setupGameScreen(songId);
+    setTimeout(() => this._launchGame(songId), 100);
   },
 
   quitGame() {
