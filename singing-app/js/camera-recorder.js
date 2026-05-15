@@ -7,6 +7,7 @@ const CameraRecorder = {
 
   // 'off' | 'bubble-sm' | 'bubble' | 'bubble-lg' | 'box'
   size: 'bubble',
+  mirrored: true,
 
   _videoEl: null,
   _camStream: null,
@@ -281,6 +282,12 @@ const CameraRecorder = {
       ctx.rect(x, y, w, h);
     }
     ctx.clip();
+
+    // Selfie mirror: flip horizontally so user sees themselves as expected
+    if (this.mirrored) {
+      ctx.translate(2 * x + w, 0);
+      ctx.scale(-1, 1);
+    }
 
     if (typeof BeautyFilters !== 'undefined') {
       BeautyFilters.apply(ctx, vid, sx, sy, sw, sh, x, y, w, h);

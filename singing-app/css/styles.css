@@ -1063,71 +1063,28 @@ html, body {
   filter: brightness(1.06) contrast(0.94);
 }
 
-/* ── Filter picker ──────────────────────────────────────────────────── */
+/* ── Beautify toggle ────────────────────────────────────────────────── */
 
-.filter-picker {
+.beautify-btn {
   display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding: 4px 2px 2px;
-  width: 100%;
-  justify-content: center;
-  scrollbar-width: none;
-}
-.filter-picker::-webkit-scrollbar { display: none; }
-
-.filter-btn {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 5px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-.filter-swatch {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  border: 2.5px solid rgba(255,255,255,0.12);
-  transition: border-color 0.18s, transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
-}
-.filter-btn.active .filter-swatch {
-  border-color: #00d4ff;
-  transform: scale(1.14);
-  box-shadow: 0 0 10px rgba(0,212,255,0.45);
-}
-.filter-btn span {
-  font-size: 10px;
-  color: rgba(255,255,255,0.45);
+  gap: 7px;
+  padding: 9px 22px;
+  border-radius: 100px;
+  border: 1.5px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.55);
+  font-size: 13px;
+  font-weight: 500;
   letter-spacing: 0.03em;
-  transition: color 0.18s;
-  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s;
 }
-.filter-btn.active span { color: #00d4ff; }
-
-/* Swatch face-toned gradients */
-.filter-swatch--natural   { background: radial-gradient(circle at 38% 32%, #f5dfc5, #c8966a); }
-.filter-swatch--smooth    { background: radial-gradient(circle at 38% 32%, #fce8dc, #e0aa88); }
-.filter-swatch--dewy      { background: radial-gradient(circle at 38% 32%, #e8f4ff, #b8d8f0), radial-gradient(circle at 60% 40%, rgba(255,255,255,0.6) 10%, transparent 60%); }
-.filter-swatch--porcelain { background: radial-gradient(circle at 38% 32%, #fff5ee, #f0c8aa); }
-.filter-swatch--golden    { background: radial-gradient(circle at 38% 32%, #f8c060, #c07828); }
-.filter-swatch--glamour   { background: radial-gradient(circle at 38% 32%, #ff7aaa, #8b1040); }
-.filter-swatch--freckles  { background: radial-gradient(circle at 38% 32%, #f0c090, #c89050);
-                             position: relative; }
-.filter-swatch--freckles::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: radial-gradient(1.5px 1.5px at 38% 54%, #7a4020 100%, transparent),
-              radial-gradient(1.5px 1.5px at 55% 48%, #7a4020 100%, transparent),
-              radial-gradient(1.5px 1.5px at 48% 62%, #7a4020 100%, transparent),
-              radial-gradient(1.5px 1.5px at 62% 58%, #7a4020 100%, transparent),
-              radial-gradient(1.5px 1.5px at 44% 42%, #7a4020 100%, transparent);
+.beautify-btn.active {
+  border-color: #00d4ff;
+  background: rgba(0,212,255,0.10);
+  color: #00d4ff;
+  box-shadow: 0 0 12px rgba(0,212,255,0.25);
 }
 
 .cam-setup-no-cam {
