@@ -27,10 +27,24 @@ const CameraRecorder = {
 
   async startCamera() {
     try {
+      // Request video + audio together in one getUserMedia call.
+      // Splitting into two calls (video then audio later) causes iOS to switch
+      // audio sessions mid-song and mute playback.
       this._camStream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-        audio: false,
-      });
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          sampleRate: 44100,
+        },
+      }).catch(() =>
+        // Some devices reject advanced audio constraints — retry with plain audio
+        navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+          audio: true,
+        })
+      );
       if (!this._videoEl) {
         this._videoEl = document.createElement('video');
         this._videoEl.muted = true;
@@ -86,36 +100,13 @@ const CameraRecorder = {
 
     const canvasStream = canvas.captureStream(30);
 
-    // PitchDetector uses WebAudio internally and has no raw stream.
-    // Get a separate mic stream for recording audio.
-    let micStream = null;
-    try {
-      // High-quality: disable voice-call processing that degrades singing
-      micStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          sampleRate: 44100,
-        },
-        video: false,
-      });
-    } catch (_) {}
-
-    // Some browsers/devices reject the advanced constraints — fall back to plain mic
-    if (!micStream || !micStream.getAudioTracks().length) {
-      try {
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      } catch (e) {
-        console.warn('CameraRecorder: mic unavailable for recording', e);
-      }
-    }
-
-    this._ownMicStream = micStream || null;
+    // Reuse audio tracks captured at camera-start time.
+    // Calling getUserMedia again mid-song causes iOS to switch audio sessions and mute playback.
+    const audioTracks = this._camStream ? this._camStream.getAudioTracks() : [];
 
     const tracks = [
       ...canvasStream.getVideoTracks(),
-      ...(micStream ? micStream.getAudioTracks() : []),
+      ...audioTracks,
     ];
 
     // Safari records MP4 natively; Chrome/Firefox use WebM
@@ -155,10 +146,6 @@ const CameraRecorder = {
       this._recorder.onstop = () => {
         this._recordedBlob = new Blob(this._chunks, { type: this._recordedMime || 'video/webm' });
         this.isRecording = false;
-        if (this._ownMicStream) {
-          this._ownMicStream.getTracks().forEach(t => t.stop());
-          this._ownMicStream = null;
-        }
         resolve(this._recordedBlob);
       };
       this._recorder.stop();
