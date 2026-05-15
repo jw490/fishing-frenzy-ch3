@@ -770,14 +770,26 @@ const Game = {
     const H = this.displayHeight;
     const time = this.currentTime;
 
-    // Clear
+    // Base fill
     ctx.fillStyle = this.COLORS.bg;
     ctx.fillRect(0, 0, W, H);
 
     const playheadX = W * this.PLAYHEAD_X;
     const pxPerSec = W / this.VISIBLE_SECONDS;
 
-    const isLyricsMode = this.song && this.song.lyricsMode;
+    // Ambient stage spotlight — soft radial glow centred on the playhead.
+    // Breathes slightly when the player is singing.
+    {
+      const singing = this.currentPitch && this.currentPitch.freq > 0;
+      const breathe = singing ? 0.06 * Math.sin(performance.now() / 600) : 0;
+      const r = W * (0.62 + breathe);
+      const spot = ctx.createRadialGradient(playheadX, H * 0.5, 0, playheadX, H * 0.5, r);
+      spot.addColorStop(0,   'rgba(10,60,160,0.18)');
+      spot.addColorStop(0.35,'rgba(60,0,140,0.10)');
+      spot.addColorStop(1,   'rgba(0,0,0,0)');
+      ctx.fillStyle = spot;
+      ctx.fillRect(0, 0, W, H);
+    }
 
     // Scrolling syllable bars with playhead
     this._drawLyricsModeBars(ctx, W, H, time, playheadX, pxPerSec);
@@ -788,11 +800,42 @@ const Game = {
     // Canvas overlays: grade bomb + streak counter (drawn on canvas to avoid z-index issues)
     this._drawOverlays(ctx, W, H);
 
+    // Edge vignette — darkens corners so the centre pops on stream
+    {
+      const vg = ctx.createRadialGradient(W * 0.5, H * 0.5, H * 0.3, W * 0.5, H * 0.5, W * 0.75);
+      vg.addColorStop(0, 'rgba(0,0,0,0)');
+      vg.addColorStop(1, 'rgba(0,0,0,0.45)');
+      ctx.fillStyle = vg;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // Song title + artist watermark — always visible so stream audience knows what's playing
+    if (this.song && this.song.title) {
+      const titleFS = Math.round(W * 0.022);
+      const artistFS = Math.round(W * 0.015);
+      const tx = W - Math.round(W * 0.03);
+      const ty = H - Math.round(H * 0.055);
+      ctx.save();
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.shadowColor = 'rgba(0,0,0,0.9)';
+      ctx.shadowBlur = 10;
+      ctx.font = `700 ${titleFS}px 'Rajdhani', 'Inter', sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.42)';
+      ctx.fillText(this.song.title, tx, ty);
+      if (this.song.artist) {
+        ctx.font = `400 ${artistFS}px 'Inter', sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.fillText(this.song.artist, tx, ty + titleFS * 1.25);
+      }
+      ctx.restore();
+    }
+
     // Progress bar at bottom
     const progress = Math.min(1, this.currentTime / this.duration);
-    ctx.fillStyle = 'rgba(0,212,255,0.15)';
+    ctx.fillStyle = 'rgba(0,212,255,0.10)';
     ctx.fillRect(0, H - 3, W, 3);
-    ctx.fillStyle = 'rgba(0,212,255,0.6)';
+    ctx.fillStyle = 'rgba(0,212,255,0.55)';
     ctx.fillRect(0, H - 3, W * progress, 3);
   },
 
@@ -1374,16 +1417,16 @@ const Game = {
     ctx.stroke();
     ctx.restore();
 
-    // Pitch-zone labels: HIGH on top, LOW on bottom — helps players understand direction.
+    // Pitch-zone labels — very subtle, just enough for players without cluttering the stream view
     const labelX = 8;
     ctx.save();
-    ctx.font = 'bold 10px Inter, sans-serif';
+    ctx.font = 'bold 9px Inter, sans-serif';
     ctx.letterSpacing = '0.08em';
-    ctx.globalAlpha = 0.25;
+    ctx.globalAlpha = 0.14;
     ctx.fillStyle = '#ffd700';
-    ctx.fillText('HIGH', labelX, 18);
+    ctx.fillText('HIGH', labelX, 16);
     ctx.fillStyle = '#6ab0ff';
-    ctx.fillText('LOW', labelX, H - 8);
+    ctx.fillText('LOW', labelX, H - 6);
     ctx.restore();
 
     // Helper: interpolate bar color based on pitch fraction (0=low, 1=high)
@@ -1406,8 +1449,8 @@ const Game = {
     };
 
     // Draw syllable bars
-    const nh = this.NOTE_HEIGHT * 0.85; // slightly taller than before
-    const cornerR = Math.min(nh / 2, 5);
+    const nh = this.NOTE_HEIGHT * 1.0;
+    const cornerR = Math.min(nh / 2, 6);
 
     for (const bar of this.syllableBars) {
       const x = playheadX + (bar.start - time) * pxPerSec;
@@ -1427,32 +1470,35 @@ const Game = {
       if (isPast) {
         const wasHit = bar.hit;
         if (wasHit) {
-          ctx.fillStyle = 'rgba(0,255,136,0.22)';
-          ctx.strokeStyle = 'rgba(0,255,136,0.45)';
+          ctx.shadowColor = 'rgba(0,255,136,0.6)';
+          ctx.shadowBlur = 8;
+          ctx.fillStyle = 'rgba(0,255,136,0.28)';
+          ctx.strokeStyle = 'rgba(0,255,136,0.55)';
         } else {
           ctx.fillStyle = 'rgba(255,255,255,0.03)';
-          ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+          ctx.strokeStyle = 'rgba(255,255,255,0.08)';
         }
         ctx.lineWidth = 1;
       } else if (isActive) {
         if (isSinging) {
           ctx.shadowColor = '#00ff88';
-          ctx.shadowBlur = 16;
-          ctx.fillStyle = 'rgba(0,255,136,0.45)';
+          ctx.shadowBlur = 32;
+          ctx.fillStyle = 'rgba(0,255,136,0.55)';
           ctx.strokeStyle = '#00ff88';
+          ctx.lineWidth = 2.5;
         } else {
-          // Pulse the active bar even when not singing yet
-          const pulse = 0.5 + 0.3 * Math.sin(performance.now() / 200);
-          ctx.fillStyle = pitchBarColor(pitchFrac, 0.25 + pulse * 0.15);
-          ctx.strokeStyle = pitchBarColor(pitchFrac, 0.7 + pulse * 0.3);
-          ctx.shadowColor = pitchBarColor(pitchFrac, 0.5);
-          ctx.shadowBlur = 8 + pulse * 6;
+          // Pulse the active bar when not singing yet
+          const pulse = 0.5 + 0.35 * Math.sin(performance.now() / 200);
+          ctx.fillStyle = pitchBarColor(pitchFrac, 0.28 + pulse * 0.15);
+          ctx.strokeStyle = pitchBarColor(pitchFrac, 0.75 + pulse * 0.25);
+          ctx.shadowColor = pitchBarColor(pitchFrac, 0.6);
+          ctx.shadowBlur = 12 + pulse * 10;
+          ctx.lineWidth = 2;
         }
-        ctx.lineWidth = 2;
       } else {
-        // Upcoming bars — color-coded by pitch for immediate visual clarity
-        ctx.fillStyle = pitchBarColor(pitchFrac, 0.18);
-        ctx.strokeStyle = pitchBarColor(pitchFrac, 0.55);
+        // Upcoming bars
+        ctx.fillStyle = pitchBarColor(pitchFrac, 0.20);
+        ctx.strokeStyle = pitchBarColor(pitchFrac, 0.60);
         ctx.lineWidth = 1.2;
       }
 
@@ -1463,21 +1509,32 @@ const Game = {
       ctx.restore();
     }
 
-    // Draw user's pitch dot on playhead
+    // Pitch dot — concert-style with pulsing outer ring
     if (this.currentPitch.freq > 0) {
       const py = this._midiToY(this.currentPitch.midi);
       if (py > 0 && py < H) {
+        const now2 = performance.now();
+        const pulse = 0.5 + 0.5 * Math.sin(now2 / 190);
         ctx.save();
+        // Outer pulse ring
+        ctx.strokeStyle = `rgba(0,255,136,${0.25 + pulse * 0.35})`;
+        ctx.lineWidth = 1.5;
         ctx.shadowColor = '#00ff88';
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 20 + pulse * 14;
+        ctx.beginPath();
+        ctx.arc(playheadX, py, 12 + pulse * 5, 0, Math.PI * 2);
+        ctx.stroke();
+        // Core dot
+        ctx.shadowBlur = 28;
         ctx.fillStyle = '#00ff88';
         ctx.beginPath();
-        ctx.arc(playheadX, py, 5, 0, Math.PI * 2);
+        ctx.arc(playheadX, py, 8, 0, Math.PI * 2);
         ctx.fill();
+        // White inner highlight
         ctx.shadowBlur = 0;
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(playheadX, py, 2, 0, Math.PI * 2);
+        ctx.arc(playheadX, py, 3, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
@@ -1486,7 +1543,7 @@ const Game = {
     // Pitch trail behind playhead
     if (this.pitchHistory.length > 1) {
       ctx.save();
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3;
       ctx.lineCap = 'round';
       for (let i = 1; i < this.pitchHistory.length; i++) {
         const prev = this.pitchHistory[i - 1];
@@ -1498,7 +1555,7 @@ const Game = {
         const y1 = this._midiToY(prev.midi);
         const y2 = this._midiToY(curr.midi);
         const age = time - curr.time;
-        const alpha = Math.max(0.05, 0.5 - age / (this.VISIBLE_SECONDS * 0.6));
+        const alpha = Math.max(0.08, 0.7 - age / (this.VISIBLE_SECONDS * 0.55));
         const consec = curr.consec || 0;
         // Combo level shifts the "good pitch" trail accent:
         //   level 0 → cyan base, green on-pitch
