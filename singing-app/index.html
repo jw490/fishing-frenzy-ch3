@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>VocalStar - Sing. Score. Improve.</title>
-  <link rel="stylesheet" href="css/styles.css?v=55">
+  <link rel="stylesheet" href="css/styles.css?v=56">
   <meta http-equiv="Cache-Control" content="no-cache">
   <meta name="theme-color" content="#06060f">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -343,47 +343,48 @@
     </div>
   </div>
 
-  <!-- ============ COUNTDOWN SCREEN ============ -->
   <!-- ============ CAMERA SETUP SCREEN ============ -->
-  <div id="screen-cam-setup" class="screen">
-    <div class="cam-setup-wrap">
-      <div class="cam-setup-header">
-        <div class="cam-setup-song" id="cam-setup-song-title"></div>
-        <h2 class="cam-setup-title">Camera Setup</h2>
-        <p class="cam-setup-sub">You'll look great. Drag the bubble anywhere during your performance.</p>
-      </div>
+  <div id="screen-cam-setup" class="screen screen-cam-setup">
 
-      <div class="cam-setup-preview-wrap">
-        <div class="cam-bubble-preview" id="cam-bubble-preview">
-          <video id="cam-setup-video" class="cam-setup-video" autoplay playsinline muted></video>
-        </div>
-        <div class="cam-setup-no-cam" id="cam-setup-no-cam">Camera off</div>
-      </div>
+    <!-- Full-screen mirrored camera feed -->
+    <video id="cam-setup-video" class="cam-bg-video" autoplay playsinline muted></video>
+
+    <!-- Camera-off placeholder -->
+    <div class="cam-setup-no-cam" id="cam-setup-no-cam" style="display:none">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"/></svg>
+      <span>Camera off</span>
+    </div>
+
+    <!-- Bubble at its exact song position — box-shadow dims everything outside -->
+    <div class="cam-size-bubble" id="cam-bubble-preview"></div>
+
+    <!-- Controls panel floats at bottom -->
+    <div class="cam-setup-panel">
+      <div class="cam-setup-song" id="cam-setup-song-title"></div>
+      <h2 class="cam-setup-title">Camera Setup</h2>
 
       <button class="beautify-btn" id="beautify-btn" onclick="BeautyFilters.toggle()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
         Beautify
       </button>
 
-      <div class="cam-setup-controls">
-        <div class="cam-picker" id="cam-picker">
-          <button class="cam-picker-btn" data-size="off" onclick="CameraRecorder.setSize('off'); document.getElementById('cam-setup-no-cam').style.display='flex'; document.getElementById('cam-setup-video').style.display='none';">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"/></svg>
-            <span>Off</span>
-          </button>
-          <button class="cam-picker-btn" data-size="bubble-sm" onclick="CameraRecorder.setSize('bubble-sm'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='';">
-            <svg width="10" height="10" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>
-            <span>Small</span>
-          </button>
-          <button class="cam-picker-btn active" data-size="bubble" onclick="CameraRecorder.setSize('bubble'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='';">
-            <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>
-            <span>Medium</span>
-          </button>
-          <button class="cam-picker-btn" data-size="bubble-lg" onclick="CameraRecorder.setSize('bubble-lg'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='';">
-            <svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>
-            <span>Large</span>
-          </button>
-        </div>
+      <div class="cam-picker" id="cam-picker">
+        <button class="cam-picker-btn" data-size="off" onclick="CameraRecorder.setSize('off'); document.getElementById('cam-setup-no-cam').style.display='flex'; document.getElementById('cam-setup-video').style.display='none'; document.getElementById('cam-bubble-preview').style.opacity='0';">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"/></svg>
+          <span>Off</span>
+        </button>
+        <button class="cam-picker-btn" data-size="bubble-sm" onclick="CameraRecorder.setSize('bubble-sm'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='';">
+          <svg width="10" height="10" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>
+          <span>Small</span>
+        </button>
+        <button class="cam-picker-btn active" data-size="bubble" onclick="CameraRecorder.setSize('bubble'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='';">
+          <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>
+          <span>Medium</span>
+        </button>
+        <button class="cam-picker-btn" data-size="bubble-lg" onclick="CameraRecorder.setSize('bubble-lg'); document.getElementById('cam-setup-no-cam').style.display='none'; document.getElementById('cam-setup-video').style.display='';">
+          <svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>
+          <span>Large</span>
+        </button>
       </div>
 
       <div class="cam-setup-actions">
@@ -717,7 +718,7 @@
   </div>
 
   <script src="js/beauty-filters.js?v=3"></script>
-  <script src="js/camera-recorder.js?v=20"></script>
+  <script src="js/camera-recorder.js?v=21"></script>
   <script src="js/app.js?v=54"></script>
   <script src="js/feedback.js?v=1"></script>
   <script defer src="/_vercel/insights/script.js"></script>

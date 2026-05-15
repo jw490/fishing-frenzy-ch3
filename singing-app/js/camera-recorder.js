@@ -254,16 +254,19 @@ const CameraRecorder = {
     if (!bubble) return;
     if (size === 'off') { bubble.style.opacity = '0'; return; }
 
+    // Use exact same math as _bubbleGeometry + _bubbleRadius during the song
     const radiusMap = { 'bubble-sm': 0.10, 'bubble': 0.18, 'bubble-lg': 0.30 };
     const ratio = radiusMap[size] || 0.18;
-    const wrap = bubble.parentElement;
-    const containerPx = wrap ? wrap.clientWidth : 300;
-    // The preview box represents the screen's narrow dimension.
-    // diameter = 2 × ratio × containerPx gives the same proportion as in-song.
-    const px = Math.round(2 * ratio * containerPx);
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const r = Math.round(ratio * Math.min(W, H));
+    const cx = Math.round(W * 0.12);
+    const cy = H - r - Math.round(H * 0.05);
 
-    bubble.style.width  = px + 'px';
-    bubble.style.height = px + 'px';
+    bubble.style.width  = r * 2 + 'px';
+    bubble.style.height = r * 2 + 'px';
+    bubble.style.left   = (cx - r) + 'px';
+    bubble.style.top    = (cy - r) + 'px';
     bubble.style.opacity = '1';
   },
 
