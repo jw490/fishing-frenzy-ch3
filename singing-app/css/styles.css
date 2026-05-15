@@ -1002,7 +1002,8 @@ html, body {
   align-items: center;
   gap: 16px;
   width: 100%;
-  max-width: 480px;
+  max-width: 420px;
+  margin: 0 auto;
 }
 
 .cam-setup-header {
@@ -1032,9 +1033,9 @@ html, body {
 
 .cam-setup-preview-wrap {
   position: relative;
-  width: 100%;
+  width: min(100%, 300px);
   aspect-ratio: 1;
-  border-radius: 16px;
+  border-radius: 20px;
   background: #0a0a1a;
   border: 1px solid rgba(255,255,255,0.08);
   display: flex;
